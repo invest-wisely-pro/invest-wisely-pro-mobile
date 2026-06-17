@@ -595,6 +595,15 @@ tbody tr:hover{background:var(--bg2)}
 
 /* ── Slider thumb più grande su touch (min 44×44px Apple HIG) ── */
 @media (pointer: coarse) {
+  /* Fix navigazione touch iOS/Safari: tap immediati e affidabili sui controlli interattivi */
+  .tab-btn, .gbtn, .addbtn, .dbtn, .custom-select, button, .top-nav .navlinks button, .home-card {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.08);
+  }
+  /* Gli emoji/span dentro i bottoni non devono intercettare il tap (fix propagazione iOS) */
+  .tab-btn > span, .gbtn > span, .top-nav .navlinks button > span {
+    pointer-events: none;
+  }
   input[type=range] {
     height: 6px;
     cursor: pointer;
@@ -679,13 +688,22 @@ tbody tr:hover{background:var(--bg2)}
     gap: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    /* touch-action esplicito: lo scroll orizzontale non deve bloccare i tap sui bottoni (fix Safari iOS) */
+    touch-action: pan-x;
   }
   .tab-nav::-webkit-scrollbar { display: none; }
   .tab-btn {
-    padding: 11px 12px;
+    padding: 13px 14px;
     font-size: 12px;
     gap: 4px;
     flex-shrink: 0;
+    min-height: 44px;
+  }
+  /* Bottoni preset/azione: più respiro e touch target adeguato */
+  .gbtn {
+    padding: 9px 13px;
+    min-height: 40px;
+    font-size: 12.5px;
   }
 
   /* Tab content: padding ridotto */
@@ -732,18 +750,40 @@ tbody tr:hover{background:var(--bg2)}
     width: 100%;
   }
 
-  /* Custom portfolio slots: stacked */
+  /* Custom portfolio slots: select piena sopra, riga compatta % + cestino sotto */
   .custom-slot {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(255,255,255,.45);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
   }
+  /* la select occupa tutta la prima riga */
   .custom-select {
     min-width: unset;
+    flex: 1 1 100%;
     width: 100%;
+    padding: 10px 12px;
   }
+  /* input % si espande sulla riga inferiore, accanto a simbolo e cestino */
   .custom-pct-input {
-    width: 100%;
-    text-align: left;
+    flex: 1 1 auto;
+    width: auto;
+    text-align: right;
+    padding: 10px 12px;
+  }
+  /* bottone elimina: touch target pieno 44px */
+  .custom-slot .dbtn {
+    flex: 0 0 auto;
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
   }
 
   /* Pulsanti CTA: full width */

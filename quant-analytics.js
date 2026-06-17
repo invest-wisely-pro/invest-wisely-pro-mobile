@@ -16,7 +16,7 @@ const AC_KEYS_EF = [
   'eq_sviluppati','eq_usa','eq_europa','eq_em','eq_small_value',
   'reits','fat_valore','fat_momentum','fat_qualita','fat_low_vol',
   'fat_size','fat_investment','fat_dividendi','fat_multifat',
-  'fat_carry_bond','fat_carry_fx','fat_trend',
+  'fat_carry_bond','fat_carry_fx','fat_carry_comm','fat_trend',
   'ob_usa_st','ob_usa_it','ob_usa_lt','ob_usa_ult',
   'ob_eu_st','ob_eu_it','ob_eu_lt',
   'ob_glob_gov','ob_glob_agg','ob_infl',
@@ -31,7 +31,7 @@ const AC_CAT_EF = {
   eq_sviluppati:'eq', eq_usa:'eq', eq_europa:'eq', eq_em:'eq', eq_small_value:'eq', reits:'eq',
   fat_valore:'fat', fat_momentum:'fat', fat_qualita:'fat', fat_low_vol:'fat',
   fat_size:'fat', fat_investment:'fat', fat_dividendi:'fat', fat_multifat:'fat',
-  fat_carry_bond:'carry', fat_carry_fx:'carry', fat_trend:'trend',
+  fat_carry_bond:'carry', fat_carry_fx:'carry', fat_carry_comm:'carry', fat_trend:'trend',
   ob_usa_st:'ob_usa', ob_usa_it:'ob_usa', ob_usa_lt:'ob_usa', ob_usa_ult:'ob_usa',
   ob_eu_st:'ob_eu', ob_eu_it:'ob_eu', ob_eu_lt:'ob_eu',
   ob_glob_gov:'ob_glob', ob_glob_agg:'ob_glob', ob_infl:'ob_glob',
@@ -194,6 +194,10 @@ const CORR_MATRIX = (() => {
     ['fat_carry_fx','fat_carry_bond', 0.35],
     ['fat_carry_bond','eq_sviluppati',0.10],
     ['fat_carry_bond','ob_glob_agg',  0.30],
+    ['fat_carry_comm','eq_sviluppati',0.10],  // commodity carry: decorrelato dalle azioni (diversificatore)
+    ['fat_carry_comm','fat_carry_fx', 0.15],  // poco correlato anche con le altre carry
+    ['fat_carry_comm','commodities',  0.35],  // legame con le materie prime, ma è strategia di curva
+    ['fat_carry_comm','ob_infl',      0.25],  // sensibile all'inflazione
     ['fat_multifat','eq_sviluppati',  0.82],  // multi-fattore ≈ azionario con tilt
     ['fat_multifat','fat_valore',     0.80],
     ['fat_multifat','fat_momentum',   0.55],
@@ -445,13 +449,33 @@ function getCurrentPortfolioPoint(ter) {
       isCurrent: true,
     };
   }
-  // Custom
+  // Custom — espandi i composite (Efficient Core) nei sottostanti atomici,
+  // altrimenti getCov restituisce NaN (vol undefined) → triangolo sparisce.
   const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
   if (!slots.length) return null;
-  const total = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
-  if (total<=0) return null;
-  const keys = slots.map(s=>s.ac);
-  const weights = slots.map(s=>(+s.pct||0)/total);
+  const rawTotal = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
+  if (rawTotal<=0) return null;
+
+  // Espansione: i composite vengono scomposti con pesi notional corretti,
+  // poi normalizzati a somma 1 (come fa expandCustomSlots ma leggero).
+  const expandedMap = {};
+  for (const sl of slots) {
+    const pctNorm = (+sl.pct||0) / rawTotal; // peso normalizzato dello slot
+    const ac = ASSET_CLASSES[sl.ac];
+    if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+      const notional = ac.composite.reduce((a,c) => a + c.w, 0);
+      for (const comp of ac.composite) {
+        expandedMap[comp.ac] = (expandedMap[comp.ac] || 0) + pctNorm * (comp.w / notional);
+      }
+    } else {
+      expandedMap[sl.ac] = (expandedMap[sl.ac] || 0) + pctNorm;
+    }
+  }
+  // Rinormalizza a somma 1 (la leva è già catturata dai pesi > somma originale)
+  const expSum = Object.values(expandedMap).reduce((a,b)=>a+b,0);
+  const keys = Object.keys(expandedMap);
+  const weights = keys.map(k => expandedMap[k] / (expSum||1));
+
   const mu  = portfolioMu(weights, keys, ter);
   const vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
   return { mu, vol, sharpe: (mu-RF_RATE)/(vol||0.001), label:'Il tuo portafoglio', isCurrent:true };
@@ -647,12 +671,32 @@ function _syncEFStateFromSimulator() {
   _efState.ter   = state.ter || 0.20;
   _efState.value = state.w || 100000;
 
-  // Se portafoglio custom, usa le sue asset class
+  // Se portafoglio custom, usa le sue asset class.
+  // I composite (Efficient Core 90/60) vanno espansi nei sottostanti atomici:
+  // ec_glob_core non ha vol/mu propri → computeEfficientFrontier produrrebbe NaN.
   if (state.portfolio === 'custom') {
     const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
     if (slots.length) {
-      _efState.assets = slots.map(s=>s.ac);
-      return;
+      const expanded = [];
+      for (const sl of slots) {
+        const ac = ASSET_CLASSES[sl.ac];
+        if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+          // Scomponi: aggiungi i sottostanti (deduplicando)
+          for (const comp of ac.composite) {
+            if (ASSET_CLASSES[comp.ac] && !expanded.includes(comp.ac)) {
+              expanded.push(comp.ac);
+            }
+          }
+        } else {
+          if (!expanded.includes(sl.ac)) expanded.push(sl.ac);
+        }
+      }
+      if (expanded.length >= 2) { _efState.assets = expanded; return; }
+      if (expanded.length === 1) {
+        const partner = expanded[0].startsWith('eq') ? 'ob_glob_agg' : 'eq_sviluppati';
+        _efState.assets = [expanded[0], partner];
+        return;
+      }
     }
   }
   // Per i preset: usa le ASSET CLASS REALI della loro composizione (PRESET_COMPOSITION),
@@ -886,8 +930,28 @@ function _renderVaRView() {
     const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
     if (!slots.length) { el.innerHTML='<p style="color:var(--text3)">Configura prima il portafoglio Custom.</p>'; return; }
     const total = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
-    const keys  = slots.map(s=>s.ac);
-    const weights = slots.map(s=>(+s.pct||0)/total);
+    // FIX: espansione composite (Efficient Core 90/60 USA/Globale) nei sottostanti atomici.
+    // ec_us_core / ec_glob_core non sono in AC_KEYS_EF e non hanno vol/mu propri:
+    // passarli direttamente a portfolioVar/portfolioMu produceva covarianza=0 e mu=0
+    // per quella porzione, rendendo VaR/CVaR silenziosamente errati.
+    // Stessa logica di espansione usata in getCurrentPortfolioPoint e _syncEFStateFromSimulator.
+    const expandedMap = {};
+    for (const sl of slots) {
+      const pctNorm = (+sl.pct||0) / total;
+      const ac = ASSET_CLASSES[sl.ac];
+      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+        const notional = ac.composite.reduce((a,c) => a + c.w, 0);
+        for (const comp of ac.composite) {
+          if (ASSET_CLASSES[comp.ac])
+            expandedMap[comp.ac] = (expandedMap[comp.ac]||0) + pctNorm * (comp.w / notional);
+        }
+      } else {
+        expandedMap[sl.ac] = (expandedMap[sl.ac]||0) + pctNorm;
+      }
+    }
+    const expSum = Object.values(expandedMap).reduce((a,b)=>a+b, 0);
+    const keys    = Object.keys(expandedMap);
+    const weights = keys.map(k => expandedMap[k] / (expSum||1));
     mu  = portfolioMu(weights, keys, 0);
     vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
   } else {
@@ -902,7 +966,15 @@ function _renderVaRView() {
   const horizon = _efState.horizon || 1;
 
   const r = computeVaRCVaR(mu, vol, horizon, value, ter);
-  const portLabel = key==='custom'?'Custom':(PORT[key]?.label||key);
+  // Per i custom con Efficient Core: segnala che il calcolo usa i sottostanti atomici
+  const _hasComposite = key === 'custom' &&
+    (state.customPortfolio?.slots||[]).some(s => { const ac = ASSET_CLASSES[s.ac]; return ac && ac.isComposite; });
+  // Leva presente: preset Efficient Core / Return Stacking, o custom con composite.
+  // Il VaR normalizza i pesi al 100%, quindi sottostima il rischio amplificato dalla leva.
+  const _varLeveraged = _hasComposite || key === 'ec_us_9060' || key === 'ec_glob_9060' || key === 'return_stack';
+  const portLabel = key==='custom'
+    ? ('Custom' + (_hasComposite ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">(Efficient Core espanso nei sottostanti)</span>' : ''))
+    : (PORT[key]?.label||key);
   // fmt/fmtP: null = "nessuna perdita attesa" (VaR negativo su orizzonte lungo)
   const fmt  = v => v === null ? '<span style="color:var(--green);font-size:11px">nessuna perdita attesa</span>'
                                : v >= 0 ? '−€'+Math.round(v).toLocaleString('it-IT')
@@ -933,7 +1005,9 @@ function _renderVaRView() {
       <strong>Orizzonte:</strong> ${horizon} anno/i · <strong>TER:</strong> ${ter.toFixed(2)}% ·
       <strong>Rendimento netto:</strong> ${((mu-ter/100)*100).toFixed(1)}%/a · <strong>Volatilità:</strong> ${(vol*100).toFixed(1)}%/a
     </div>
-
+    ${_varLeveraged ? `<div style="font-size:11.5px;color:var(--orange);background:rgba(230,138,0,.07);border:1px solid rgba(230,138,0,.30);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:14px;line-height:1.55">
+      ⚡ <strong>Portafoglio a leva:</strong> il VaR/CVaR espande i sottostanti ma normalizza i pesi al 100%, quindi <strong>sottostima il rischio reale</strong> amplificato dalla leva (notional &gt;100%). Per una stima corretta del rischio di questo portafoglio usa il <strong>Simulatore</strong> o il <strong>Monte Carlo Avanzato</strong>, che modellano leva e costo di finanziamento.
+    </div>` : ''}
     <div class="tbl-outer" style="margin-bottom:20px">
       <table>
         <thead>
@@ -1134,6 +1208,7 @@ const FACTOR_LOADINGS = {
   // ── Carry / Trend (esposizione equity ridotta) ──────────────────────
   fat_carry_bond:  { MKT: 0.05, SMB:  0.00, HML:  0.00, RMW:  0.00, CMA:  0.00, MOM:  0.00 },
   fat_carry_fx:    { MKT: 0.10, SMB:  0.00, HML:  0.00, RMW:  0.00, CMA:  0.00, MOM:  0.00 },
+  fat_carry_comm:  { MKT: 0.08, SMB:  0.00, HML:  0.00, RMW:  0.00, CMA:  0.00, MOM:  0.10 },
   fat_trend:       { MKT: 0.05, SMB:  0.00, HML:  0.00, RMW:  0.00, CMA:  0.00, MOM:  0.15 },
   // ── Bond, real assets, cash (esposizione ~0 ai fattori equity) ──────
   ob_usa_st:       { MKT: 0.00, SMB: 0, HML: 0, RMW: 0, CMA: 0, MOM: 0 },
@@ -1179,7 +1254,7 @@ function computeFactorExposure(weights, acKeys) {
 }
 
 // ── Decomposizione del rendimento atteso ───────────────────────────────────
-function decomposeReturn(exposure, weights, acKeys, ter) {
+function decomposeReturn(exposure, weights, acKeys, ter, finCost) {
   const contributions = {
     MKT: exposure.MKT * FACTOR_PREMIA.MKT,
     SMB: exposure.SMB * FACTOR_PREMIA.SMB,
@@ -1191,7 +1266,7 @@ function decomposeReturn(exposure, weights, acKeys, ter) {
   const fromFactors    = Object.values(contributions).reduce((s, v) => s + v, 0);
   const baseline       = FACTOR_PREMIA.RF;
   const totalExplained = baseline + fromFactors;
-  const actualMu       = portfolioMu(weights, acKeys, ter);
+  const actualMu       = portfolioMu(weights, acKeys, ter) - (finCost || 0); // costo finanziamento leva (composite)
   const alpha          = actualMu - totalExplained;
   return { baseline, contributions, alpha, actualMu, fromFactors, totalExplained };
 }
@@ -1246,14 +1321,21 @@ function _portfolioToAssetClasses(portKey, p) {
 // ── Ottiene pesi del portafoglio corrente (custom o predefinito) ──────────
 function _getCurrentPortfolioWeights() {
   if (state.portfolio === 'custom') {
-    const slots = (state.customPortfolio?.slots || [])
+    const raw = (state.customPortfolio?.slots || [])
       .filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
-    if (!slots.length) return null;
-    const total = slots.reduce((s, sl) => s + (+sl.pct || 0), 0);
+    if (!raw.length) return null;
+    // Espandi le asset class composite (Efficient Core) nei componenti atomici:
+    // i compositi NON hanno mu/vol/factor loadings propri, quindi vanno scomposti
+    // o produrrebbero NaN nella decomposizione fattoriale, frontiera e VaR.
+    const exp = (typeof expandCustomSlots === 'function')
+      ? expandCustomSlots(state.customPortfolio.slots)
+      : { slots: raw, total: raw.reduce((s, sl) => s + (+sl.pct || 0), 0), finCostTotal: 0 };
+    const total = exp.slots.reduce((s, sl) => s + (+sl.pct || 0), 0) || 1;
     return {
-      keys:    slots.map(s => s.ac),
-      weights: slots.map(s => (+s.pct || 0) / total),
+      keys:    exp.slots.map(s => s.ac),
+      weights: exp.slots.map(s => (+s.pct || 0) / total),
       label:   'Custom',
+      finCost: exp.finCostTotal || 0,
     };
   }
   const p = PORT[state.portfolio];
@@ -1366,7 +1448,7 @@ function _renderFactorView() {
   }
   const { keys, weights, label } = portfolio;
   const exposure = computeFactorExposure(weights, keys);
-  const decomp   = decomposeReturn(exposure, weights, keys, _efState.ter);
+  const decomp   = decomposeReturn(exposure, weights, keys, _efState.ter, portfolio.finCost || 0);
   const fmt      = v => (v >= 0 ? '+' : '') + (v * 100).toFixed(2) + '%';
   const fmtBeta  = v => (v >= 0 ? '+' : '') + v.toFixed(2);
 
@@ -1792,7 +1874,28 @@ function _initOptimizerFromCurrent() {
   // Usa asset class dalla composizione corrente come default
   if (state.portfolio === 'custom') {
     const slots = (state.customPortfolio?.slots || []).filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
-    if (slots.length) _optState.assets = slots.map(s => s.ac);
+    if (slots.length) {
+      // FIX: i composite (Efficient Core 90/60 USA/Globale) non sono in AC_KEYS_EF
+      // e non hanno vol/mu propri → getCov restituisce 0 → matrice degenere → NaN.
+      // Si espandono nei sottostanti atomici (stessa logica di getCurrentPortfolioPoint).
+      const expanded = [];
+      for (const sl of slots) {
+        const ac = ASSET_CLASSES[sl.ac];
+        if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+          for (const comp of ac.composite) {
+            if (ASSET_CLASSES[comp.ac] && !expanded.includes(comp.ac))
+              expanded.push(comp.ac);
+          }
+        } else if (!expanded.includes(sl.ac)) {
+          expanded.push(sl.ac);
+        }
+      }
+      if (expanded.length >= 2) _optState.assets = expanded;
+      else if (expanded.length === 1) {
+        const partner = expanded[0].startsWith('eq') ? 'ob_glob_agg' : 'eq_sviluppati';
+        _optState.assets = [expanded[0], partner];
+      }
+    }
   }
   if (!_optState.assets.length) {
     // Default ragionevole: 4-5 asset diversificati
@@ -1810,6 +1913,37 @@ function _renderOptimizerView() {
   const el = document.getElementById('quantOptimizerContent');
   if (!el) return;
   _initOptimizerFromCurrent();
+
+  // Blocco per portafogli a leva: preset Efficient Core / Return Stacking e custom
+  // con composite. L'optimizer lavora con somma pesi = 100% e non può modellare
+  // esposizione notional > 100% né il costo di finanziamento della leva.
+  const _OPT_LEVERAGED_PRESETS = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  const _optCompositeSlots = state.portfolio === 'custom'
+    ? (state.customPortfolio?.slots||[])
+        .filter(s => { const ac = ASSET_CLASSES[s.ac]; return ac && ac.isComposite && s.pct > 0; })
+    : [];
+  const _optIsLeveraged = !!_OPT_LEVERAGED_PRESETS[state.portfolio] || _optCompositeSlots.length > 0;
+  if (_optIsLeveraged) {
+    const names = _OPT_LEVERAGED_PRESETS[state.portfolio]
+      ? `<strong>${PORT[state.portfolio]?.label || state.portfolio}</strong>`
+      : _optCompositeSlots.map(s => `<strong>${ASSET_CLASSES[s.ac].label}</strong>`).join(', ');
+    el.innerHTML = `
+      <div style="background:rgba(230,138,0,.07);border:1px solid rgba(230,138,0,.30);border-radius:var(--radius-sm);padding:20px 24px;margin:8px 0;line-height:1.7">
+        <div style="font-size:13.5px;font-weight:700;color:#b8860b;margin-bottom:8px">⚡ Optimizer non disponibile per questo portafoglio</div>
+        <div style="font-size:12.5px;color:var(--text2);margin-bottom:12px">
+          Il portafoglio ${names} opera con <strong>leva implicita</strong>
+          (esposizione notional &gt;100%). L'optimizer di Markowitz lavora con pesi che sommano
+          al 100% e non può modellare la leva né il suo costo di finanziamento: i risultati
+          sarebbero riferiti ai sottostanti senza leva, un portafoglio diverso da quello selezionato.
+        </div>
+        <div style="font-size:12px;color:var(--text3)">
+          Usa il <strong>Simulatore</strong> o il <strong>Monte Carlo Avanzato</strong> per analizzare
+          questo portafoglio — modellano correttamente la leva e il costo di finanziamento.
+          Nota: anche la <strong>Frontiera Efficiente</strong> e il <strong>VaR/CVaR</strong> di questa scheda espandono i composite nei sottostanti ma <strong>normalizzano i pesi al 100%</strong>, quindi non riflettono il rischio amplificato dalla leva (notional &gt;100%): per quei portafogli il rischio reale è superiore a quanto mostrato qui. Il riferimento corretto resta il Simulatore.
+        </div>
+      </div>`;
+    return;
+  }
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
@@ -1910,6 +2044,10 @@ function _populateOptAssetSelector() {
   if (!sel) return;
   const cats = {};
   for (const [key, ac] of Object.entries(ASSET_CLASSES)) {
+    // FIX: escludi i composite (ec_us_core, ec_glob_core): non sono in AC_KEYS_EF,
+    // non hanno vol/mu propri → getCov=0 → matrice degenere → NaN su tutto.
+    // Nell'optimizer si usano i sottostanti atomici (eq_usa, ob_usa_it, ecc.).
+    if (ac.isComposite) continue;
     if (!cats[ac.cat]) cats[ac.cat] = [];
     cats[ac.cat].push({ key, ac });
   }
@@ -2099,7 +2237,10 @@ function _renderOptResult() {
             <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:${k.c}">${k.v}</div>
           </div>`).join('')}
       </div>
-      <div style="font-size:10.5px;color:var(--text3);margin-top:6px">* Rendimento reale = atteso − inflazione attesa (${state.inflBottom?.toFixed(1) || '2.0'}%)</div>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:6px">* Rendimento reale = atteso − inflazione attesa (${state.inflBottom?.toFixed(1) || '2.0'}%). Il "Rendimento atteso" è nominale (lordo di inflazione): applicando al Simulatore, l'inflazione viene scontata una sola volta nella proiezione.${_optState.returnBasis === 'historical' ? ' <strong style="color:var(--orange)">Base storica attiva</strong>: il Simulatore userà i rendimenti forward-looking (più prudenti), quindi mostrerà un rendimento atteso inferiore a quello qui sopra — i pesi però restano identici.' : ''}</div>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:5px;line-height:1.55;background:var(--bg);border-radius:var(--radius-sm);padding:7px 10px;border:1px solid var(--border)">
+        ⓘ <strong>Ottimizzazione parametrica:</strong> Markowitz lavora su rendimenti attesi forward-looking, volatilità e correlazioni <em>modellate</em> — non su una serie storica di prezzi. I risultati non sono un backtest: indicano l'allocazione efficiente secondo i parametri del modello, non ciò che sarebbe accaduto storicamente. Per asset come trend following e carry (incluso il Carry Commodities) questo è l'unico approccio possibile, poiché non esiste una serie storica mensile reale.
+      </div>
     </div>
 
     <!-- Grafici e tabella allocazione -->
@@ -2255,7 +2396,13 @@ function _renderOptCharts(allocRows, rc) {
 // ── Applica portafoglio ottimale al simulatore (custom) ───────────────────
 window.optApplyToSimulator = function() {
   if (!_optState.result) return;
-  if (!confirm('Sostituire il portafoglio Custom corrente con l\'allocazione ottimizzata? Questa azione è irreversibile (puoi salvare lo stato attuale prima dal pannello Scenari Salvati).')) return;
+  // Se l'ottimizzazione è su base STORICA, il rendimento mostrato (CAGR 1970-2024)
+  // è più alto di quello che userà il Simulatore (forward-looking, più prudente).
+  // Avvisiamo l'utente così il calo del rendimento atteso è atteso, non una sorpresa.
+  const histWarn = (_optState.returnBasis === 'historical')
+    ? '\n\nNOTA: hai ottimizzato sui rendimenti STORICI (CAGR 1970-2024). Il Simulatore ricalcolerà il portafoglio con i rendimenti FORWARD-LOOKING (più prudenti), quindi il rendimento atteso mostrato sarà più basso di quello dell\'optimizer. I pesi restano identici; cambia solo l\'ipotesi di rendimento, in coerenza con tutto il resto del Simulatore.'
+    : '';
+  if (!confirm('Sostituire il portafoglio Custom corrente con l\'allocazione ottimizzata? Questa azione è irreversibile (puoi salvare lo stato attuale prima dal pannello Scenari Salvati).' + histWarn)) return;
   // Costruisci slots custom
   const slots = _optState.assets.map((k, i) => ({
     ac: k,
