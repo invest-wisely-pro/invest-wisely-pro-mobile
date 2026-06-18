@@ -454,7 +454,7 @@ function recalibratePortfolios(data) {
   // In regime storico (delta=0) p.normal resta esattamente = _baseNormal calibrato.
   const recalib = (portKey) => {
     const p = PORT[portKey];
-    if (!p || portKey === 'lifecycle' || portKey === 'custom') return;
+    if (!p || portKey === 'lifecycle' || portKey === 'custom' || portKey === 'glide') return;
     const eqW  = p.eq   ?? 0;
     const obW  = p.ob   ?? 0;
     const goldW = p.gold ?? 0;

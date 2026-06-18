@@ -69,6 +69,11 @@ const PORT = {
     best: null, normal: null, worst: null, vol: null,
     eq: null, ob: null, gold: 0, cash: 0, realRet: .035, inflBeta: 0.1, fxExp: null, // variabile con età
   },
+  glide: {
+    label: 'Glide Path ⤵', desc: 'Transizione continua tra due strategie complete (da aggressiva a conservativa) lungo l\'orizzonte. Tutti i parametri (quota azionaria, leva, composizione, fiscalità, FX) sono interpolati per età.',
+    best: null, normal: null, worst: null, vol: null,
+    eq: null, ob: null, gold: null, cash: null, realRet: null, inflBeta: null, fxExp: null, // tutto variabile con età
+  },
   golden_butterfly: {
     label: '🦋 Golden Butterfly',
     desc: 'Ideato da Tyler from Portfolio Charts (2012). Composizione: 20% Az. Large Cap, 20% Az. Small Cap Value, 20% Oro, 20% Ob. Lungo Termine, 20% Ob. Breve Termine. Ottimizzato per massimizzare la peggior performance storica su 30 anni (\'worst case\'). Volatilità molto bassa, ottimo Sharpe ratio storico (1970-2023: ~9.7%/a lordo — gonfiato dal bull market oro anni \'70 e dal bull bond 1980-2020, non ripetibili). Rendimento atteso forward-looking: ~5.2%/a.',
@@ -749,6 +754,14 @@ let state = {
   fxVol: 0.085,          // volatilità storica EUR/USD ~8.5%/a (1999-2024)
   fxHedgeCost: 0.003,    // costo annuo della copertura valutaria ~0.3%
   capeAdj: true,         // se true: baseline + scostamento da CAPE/yield live (metodo delta coerente)
+  // Glide path tra due strategie complete (vedi getGlideSlots). sideA = strategia
+  // di partenza (età ageStart, tipicamente aggressiva), sideB = arrivo (ageEnd).
+  // k = esponente di curvatura (1=lineare, 2=convesso/de-risking accelerato).
+  glide: {
+    sideA: { type: 'preset', ref: 'ec_glob_9060' },
+    sideB: { type: 'preset', ref: 'golden_butterfly' },
+    ageStart: 30, ageEnd: 65, k: 2,
+  },
 };
 let stateB = { portfolio: 'eq50', ter: .20, pac: -1 };
 let decState = { portfolio: 'eq60', strategy: 'inflation', startPortfolio: 500000, withdrawal: 20000, years: 30, inflation: 2.0, ter: .20, ecoScenario: null, ecoTiming: 'early', seq: { on: false, severity: 'moderate', timing: 'early', mode: 'single' } };
@@ -775,20 +788,154 @@ function pct(v, dec = 1) { return (v * 100).toFixed(dec) + '%'; }
 
 function getLCWeight(age) { return Math.max(.20, Math.min(.80, .80 - Math.max(0, (age - 20)) / 50 * .60)); }
 
+// ══════════════════════════════════════════════════════════════
+// GLIDE PATH — transizione continua tra DUE strategie complete
+// ══════════════════════════════════════════════════════════════
+// Generalizza il lifecycle (che interpola solo la quota azionaria) a:
+// "interpola SIMULTANEAMENTE tutte le proprietà di due composizioni complete".
+// Idea architetturale: ogni strategia (preset O custom) si riduce a un array di
+// slot { ac, pct }. Il glide costruisce, per ogni età, slot interpolati
+// α·A + (1−α)·B e li passa al MOTORE ESISTENTE (calcCustomParams /
+// expandCustomSlots / getCrashWeights). Così quota azionaria, leva, finCost,
+// composizione, crash-beta, TER, fiscalità ed esposizione FX vengono interpolati
+// tutti insieme e in modo coerente, senza duplicare alcuna logica: i composite
+// a leva (es. ec_us_core) portano nativamente finCost+leva, che decadono in modo
+// proporzionale al ridursi del loro peso (de-levering gradempte verso la meta).
+
+// ── Tabella canonica preset → slot atomici ──────────────────────────────────
+// Fonte di verità condivisa fra il builder custom (resetCustomPreset) e il glide.
+// Ogni preset è espresso come slot di ASSET_CLASSES reali, calibrati per
+// riprodurre i pesi dichiarati nel PORT (eq/ob/gold/cash/fxExp). I preset a leva
+// usano gli ASSET_CLASSES compositi (ec_*_core), che portano finCost e notional.
+const PRESET_SLOTS = {
+  eq100:           [{ac:'eq_sviluppati',pct:100}],
+  eq80:            [{ac:'eq_sviluppati',pct:80},{ac:'ob_glob_agg',pct:20}],
+  eq60:            [{ac:'eq_sviluppati',pct:60},{ac:'ob_glob_agg',pct:40}],
+  eq50:            [{ac:'eq_sviluppati',pct:50},{ac:'ob_glob_agg',pct:50}],
+  eq40:            [{ac:'eq_sviluppati',pct:40},{ac:'ob_glob_agg',pct:60}],
+  eq20:            [{ac:'eq_sviluppati',pct:20},{ac:'ob_glob_agg',pct:80}],
+  ob100:           [{ac:'ob_glob_agg',pct:100}],
+  golden_butterfly:[{ac:'eq_usa',pct:20},{ac:'eq_small_value',pct:20},{ac:'gold',pct:20},{ac:'ob_usa_ult',pct:20},{ac:'ob_usa_st',pct:20}],
+  permanent:       [{ac:'eq_sviluppati',pct:25},{ac:'ob_usa_ult',pct:25},{ac:'gold',pct:25},{ac:'cash',pct:25}],
+  all_seasons:     [{ac:'eq_sviluppati',pct:30},{ac:'ob_usa_ult',pct:40},{ac:'ob_usa_it',pct:15},{ac:'gold',pct:7.5},{ac:'commodities',pct:7.5}],
+  larry:           [{ac:'eq_small_value',pct:15},{ac:'eq_europa',pct:7.5},{ac:'eq_em',pct:7.5},{ac:'ob_usa_it',pct:70}],
+  global_market:   [{ac:'eq_sviluppati',pct:55},{ac:'ob_glob_agg',pct:45}],
+  ec_us_9060:      [{ac:'ec_us_core',pct:100}],
+  ec_glob_9060:    [{ac:'ec_glob_core',pct:100}],
+  return_stack:    [{ac:'ec_glob_core',pct:50},{ac:'fat_trend',pct:50}],
+};
+
+// Riduce un "lato" del glide (preset O custom) a slot normalizzati.
+// side = { type:'preset', ref:'golden_butterfly' } | { type:'custom', slots:[...] }
+function strategyToSlots(side) {
+  if (!side) return [];
+  let raw;
+  if (side.type === 'custom') {
+    raw = side.slots || [];
+  } else {
+    raw = PRESET_SLOTS[side.ref] || [];
+  }
+  // Normalizza a somma 100 e fonde slot con stesso ac (robustezza)
+  const agg = {};
+  let tot = 0;
+  for (const s of raw) {
+    const pct = +s.pct || 0;
+    if (!s.ac || !ASSET_CLASSES[s.ac] || pct <= 0) continue;
+    agg[s.ac] = (agg[s.ac] || 0) + pct; tot += pct;
+  }
+  if (tot <= 0) return [];
+  return Object.entries(agg).map(([ac, pct]) => ({ ac, pct: pct / tot * 100 }));
+}
+
+// α(età): frazione del lato A (strategia di partenza) all'età data.
+// Forma parametrica con esponente di curvatura k:
+//   α = clamp((age − ageEnd)/(ageStart − ageEnd), 0, 1) ^ k
+// • α = 1 a ageStart (100% strategia A, tipicamente aggressiva)
+// • α = 0 a ageEnd   (100% strategia B, tipicamente conservativa)
+// k = 1  → glide path LINEARE (come getLCWeight)
+// k > 1  → CONVESSO: resta aggressivo a lungo, poi de-rischia più rapidamente
+//          vicino alla meta. È la forma coerente con il rischio di sequenza che
+//          il motore già modella (il capitale esposto è massimo, e il tempo di
+//          recupero minimo, proprio negli ultimi anni). Default k = 2.
+// k < 1  → CONCAVO: de-rischia presto (rising-equity glidepath di Pfau-Kitces
+//          se A e B sono invertiti). Tutta la letteratura è coperta da un param.
+function getGlideAlpha(age, ageStart, ageEnd, k) {
+  if (ageStart === ageEnd) return age <= ageStart ? 1 : 0;
+  const lo = Math.min(ageStart, ageEnd), hi = Math.max(ageStart, ageEnd);
+  let t = (age - ageEnd) / (ageStart - ageEnd); // 1 @ ageStart, 0 @ ageEnd
+  t = Math.max(0, Math.min(1, t));
+  const kk = (k == null || k <= 0) ? 1 : k;
+  return Math.pow(t, kk);
+}
+
+// Slot interpolati α·A + (1−α)·B all'età data. Unione delle asset class
+// presenti in A o B; peso = blend lineare dei due pesi (zero se assente).
+function getGlideSlots(age, glideCfg) {
+  const g = glideCfg || state.glide;
+  if (!g) return state.customPortfolio?.slots || [];
+  const a = getGlideAlpha(age, g.ageStart, g.ageEnd, g.k);
+  const slotsA = strategyToSlots(g.sideA);
+  const slotsB = strategyToSlots(g.sideB);
+  const wA = {}, wB = {};
+  for (const s of slotsA) wA[s.ac] = s.pct;
+  for (const s of slotsB) wB[s.ac] = s.pct;
+  const keys = new Set([...Object.keys(wA), ...Object.keys(wB)]);
+  const out = [];
+  for (const ac of keys) {
+    const pct = a * (wA[ac] || 0) + (1 - a) * (wB[ac] || 0);
+    if (pct > 1e-9) out.push({ ac, pct });
+  }
+  return out;
+}
+
+// Parametri del portafoglio glide all'età = quelli del custom sugli slot blendati.
+// Memoizzato per età (la composizione è deterministica dato glideCfg+age): MC e
+// backtest richiamano project() migliaia di volte. La cache si invalida quando
+// cambia la "firma" del glide (lati, ageStart/End, k) o gli interruttori FX.
+let _glideCache = { sig: null, byAge: {} };
+function _glideSig() {
+  const g = state.glide;
+  if (!g) return 'none';
+  // Fingerprint dei mu delle asset class ricalibrate da CAPE/live-data: senza
+  // questo, togglare CAPE-adj (che muta ASSET_CLASSES[k].mu) non invaliderebbe
+  // la cache del glide e i rendimenti resterebbero identici (bug). Include anche
+  // capeAdj esplicito come ulteriore segnale.
+  let acFp = '';
+  if (typeof ASSET_CLASSES !== 'undefined') {
+    const _k = ['eq_usa','eq_sviluppati','eq_europa','ob_glob_agg','ob_glob_gov','ob_usa_ult'];
+    for (const k of _k) { const ac = ASSET_CLASSES[k]; if (ac) acFp += (ac.mu != null ? ac.mu.toFixed(5) : 'x') + ','; }
+  }
+  return JSON.stringify({ a: g.sideA, b: g.sideB, s: g.ageStart, e: g.ageEnd, k: g.k,
+                          fh: state.fxHedge, fv: state.fxVol, fc: state.fxHedgeCost,
+                          ca: state.capeAdj !== false, ac: acFp });
+}
+function getGlideParams(age) {
+  const sig = _glideSig();
+  if (_glideCache.sig !== sig) _glideCache = { sig, byAge: {} };
+  const key = Math.round(age);
+  if (_glideCache.byAge[key]) return _glideCache.byAge[key];
+  const p = calcCustomParams(getGlideSlots(key));
+  _glideCache.byAge[key] = p;
+  return p;
+}
+
 function getEquityWeight(port, age) {
   if (port === 'lifecycle') return getLCWeight(age);
+  if (port === 'glide') return getGlideParams(age).eq;
   if (port === 'custom') return calcCustomParams().eq;
   const m = { ob100: 0, eq100: 1, eq80: .8, eq60: .6, eq50: .5, eq40: .4, eq20: .2, golden_butterfly: .4, permanent: .25, all_seasons: .30, larry: .30, global_market: .55, ec_us_9060: .90, ec_glob_9060: .90, return_stack: .45 };
   return m[port] ?? 0.6;
 }
 
-function getGoldWeight(port) {
+function getGoldWeight(port, age) {
+  if (port === 'glide') return getGlideParams(age).goldW;
   if (port === 'custom') return calcCustomParams().goldW;
   const m = { golden_butterfly: .2, permanent: .25, all_seasons: .15 };
   return m[port] ?? 0;
 }
 
-function getCashWeight(port) {
+function getCashWeight(port, age) {
+  if (port === 'glide') return getGlideParams(age).cashW;
   if (port === 'custom') return calcCustomParams().cashW;
   const m = { permanent: .25 };
   return m[port] ?? 0;
@@ -853,16 +1000,16 @@ function planIRR(data, targetIdx) {
 function getCrashWeights(port, age) {
   let eq, trendW = 0, carryW = 0, commodW = 0, goldW = 0, cashW = 0, commCarryW = 0;
   let obExplicitCustom;
-  if (port === 'custom') {
-    const cp = calcCustomParams();
+  if (port === 'custom' || port === 'glide') {
+    const cp = port === 'glide' ? getGlideParams(age) : calcCustomParams();
     eq = cp.eq; trendW = cp.trendW || 0; carryW = cp.carryW || 0;
     commodW = cp.commodW || 0; goldW = cp.goldW || 0; cashW = cp.cashW || 0;
     commCarryW = cp.commCarryW || 0;
     obExplicitCustom = cp.ob; // bond notional espanso (include la gamba a leva dei composite)
   } else {
     eq = getEquityWeight(port, age);
-    goldW = getGoldWeight(port);
-    cashW = getCashWeight(port);
+    goldW = getGoldWeight(port, age);
+    cashW = getCashWeight(port, age);
     // return_stack ha una quota trend (managed futures) esplicita
     trendW = PORT[port]?.trend || 0;
   }
@@ -870,15 +1017,20 @@ function getCrashWeights(port, age) {
   // stacking) usa il peso obbligazionario ESPLICITO (es. 0.60 notional), non il
   // residuo 1−eq che collasserebbe la leva. La somma può superare 1: corretto,
   // il crash agisce sulle esposizioni notional.
-  const obExplicit = (port !== 'custom') ? PORT[port]?.ob : obExplicitCustom;
+  const obExplicit = (port === 'custom' || port === 'glide') ? obExplicitCustom : PORT[port]?.ob;
   const defensive = (obExplicit ?? Math.max(0, 1 - eq - trendW - carryW - commodW - commCarryW - goldW - cashW)) + goldW + cashW;
   return { eq, trendW, carryW, commodW, commCarryW, defensive };
 }
 
 // ── Calcola parametri blended del portafoglio custom ──────────
-function calcCustomParams() {
+// slotsOverride (opzionale): array di slot { ac, pct } da usare al posto di
+// state.customPortfolio.slots. Serve al glide path, che costruisce slot
+// interpolati per età senza toccare lo stato. Se omesso → comportamento
+// identico a prima (legge lo stato), quindi tutte le chiamate esistenti
+// restano invariate.
+function calcCustomParams(slotsOverride) {
   // ── 1. Filtra slot validi e normalizza i pesi ─────────────────
-  const { slots, total, finCostTotal } = expandCustomSlots(state.customPortfolio?.slots);
+  const { slots, total, finCostTotal } = expandCustomSlots(slotsOverride ?? state.customPortfolio?.slots);
 
   // ── 2. Rendimento atteso ponderato e beta inflazione ──────────
   let mu = 0, inflBeta = 0, eqW = 0, obW = 0, goldW = 0, cashW = 0, terW = 0, fxExpW = 0, otherFullW = 0;
@@ -1022,6 +1174,8 @@ function getRate(key, scenario, year, startAge) {
 
   if (key === 'custom') { const cp = calcCustomParams(); return cp[scenario] ?? cp.normal; }
 
+  if (key === 'glide') { const cp = getGlideParams(startAge + year); return cp[scenario] ?? cp.normal; }
+
   const p = PORT[key];
   if (!p) return 0.055;
 
@@ -1046,7 +1200,9 @@ function getRate(key, scenario, year, startAge) {
 // e si aggiunge il delta. In regime normale delta=0 quindi identico a getRate().
 function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const ecoSel = ECO_SCENARIOS[ecoKey];
-  const p = portKey === 'custom' ? calcCustomParams() : PORT[portKey];
+  const p = (portKey === 'custom') ? calcCustomParams()
+          : (portKey === 'glide') ? getGlideParams(startAge + year)
+          : PORT[portKey];
   if (!p || !ecoSel) return 0.05;
   // Rispetta la finestra temporale (early/mid/late) se fornita, altrimenti usa la durata
   const inRegime = ecoWin
@@ -1055,7 +1211,7 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const eco = inRegime ? ecoSel : NORMAL_ECO;
 
   // FX cost coerente con getRate()
-  const fxExpPort = portKey === 'custom'
+  const fxExpPort = (portKey === 'custom' || portKey === 'glide')
     ? (p.fxExposure ?? p.fxExp ?? 0)
     : (PORT[portKey]?.fxExp ?? 0);
   const fxCostEco = (!!state.fxHedge && fxExpPort > 0) ? fxExpPort * state.fxHedgeCost : 0;
@@ -1074,18 +1230,20 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
 
   // Portafogli predefiniti e custom
   // muNormal e la fonte di verita: coincide con getRate() in regime normale.
-  const muNormal = portKey === 'custom'
+  const muNormal = (portKey === 'custom' || portKey === 'glide')
     ? (p.normal ?? p.normalR ?? 0.055)
     : (PORT[portKey]?.normal ?? 0.055);
 
   // Pesi nominali del portafoglio (possono sommare >1 per portafogli a leva)
   const eqW   = Math.max(0, p.eq   ?? getEquityWeight(portKey, startAge + year));
-  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey));
-  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey));
+  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey, startAge + year));
+  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey, startAge + year));
   const obW   = Math.max(0, p.ob   ?? Math.max(0, 1 - eqW - goldW - cashW));
   // Trend following (return stacking): diversificatore. Reagisce ai regimi in
   // modo simile all'oro (crisis alpha nelle crisi prolungate); usa goldMult.
-  const trendW = Math.max(0, p.trend ?? 0);
+  // Per custom/glide il peso trend è p.trendW (sottocategoria crash); per i
+  // preset a trend esplicito (return_stack) è p.trend.
+  const trendW = Math.max(0, p.trend ?? p.trendW ?? 0);
   // Normalizza i pesi a 1 per calcolare i contributi relativi al delta di regime.
   // Per portafogli a leva (wSum > 1) questo rispecchia la sensibilita relativa
   // di ciascuna asset class al ciclo economico, senza amplificare il delta.
@@ -1120,6 +1278,7 @@ function getPortfolioVol(portKey, age) {
     return _addFxVol(baseVol, eq * 0.85);
   }
   if (portKey === 'custom') return calcCustomParams().vol; // già include FX vol
+  if (portKey === 'glide')  return getGlideParams(age).vol; // già include FX vol
   const p = PORT[portKey];
   return _addFxVol(p?.vol ?? 0.10, p?.fxExp ?? 0);
 }
@@ -1160,8 +1319,8 @@ function hasAnyActivePac() {
 function blendedTaxRate(age) {
   // Clamp equity a [0,1] per il calcolo dell'aliquota blended
   // (la leva implicita nei portafogli efficient core non aumenta l'aliquota fiscale)
-  if (state.portfolio === 'custom') {
-    const cp = calcCustomParams();
+  if (state.portfolio === 'custom' || state.portfolio === 'glide') {
+    const cp = state.portfolio === 'glide' ? getGlideParams(age) : calcCustomParams();
     const eqW    = Math.max(0, Math.min(1, cp.eq   ?? 0));
     const obW    = Math.max(0, cp.ob    ?? 0);
     const goldW  = Math.max(0, cp.goldW ?? 0);
@@ -2811,7 +2970,7 @@ function runDecumuloHistorical() {
   // Gate: i preset con leva / managed futures (efficient core, return stacking) e i
   // custom con trend/carry non hanno serie storica coerente in HIST_MONTHLY (solo
   // azioni/obbligazioni/oro). Simularli falserebbe rischio e decorrelazione.
-  const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
   const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
   if (DEC_HIST_SKIP[port] || customNonBT) {
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(port) : port;
@@ -3176,10 +3335,14 @@ function buildValuationDashboard(portKey) {
 // ══════════════════════════════════════════════════════════════
 function updatePortDetailBox() {
   const isCustom = state.portfolio === 'custom';
+  const isGlide  = state.portfolio === 'glide';
   const p = isCustom ? calcCustomParams() : PORT[state.portfolio];
   const builder = document.getElementById('customBuilder');
+  const glideB  = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', isCustom);
+  if (glideB)  glideB.classList.toggle('visible', isGlide);
   if (isCustom) { renderCustomBuilder(); return; }
+  if (isGlide)  { renderGlideBuilder(); return; }
   if (!p) { document.getElementById('portDetailBox').innerHTML = ''; return; }
   const bd = (state.portfolio !== 'custom' && PORT[state.portfolio]?.breakdown)
     ? Object.entries(PORT[state.portfolio].breakdown).map(([k,v])=>`<span style="background:var(--bg);border:1px solid var(--border2);padding:2px 8px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace"><strong>${v}</strong> ${k}</span>`).join(' '):'';
@@ -3289,11 +3452,178 @@ function renderCustomBuilder() {
     </div>`;
 }
 
+// ══════════════════════════════════════════════════════════════
+// GLIDE PATH BUILDER (UI)
+// ══════════════════════════════════════════════════════════════
+// Preset selezionabili come estremi del glide (etichette brevi per il menu).
+const GLIDE_PRESET_OPTIONS = [
+  ['eq100','100% Azioni'], ['eq80','80/20'], ['eq60','60/40'], ['eq50','50/50'],
+  ['eq40','40/60'], ['eq20','20/80'], ['ob100','100% Obblig.'],
+  ['golden_butterfly','🦋 Golden Butterfly'], ['permanent','🏛️ Permanent'],
+  ['all_seasons','🌤️ All Seasons'], ['larry','📐 Larry'], ['global_market','🗺️ Global Market'],
+  ['ec_us_9060','⚡ Eff.Core 90/60 US'], ['ec_glob_9060','⚡ Eff.Core 90/60 Glob'],
+  ['return_stack','🔀 Return Stacking'],
+];
+
+// Genera il path SVG della curva α(età) e la quota azionaria effettiva lungo il glide.
+function _glideCurveSVG() {
+  const g = state.glide; if (!g) return '';
+  const W = 460, H = 120, padL = 34, padR = 10, padT = 8, padB = 22;
+  const aMin = Math.min(g.ageStart, g.ageEnd), aMax = Math.max(g.ageStart, g.ageEnd);
+  const span = Math.max(1, aMax - aMin);
+  const xOf = age => padL + (age - aMin) / span * (W - padL - padR);
+  // Asse Y = quota azionaria effettiva (0..max). Calcola eq lungo il glide.
+  const ages = []; for (let a = aMin; a <= aMax; a++) ages.push(a);
+  const eqs = ages.map(a => Math.max(0, getGlideParams(a).eq));
+  const eqMax = Math.max(1, ...eqs);
+  const yOf = eq => padT + (1 - eq / eqMax) * (H - padT - padB);
+  const ptEq = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOf(eqs[i]).toFixed(1)}`).join(' ');
+  // α come linea tratteggiata (riferimento di forma) sullo stesso riquadro
+  const ptA = ages.map(a => `${xOf(a).toFixed(1)},${(padT + (1 - getGlideAlpha(a, g.ageStart, g.ageEnd, g.k)) * (H - padT - padB)).toFixed(1)}`).join(' ');
+  const gridY = [0, 0.5, 1].map(f => { const y = padT + (1 - f) * (H - padT - padB); return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border2)" stroke-width="1"/><text x="4" y="${y+3}" font-size="8" fill="var(--text3)" font-family="DM Mono">${Math.round(f*eqMax*100)}%</text>`; }).join('');
+  const xTicks = [aMin, Math.round((aMin+aMax)/2), aMax].map(a => `<text x="${xOf(a)}" y="${H-6}" font-size="8" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">${a}a</text>`).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
+    ${gridY}${xTicks}
+    <polyline points="${ptA}" fill="none" stroke="var(--purple)" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.6"/>
+    <polyline points="${ptEq}" fill="none" stroke="var(--blue)" stroke-width="2.4"/>
+    <circle cx="${xOf(aMin)}" cy="${yOf(eqs[0])}" r="3.5" fill="var(--blue)"/>
+    <circle cx="${xOf(aMax)}" cy="${yOf(eqs[eqs.length-1])}" r="3.5" fill="var(--green)"/>
+  </svg>`;
+}
+
+function _glideSideHTML(which) {
+  const g = state.glide;
+  const side = which === 'a' ? g.sideA : g.sideB;
+  const isCustom = side.type === 'custom';
+  const opts = GLIDE_PRESET_OPTIONS.map(([k, lbl]) =>
+    `<option value="${k}"${!isCustom && side.ref === k ? ' selected' : ''}>${lbl}</option>`).join('');
+  const label = which === 'a' ? 'A — Partenza (giovane)' : 'B — Arrivo (meta)';
+  const emoji = which === 'a' ? '🚀' : '🛡️';
+
+  let body;
+  if (!isCustom) {
+    body = `<select class="glide-select" onchange="setGlideSideRef('${which}',this.value)">${opts}</select>`;
+  } else {
+    // Mini-builder INDIPENDENTE per questo lato (slot propri, non condivisi col custom).
+    const slots = side.slots || [];
+    const total = slots.reduce((s, sl) => s + (+sl.pct || 0), 0);
+    const totalOk = Math.abs(total - 100) < 0.5;
+    const acOptions = Object.entries(ASSET_CLASSES).map(([k, v]) => ({ k, lbl: `${v.emoji} ${v.label}` }));
+    const rows = slots.map((sl, i) => `
+      <div class="glide-slot">
+        <select class="glide-slot-select" onchange="updGlideSlotAc('${which}',${i},this.value)">
+          <option value="">— asset —</option>
+          ${acOptions.map(o => `<option value="${o.k}"${sl.ac === o.k ? ' selected' : ''}>${o.lbl}</option>`).join('')}
+        </select>
+        <input class="glide-slot-pct" type="number" min="0" max="100" step="5" value="${sl.pct}" onchange="updGlideSlotPct('${which}',${i},+this.value)">
+        <button class="dbtn glide-slot-del" onclick="delGlideSlot('${which}',${i})">✕</button>
+      </div>`).join('');
+    body = `
+      <div class="glide-slots">${rows || '<div style="font-size:11px;color:var(--text3);padding:4px 0">Nessun asset. Aggiungine uno o importa.</div>'}</div>
+      <div class="glide-slot-total ${totalOk ? 'ok' : total < 100 ? 'warn' : 'err'}">
+        ${total.toFixed(1)}% ${totalOk ? '✅' : total < 100 ? '⚠️ −' + (100 - total).toFixed(0) + '%' : '❌ +' + (total - 100).toFixed(0) + '%'}
+      </div>
+      <div class="glide-slot-actions">
+        <button class="gbtn" onclick="addGlideSlot('${which}')">+ Asset</button>
+        <button class="gbtn" onclick="normalizeGlideSide('${which}')" title="Riporta i pesi a somma 100%">⚖️ 100%</button>
+        <button class="gbtn" onclick="importGlideSideFromCustom('${which}')" title="Copia la composizione dal builder Custom del Simulatore">⤵ Da Custom</button>
+      </div>`;
+  }
+
+  return `<div class="glide-side ${which}">
+    <div class="glide-side-hd">${emoji} ${label}</div>
+    <div class="glide-radio">
+      <button class="${!isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','preset')">Preset</button>
+      <button class="${isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','custom')">Custom proprio</button>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function renderGlideBuilder() {
+  const el = document.getElementById('glideBuilder');
+  if (!el) return;
+  el.classList.add('visible');
+  const g = state.glide;
+  // Clamp coerenza età
+  if (g.ageEnd <= g.ageStart) g.ageEnd = g.ageStart + 1;
+  const kLabel = g.k <= 0.85 ? 'concavo (de-risk presto)' : g.k >= 1.6 ? 'convesso (de-risk tardi)' : g.k >= 0.95 && g.k <= 1.05 ? 'lineare' : 'intermedio';
+
+  // Param chips a 3 età rappresentative (inizio, metà, fine)
+  const aMid = Math.round((g.ageStart + g.ageEnd) / 2);
+  const chip = (age) => { const p = getGlideParams(age); return `<span class="custom-param-chip" title="Età ${age}">${age}a · Az <strong>${(p.eq*100).toFixed(0)}%</strong> · μ <strong>${(p.normal*100).toFixed(1)}%</strong> · σ <strong>${(p.vol*100).toFixed(0)}%</strong>${p.goldW>0.005?` · Oro <strong>${(p.goldW*100).toFixed(0)}%</strong>`:''}</span>`; };
+
+  document.getElementById('portDetailBox').innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Parametri interpolati lungo il glide (transizione A→B):</div>
+    <div class="custom-params">${chip(g.ageStart)}${chip(aMid)}${chip(g.ageEnd)}</div>`;
+
+  el.innerHTML = `
+    <div class="sec-label" style="margin-bottom:12px">⤵ Glide Path — transizione tra due strategie</div>
+    <div class="glide-sides">${_glideSideHTML('a')}${_glideSideHTML('b')}</div>
+    <div class="glide-curve-wrap">
+      <div class="glide-curve-title">Quota azionaria effettiva lungo l'età (— blu) · curva α di miscela (- - viola)</div>
+      ${_glideCurveSVG()}
+    </div>
+    <div class="glide-controls">
+      <div class="glide-ctl">
+        <label>Età inizio <span class="val">${g.ageStart}</span></label>
+        <input type="range" min="18" max="70" step="1" value="${g.ageStart}" oninput="setGlideAge('start',+this.value)">
+      </div>
+      <div class="glide-ctl">
+        <label>Età meta <span class="val">${g.ageEnd}</span></label>
+        <input type="range" min="25" max="90" step="1" value="${g.ageEnd}" oninput="setGlideAge('end',+this.value)">
+      </div>
+      <div class="glide-ctl">
+        <label>Curvatura k=<span class="val">${(+g.k).toFixed(2)}</span> · ${kLabel}</label>
+        <input type="range" min="0.4" max="3" step="0.1" value="${g.k}" oninput="setGlideK(+this.value)">
+        <div class="glide-shape-btns">
+          <button class="${g.k>=0.95&&g.k<=1.05?'active':''}" onclick="setGlideK(1)">Lineare</button>
+          <button class="${g.k>=1.9&&g.k<=2.1?'active':''}" onclick="setGlideK(2)">Convesso (k2)</button>
+          <button class="${g.k>=0.55&&g.k<=0.75?'active':''}" onclick="setGlideK(0.65)">Concavo</button>
+        </div>
+      </div>
+    </div>
+    <div class="info-box" style="font-size:11.5px">
+      <strong>Come funziona:</strong> ad ogni età il portafoglio è una miscela α·A + (1−α)·B. Tutte le proprietà (quota azionaria, leva, composizione, fiscalità, FX) sono interpolate insieme. <strong>k&gt;1</strong> (convesso) mantiene la strategia aggressiva più a lungo e de-rischia rapidamente verso la meta — coerente col rischio di sequenza, massimo negli ultimi anni. Il backtest storico non è disponibile (strategia forward-looking); usa <strong>Simulatore</strong> e <strong>Monte Carlo</strong>.
+    </div>`;
+}
+
+// ── Handlers del glide builder ───────────────────────────────────────────────
+function _afterGlideChange(){ if (typeof _glideCache!=='undefined') _glideCache.sig=null; renderGlideBuilder(); syncPresetTer('glide'); updateRetInfo(); updateSeqDesc(); render(); }
+function _glideSide(which){ return which==='a' ? state.glide.sideA : state.glide.sideB; }
+function setGlideSideType(which, type){
+  const side = _glideSide(which);
+  if (type==='custom'){
+    side.type='custom';
+    // Mantieni gli slot già definiti per questo lato; se assenti, seed sensato
+    // (NON copia automaticamente dal builder condiviso: i due lati sono indipendenti).
+    if (!Array.isArray(side.slots) || !side.slots.length) {
+      side.slots = which==='a'
+        ? [{ac:'eq_sviluppati',pct:80},{ac:'ob_glob_agg',pct:20}]
+        : [{ac:'eq_sviluppati',pct:30},{ac:'ob_glob_agg',pct:50},{ac:'gold',pct:20}];
+    }
+  } else {
+    side.type='preset'; if(!side.ref) side.ref = which==='a'?'ec_glob_9060':'golden_butterfly';
+  }
+  _afterGlideChange();
+}
+function setGlideSideRef(which, ref){ const side=_glideSide(which); side.type='preset'; side.ref=ref; _afterGlideChange(); }
+// Editor slot per-lato (indipendente dal builder custom condiviso)
+function updGlideSlotAc(which, i, ac){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].ac=ac; _afterGlideChange(); } }
+function updGlideSlotPct(which, i, pct){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].pct=Math.max(0,pct||0); _afterGlideChange(); } }
+function addGlideSlot(which){ const s=_glideSide(which); if(!Array.isArray(s.slots)) s.slots=[]; s.slots.push({ac:'',pct:0}); _afterGlideChange(); }
+function delGlideSlot(which, i){ const s=_glideSide(which); if(s.slots){ s.slots.splice(i,1); if(!s.slots.length) s.slots.push({ac:'eq_sviluppati',pct:100}); _afterGlideChange(); } }
+function normalizeGlideSide(which){ const s=_glideSide(which); const arr=(s.slots||[]).filter(sl=>sl.ac&&sl.pct>0); const t=arr.reduce((a,sl)=>a+sl.pct,0); if(!t) return; s.slots=arr.map(sl=>({...sl,pct:Math.round(sl.pct/t*1000)/10})); _afterGlideChange(); }
+function importGlideSideFromCustom(which){ const s=_glideSide(which); const src=(state.customPortfolio?.slots||[]).filter(sl=>sl.ac&&sl.pct>0); if(!src.length){ alert('Il builder Custom del Simulatore è vuoto. Configura prima un\'allocazione nella scheda Custom.'); return; } s.type='custom'; s.slots=src.map(sl=>({...sl})); _afterGlideChange(); }
+function setGlideAge(which, v){ if(which==='start') state.glide.ageStart=v; else state.glide.ageEnd=v; if(state.glide.ageEnd<=state.glide.ageStart){ if(which==='start') state.glide.ageStart=state.glide.ageEnd-1; else state.glide.ageEnd=state.glide.ageStart+1; } _afterGlideChange(); }
+function setGlideK(v){ state.glide.k=Math.max(0.4,Math.min(3,v)); _afterGlideChange(); }
+
 // ── Helper unificato: restituisce parametri portafoglio (custom o PORT) ──────
 // Usato da tutti i moduli che prima accedevano direttamente a PORT[key].
 // Per 'custom' chiama calcCustomParams(); per gli altri restituisce PORT[key].
 function getPortParams(portKey) {
   if (portKey === 'custom') return calcCustomParams();
+  if (portKey === 'glide')  return getGlideParams(state.age); // params @ età corrente
   // Per portafogli predefiniti, restituisce una copia con best/normal/worst
   // aggiustati per FX hedging — così updateRetInfo mostra valori coerenti con render()
   const p = PORT[portKey];
@@ -3316,6 +3646,7 @@ function getPortParams(portKey) {
 // ── Label portafoglio (anche per 'custom') ────────────────────────────────────
 function getPortLabel(portKey) {
   if (portKey === 'custom') return '🔧 Custom';
+  if (portKey === 'glide')  return '⤵ Glide Path';
   return PORT[portKey]?.label ?? portKey;
 }
 
@@ -3325,6 +3656,7 @@ function getPortLabel(portKey) {
 // Per gli altri: usa PORT[key].fxExp
 function getFxExposure(portKey, age) {
   if (portKey === 'custom') return calcCustomParams().fxExposure ?? 0;
+  if (portKey === 'glide')  return getGlideParams(age ?? state.age).fxExposure ?? 0;
   if (portKey === 'lifecycle') {
     const eq = getLCWeight(age ?? state.age);
     return eq * 0.85 + (1 - eq) * 0.05; // equity ~85% USD, bond ~5%
@@ -3349,6 +3681,17 @@ function getFxAdjustment(portKey, age) {
 const PRESET_TER = { "eq100": 0.18, "eq80": 0.18, "eq60": 0.17, "eq50": 0.16, "eq40": 0.15, "eq20": 0.13, "ob100": 0.12, "lifecycle": 0.18, "golden_butterfly": 0.20, "permanent": 0.20, "all_seasons": 0.25, "larry": 0.30, "global_market": 0.22, "ec_us_9060": 0.20, "ec_glob_9060": 0.25, "return_stack": 0.55 };
 function syncPresetTer(portKey) {
   if (portKey === 'custom') return; // il custom ha il suo sync dedicato
+  if (portKey === 'glide') {
+    // TER del glide = TER blendato sugli slot interpolati all'età corrente.
+    const cp = getGlideParams(state.age);
+    const t = Math.round((cp.ter ?? 0.20) * 100) / 100;
+    state.ter = t;
+    const sl = document.getElementById('sTer');
+    const lb = document.getElementById('lTer');
+    if (sl) sl.value = t;
+    if (lb) lb.textContent = t.toFixed(2) + '%';
+    return;
+  }
   const t = PRESET_TER[portKey];
   if (t === undefined) return;
   state.ter = t;
@@ -3392,18 +3735,17 @@ function toggleFxHedge() {
   render();
 }
 function resetCustomPreset(key){
-  const p = {
-    eq60:         [{ac:'eq_sviluppati',pct:60},{ac:'ob_glob_agg',pct:40}],
-    all_seasons:  [{ac:'eq_sviluppati',pct:30},{ac:'ob_usa_ult',pct:40},{ac:'ob_usa_it',pct:15},{ac:'gold',pct:7.5},{ac:'commodities',pct:7.5}],
-    permanent:    [{ac:'eq_sviluppati',pct:25},{ac:'ob_usa_ult',pct:25},{ac:'gold',pct:25},{ac:'cash',pct:25}],
-    larry:        [{ac:'eq_small_value',pct:15},{ac:'eq_europa',pct:7.5},{ac:'eq_em',pct:7.5},{ac:'ob_usa_it',pct:70}],
+  // Preset extra non presenti in PRESET_SLOTS (specifici del builder custom)
+  const extra = {
     global:       [{ac:'eq_sviluppati',pct:55},{ac:'ob_glob_agg',pct:45}],
     inflaz:       [{ac:'eq_sviluppati',pct:30},{ac:'ob_infl',pct:30},{ac:'gold',pct:20},{ac:'commodities',pct:20}],
     multifat:     [{ac:'fat_multifat',pct:70},{ac:'ob_glob_agg',pct:20},{ac:'gold',pct:10}],
     trend_div:    [{ac:'eq_sviluppati',pct:40},{ac:'fat_trend',pct:25},{ac:'ob_glob_gov',pct:25},{ac:'gold',pct:10}],
     carry_mix:    [{ac:'fat_carry_bond',pct:25},{ac:'fat_carry_fx',pct:20},{ac:'fat_carry_comm',pct:15},{ac:'eq_sviluppati',pct:25},{ac:'ob_glob_agg',pct:15}],
   };
-  if(p[key]){state.customPortfolio.slots=p[key].map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
+  // PRESET_SLOTS è la fonte di verità condivisa con il glide path.
+  const src = extra[key] ?? PRESET_SLOTS[key];
+  if(src){state.customPortfolio.slots=src.map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
 }
 
 
@@ -3675,8 +4017,12 @@ document.getElementById('allocBtns').onclick = e => {
   document.querySelectorAll('#allocBtns .gbtn').forEach(x => x.classList.remove('a-blue'));
   b.classList.add('a-blue');
   const builder = document.getElementById('customBuilder');
+  const glideB = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', b.dataset.k === 'custom');
-  if (b.dataset.k === 'custom') syncCustomTer(); else syncPresetTer(b.dataset.k);
+  if (glideB) glideB.classList.toggle('visible', b.dataset.k === 'glide');
+  if (b.dataset.k === 'custom') syncCustomTer();
+  else syncPresetTer(b.dataset.k);
+  if (b.dataset.k === 'glide') renderGlideBuilder();
   updateRetInfo(); updatePortDetailBox(); updateSeqDesc(); render();
 };
 
@@ -3848,6 +4194,7 @@ function saveStateToLS() {
       activeEcoScenario: state.activeEcoScenario, ecoTiming: state.ecoTiming,
       fxHedge: !!state.fxHedge, fxVol: state.fxVol, fxHedgeCost: state.fxHedgeCost,
       capeAdj: state.capeAdj !== false,
+      glide: state.glide,  // config glide path (lati A/B, età, curvatura k)
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snap));
     localStorage.setItem(LS_KEYB, JSON.stringify({ portfolio: stateB.portfolio, ter: stateB.ter, pac: stateB.pac }));
@@ -3882,6 +4229,20 @@ function loadStateFromLS() {
     state.fxHedge       = !!snap.fxHedge;
     state.fxVol         = n(snap.fxVol, 0.085);    state.fxHedgeCost   = n(snap.fxHedgeCost, 0.003);
     state.capeAdj       = snap.capeAdj !== false; // default true se non presente
+    // Ripristina config glide path (con validazione difensiva)
+    if (snap.glide && typeof snap.glide === 'object') {
+      const gg = snap.glide;
+      const validSide = s => s && (s.type === 'preset' ? typeof s.ref === 'string'
+                                  : (s.type === 'custom' && Array.isArray(s.slots)));
+      if (validSide(gg.sideA) && validSide(gg.sideB)
+          && Number.isFinite(+gg.ageStart) && Number.isFinite(+gg.ageEnd) && Number.isFinite(+gg.k)) {
+        state.glide = {
+          sideA: gg.sideA, sideB: gg.sideB,
+          ageStart: +gg.ageStart, ageEnd: Math.max(+gg.ageStart + 1, +gg.ageEnd),
+          k: Math.max(0.4, Math.min(3, +gg.k)),
+        };
+      }
+    }
     if (snap.seq) {
       state.seq.on       = !!snap.seq.on;
       state.seq.severity = snap.seq.severity || 'moderate';
@@ -4128,6 +4489,39 @@ async function exportExcel() {
       });
       wsCustom = XLSX.utils.aoa_to_sheet([hdrAC, ...rowsAC]);
       wsCustom['!cols'] = [30,10,14,14,14,10,30].map(w=>({wch:w}));
+    } else if (portfolio === 'glide' && state.glide) {
+      // Foglio Glide Path: composizione e parametri interpolati a età rappresentative.
+      const g = state.glide;
+      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : (getPortLabel ? getPortLabel(side.ref)||side.ref : side.ref);
+      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
+      const headRows = [
+        ['GLIDE PATH — transizione tra due strategie'],
+        ['Strategia A (partenza, età '+g.ageStart+')', sideLabel(g.sideA)],
+        ['Strategia B (arrivo, età '+g.ageEnd+')', sideLabel(g.sideB)],
+        ['Curvatura k', (+g.k).toFixed(2) + (g.k>1.05?' (convesso)':g.k<0.95?' (concavo)':' (lineare)')],
+        [''],
+        ['Età', 'Azionario (%)', 'Obblig. (%)', 'Oro (%)', 'Cash (%)', 'μ atteso (%/a)', 'σ (%/a)', 'TER (%)', 'FX (%)', 'Aliquota fiscale (%)'],
+      ];
+      const ageRows = [];
+      for (let a = g.ageStart; a <= g.ageEnd; a++) {
+        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
+        const p = getGlideParams(a);
+        const tax = (typeof blendedTaxRate==='function') ? blendedTaxRate(a)*100 : '';
+        ageRows.push([
+          a,
+          (p.eq*100).toFixed(0),
+          (p.ob*100).toFixed(0),
+          (p.goldW*100).toFixed(0),
+          (p.cashW*100).toFixed(0),
+          (p.normal*100).toFixed(2),
+          (p.vol*100).toFixed(1),
+          (p.ter).toFixed(2),
+          ((p.fxExposure||0)*100).toFixed(0),
+          tax!==''?tax.toFixed(1):'',
+        ]);
+      }
+      wsCustom = XLSX.utils.aoa_to_sheet([...headRows, ...ageRows]);
+      wsCustom['!cols'] = [8,13,12,10,10,14,10,10,8,18].map(w=>({wch:w}));
     }
 
     // ── 4. Monte Carlo (se già eseguito) ────────────────────────
@@ -4394,35 +4788,42 @@ async function exportExcel() {
       }
     } catch (e) { console.warn('Skip foglio Decumulo Storico:', e.message); }
 
-    // ── Foglio FX e Stress (solo per portfolio custom) ──
+    // ── Foglio FX e Stress (per portfolio custom o glide) ──
     let wsFx = null;
-    if (portfolio === 'custom') {
-      const cp = calcCustomParams();
+    if (portfolio === 'custom' || portfolio === 'glide') {
+      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
       if (cp) {
+        const ageNote = portfolio === 'glide' ? ' (all\'età corrente '+state.age+')' : '';
         const fxRows = [
-          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS ──', ''],
+          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS'+ageNote+' ──', ''],
           ['', ''],
-          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(1) + '%'],
+          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(1) + '%'],
           ['Hedging valutario attivo', cp.fxHedged ? 'SI' : 'NO'],
-          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '0%'],
+          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '0%'],
           ['', ''],
           ['── VOLATILITA NEI DUE REGIMI ──', ''],
-          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
+          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX, regime normale)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol in regime di stress (correlazioni -> 1)', (cp.volStress * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
-          ['Vol aggiuntiva da FX', (cp.fxAddVol * 100).toFixed(2) + '%'],
+          ['Vol in regime di stress (correlazioni -> 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
+          ['Vol aggiuntiva da FX', ((cp.fxAddVol||0) * 100).toFixed(2) + '%'],
           ['', ''],
           ['── PARAMETRI BLENDED ──', ''],
           ['Rendimento atteso (μ)', (cp.normal * 100).toFixed(2) + '%/a'],
           ['Best case', (cp.best * 100).toFixed(2) + '%/a'],
           ['Worst case', (cp.worst * 100).toFixed(2) + '%/a'],
-          ['Beta inflazione', cp.inflBeta.toFixed(3)],
+          ['Beta inflazione', (cp.inflBeta!=null?cp.inflBeta:0).toFixed(3)],
           ['TER medio suggerito', cp.ter.toFixed(2) + '%'],
-          ['Rendimento reale (μ - infl 2.1%)', (cp.realRet * 100).toFixed(2) + '%'],
+          ['Rendimento reale (μ - infl 2.1%)', ((cp.realRet!=null?cp.realRet:(cp.normal-0.021)) * 100).toFixed(2) + '%'],
         ];
+        if (portfolio === 'glide') {
+          fxRows.push(['', '']);
+          fxRows.push(['── NOTA GLIDE PATH ──', '']);
+          fxRows.push(['I parametri sopra sono all\'età '+state.age+'. Variano nel tempo:', '']);
+          fxRows.push(['vedi foglio "Glide Path" per la traiettoria completa.', '']);
+        }
         wsFx = XLSX.utils.aoa_to_sheet(fxRows);
-        wsFx['!cols'] = [{ wch: 42 }, { wch: 18 }];
+        wsFx['!cols'] = [{ wch: 46 }, { wch: 18 }];
       }
     }
 
@@ -4434,7 +4835,7 @@ async function exportExcel() {
     if (wsCS)     XLSX.utils.book_append_sheet(wb, wsCS,     'Stress Test Macro');
     if (wsDecHist) XLSX.utils.book_append_sheet(wb, wsDecHist, 'Decumulo Storico');
     if (wsQuant)  XLSX.utils.book_append_sheet(wb, wsQuant,  'Quant Analytics');
-    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, 'Portfolio Custom');
+    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, portfolio === 'glide' ? 'Glide Path' : 'Portfolio Custom');
     if (wsFx)     XLSX.utils.book_append_sheet(wb, wsFx,     'FX & Stress Vol');
 
     const fname = `report_patrimoniale_${new Date().toISOString().slice(0,10)}.xlsx`;
@@ -5434,24 +5835,70 @@ async function generatePDF() {
       );
     } catch (e) { /* skip if not available */ }
 
+    // ─────────── 8c-bis. GLIDE PATH (transizione tra strategie) ───────────
+    if (portfolio === 'glide' && state.glide) {
+      const g = state.glide;
+      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : ((typeof getPortLabel==='function'?getPortLabel(side.ref):side.ref)||side.ref);
+      sHdr('8c — Glide Path: transizione tra due strategie', [26, 115, 232]);
+      narrative(
+        `Il portafoglio Glide Path transiziona gradualmente dalla strategia A (${sideLabel(g.sideA)}, ` +
+        `all'eta ${g.ageStart}) alla strategia B (${sideLabel(g.sideB)}, all'eta ${g.ageEnd}). ` +
+        `Ad ogni eta il portafoglio e una miscela delle due, con tutte le proprieta (quota azionaria, leva, ` +
+        `composizione, fiscalita, FX) interpolate insieme. Curvatura k=${(+g.k).toFixed(2)} ` +
+        `(${g.k>1.05?'convesso: de-risking concentrato verso la meta, coerente col rischio di sequenza':g.k<0.95?'concavo: de-risking anticipato':'lineare'}).`
+      );
+      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
+      const glideRows = [];
+      for (let a = g.ageStart; a <= g.ageEnd; a++) {
+        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
+        const p = getGlideParams(a);
+        const tax = (typeof blendedTaxRate==='function') ? (blendedTaxRate(a)*100).toFixed(1)+'%' : '';
+        glideRows.push([
+          a + 'a',
+          (p.eq*100).toFixed(0)+'%',
+          (p.ob*100).toFixed(0)+'%',
+          (p.goldW*100).toFixed(0)+'%',
+          (p.normal*100).toFixed(2)+'%',
+          (p.vol*100).toFixed(1)+'%',
+          tax,
+        ]);
+      }
+      doc.autoTable({
+        startY: y,
+        head: [['Eta', 'Azioni', 'Obblig.', 'Oro', 'μ atteso', 'σ', 'Aliq. fisc.']],
+        body: glideRows,
+        styles: { fontSize: 8, cellPadding: 2.2 },
+        headStyles: { fillColor: [26, 115, 232], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+        columnStyles: { 0:{fontStyle:'bold'}, 4:{halign:'right'}, 5:{halign:'right'}, 6:{halign:'right'} },
+        margin: { left: ML, right: MR },
+      });
+      y = doc.lastAutoTable.finalY + 4;
+      const _glLev = (typeof customPortfolioIsNonBacktestable==='function') && customPortfolioIsNonBacktestable();
+      callout('Nota sul Glide Path',
+        'I parametri evolvono con l\'eta: la scheda mostra eta rappresentative (inizio, meta, fine e ogni 5 anni). ' +
+        (_glLev ? 'Una delle due strategie usa leva o managed futures: il backtest storico non e disponibile (strategia forward-looking). Usa Simulatore e Monte Carlo. ' : '') +
+        'Il rischio di sequenza e massimo negli ultimi anni prima della meta, quando il capitale esposto e maggiore.',
+        [26, 115, 232]);
+    }
+
     // ─────────── 8c. FX HEDGING & STRESS VOL ───────────
-    if (portfolio === 'custom') {
-      const cp = calcCustomParams();
-      if (cp && (cp.fxExposure > 0.05 || cp.volStress)) {
-        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress', [156, 39, 176]);
+    if (portfolio === 'custom' || portfolio === 'glide') {
+      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
+      if (cp && ((cp.fxExposure||0) > 0.05 || cp.volStress)) {
+        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress'+(portfolio==='glide'?' (eta '+state.age+')':''), [156, 39, 176]);
         narrative(
           'Per un investitore in euro, l\'esposizione a valute estere (USD, GBP, JPY) ' +
           'introduce un secondo rischio: la volatilita del cambio EUR/USD (~8.5%/a storica). ' +
           'In regime di crisi, le correlazioni fra asset rischiosi salgono verso 1, riducendo i benefici della diversificazione.'
         );
         const fxRows = [
-          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(0) + '%'],
+          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(0) + '%'],
           ['Hedging valutario', cp.fxHedged ? 'ATTIVO' : 'NON ATTIVO'],
-          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '—'],
-          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
+          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '—'],
+          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol portafoglio in stress (correlazioni → 1)', (cp.volStress * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
+          ['Vol portafoglio in stress (correlazioni → 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
         ];
         doc.autoTable({
           startY: y,
@@ -5947,6 +6394,12 @@ if (state.portfolio === 'custom') {
   if (builder) builder.classList.add('visible');
   renderCustomBuilder();
   syncCustomTer();
+}
+if (state.portfolio === 'glide') {
+  const glideB = document.getElementById('glideBuilder');
+  if (glideB) glideB.classList.add('visible');
+  renderGlideBuilder();
+  syncPresetTer('glide');
 }
 
 // Riallinea decStrategy buttons

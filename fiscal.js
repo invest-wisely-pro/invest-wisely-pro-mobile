@@ -138,8 +138,14 @@ function calcTaxOnSell(sellAmount, currentPrice, lots, method, regime, strumento
   // BTP e Titoli di Stato applicano aliquota ridotta 12.5%; tutto il resto aliqGain
   // 'portafoglio' = aliquota composita pesata sui pesi reali del portafoglio del Simulatore;
   // 'btp' = 12,5% agevolata; tutto il resto = aliquota gain piena (26%).
+  // 'portafoglio' = aliquota composita pesata sui pesi reali del portafoglio.
+  // Per il glide path la composizione (e quindi l'aliquota composita) cambia con
+  // l'età: usa l'età alla VENDITA (state.age + anno di vendita), non quella iniziale.
+  const _taxAge = (state.portfolio === 'glide')
+    ? (state.age + (currentYear || 0))
+    : state.age;
   const actualAliq = strumento === 'portafoglio'
-    ? (typeof blendedTaxRate === 'function' ? blendedTaxRate(state.age) * 100 : aliqGain)
+    ? (typeof blendedTaxRate === 'function' ? blendedTaxRate(_taxAge) * 100 : aliqGain)
     : strumento === 'etf_nonutf'
       ? (fiscState.irpef ?? 35)         // ETF non armonizzati: aliquota IRPEF marginale (non 26% sostitutivo)
       : (strumento === 'btp' ? aliqOb : aliqGain);
@@ -210,7 +216,19 @@ function renderFiscale() {
     fiscState.years = (state.years !== undefined && state.years > 0)      ? state.years : 20;
   }
   const { pac, w, years, regime, method, aliqGain, aliqOb, bollo, strumento, sellAmount, sellYear, minusvalenze } = fiscState;
-  const annRate = (getPortParams(state.portfolio)?.normal) || 0.055;
+  // Rendimento annuo per la proiezione fiscale.
+  // Per il glide path il rendimento cambia ogni anno (de-risking): usa la MEDIA
+  // sull'orizzonte effettivo, calcolata con lo stesso motore del simulatore,
+  // così la scheda fiscalità resta coerente con la proiezione principale invece
+  // di assumere il rendimento (aggressivo) della sola età iniziale.
+  let annRate;
+  if (state.portfolio === 'glide' && typeof getRate === 'function') {
+    const H = Math.max(1, years|0);
+    let s = 0; for (let y = 1; y <= H; y++) s += getRate('glide', 'normal', y, state.age);
+    annRate = s / H;
+  } else {
+    annRate = (getPortParams(state.portfolio)?.normal) || 0.055;
+  }
   const terRate = state.ter/100;
   const netRate = annRate - terRate;
 
@@ -275,7 +293,8 @@ function renderFiscale() {
     let bolloTot = 0;
     for (const yd of fD.yearlyData) bolloTot += yd.currentValue * (bollo/100);
     // Tasse capital gain
-    const aliq = strumento==='portafoglio' ? (typeof blendedTaxRate==='function'?blendedTaxRate(state.age)*100:aliqGain) : strumento==='etf_nonutf' ? (fiscState.irpef ?? 35) : (strumento==='btp' ? aliqOb : aliqGain);
+    const _taxAgeC = (state.portfolio === 'glide') ? (state.age + years) : state.age;
+    const aliq = strumento==='portafoglio' ? (typeof blendedTaxRate==='function'?blendedTaxRate(_taxAgeC)*100:aliqGain) : strumento==='etf_nonutf' ? (fiscState.irpef ?? 35) : (strumento==='btp' ? aliqOb : aliqGain);
     // Zainetto
     const validM = minusvalenze.filter(m=>m.scadenza>=(2025+years)&&m.amount>0);
     const totM = validM.reduce((s,m)=>s+m.amount,0);

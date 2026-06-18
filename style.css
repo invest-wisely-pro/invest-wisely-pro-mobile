@@ -413,6 +413,44 @@ tbody tr:hover{background:var(--bg2)}
 .custom-params{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .custom-param-chip{font-size:11px;font-family:'DM Mono',monospace;font-weight:600;padding:3px 9px;border-radius:4px;background:var(--bg);border:1px solid var(--border2);white-space:nowrap}
 
+/* ── GLIDE PATH BUILDER ── */
+.glide-builder{background:linear-gradient(135deg,#eef7f0 0%,#e8f4fd 100%);border:1.5px solid rgba(26,115,232,.28);border-radius:var(--radius);padding:14px 18px;margin-top:8px;display:none}
+.glide-builder.visible{display:block}
+.glide-sides{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.glide-side{flex:1;min-width:260px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px}
+.glide-side-hd{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.glide-side.a .glide-side-hd{color:var(--blue)}
+.glide-side.b .glide-side-hd{color:var(--green)}
+.glide-radio{display:flex;gap:6px;margin-bottom:9px}
+.glide-radio button{flex:1;padding:5px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg2);font-size:11.5px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.glide-radio button.active{border-color:var(--blue);background:var(--blue-dim);color:var(--blue)}
+.glide-side.b .glide-radio button.active{border-color:var(--green);background:var(--green-dim);color:var(--green)}
+.glide-select{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);font-size:12.5px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;cursor:pointer}
+.glide-select:focus{border-color:var(--blue)}
+.glide-controls{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px}
+.glide-ctl{display:flex;flex-direction:column;gap:4px;min-width:120px;flex:1}
+.glide-ctl label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);font-family:'DM Mono',monospace}
+.glide-ctl input[type=range]{width:100%;accent-color:var(--blue)}
+.glide-ctl .val{font-size:12px;font-family:'DM Mono',monospace;font-weight:700;color:var(--text)}
+.glide-curve-wrap{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px}
+.glide-curve-title{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);font-family:'DM Mono',monospace;margin-bottom:8px}
+.glide-shape-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.glide-shape-btns button{padding:4px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg2);font-size:11px;font-weight:500;color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s}
+.glide-shape-btns button.active{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
+.glide-slots{margin-bottom:6px}
+.glide-slot{display:flex;gap:6px;align-items:center;margin-bottom:5px}
+.glide-slot-select{flex:1;min-width:120px;padding:4px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);font-size:11.5px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;cursor:pointer}
+.glide-slot-select:focus{border-color:var(--blue)}
+.glide-slot-pct{width:54px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2);font-size:11.5px;font-family:'DM Mono',monospace;color:var(--text);outline:none;text-align:right}
+.glide-slot-pct:focus{border-color:var(--blue)}
+.glide-slot-del{padding:3px 7px;font-size:11px}
+.glide-slot-total{font-family:'DM Mono',monospace;font-size:11.5px;font-weight:700;padding:4px 9px;border-radius:var(--radius-sm);margin-bottom:7px;text-align:center}
+.glide-slot-total.ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(30,142,62,.3)}
+.glide-slot-total.warn{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(227,116,0,.3)}
+.glide-slot-total.err{background:var(--red-dim);color:var(--red);border:1px solid rgba(217,48,37,.3)}
+.glide-slot-actions{display:flex;gap:6px;flex-wrap:wrap}
+.glide-slot-actions .gbtn{padding:4px 9px;font-size:11px}
+
 /* ── BACKTESTING TAB ── */
 .bt-period-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;cursor:pointer;transition:all .15s}
 .bt-period-card:hover{border-color:var(--blue);background:var(--blue-dim)}

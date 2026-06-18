@@ -429,7 +429,7 @@ function renderCrisis(crisisId) {
   // lo stress test storico li modellerebbe come un semplice mix az/obbl/oro,
   // ignorando leva e trend. Mostra un avviso invece di numeri fuorvianti.
   // Stessa cosa per il portafoglio custom che include Trend Following / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
   const isCustomNonBT = portKey === 'custom' &&
     (typeof customPortfolioIsNonBacktestable === 'function') &&
     customPortfolioIsNonBacktestable();

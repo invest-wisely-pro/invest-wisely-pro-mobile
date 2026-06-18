@@ -353,8 +353,8 @@ function runAdvancedMC() {
       // Stessa cosa per il portafoglio custom che include Trend Following / Carry
       // o asset compositi a leva (Efficient Core 90/60): fat_trend, fat_carry_bond,
       // fat_carry_fx, ec_us_core, ec_glob_core non hanno serie in HIST_MONTHLY.
-      const LEVERAGED = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
-      const isCustomWithMF = portfolio === 'custom' &&
+      const LEVERAGED = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
+      const isCustomWithMF = (portfolio === 'custom' || portfolio === 'glide') &&
         (typeof customPortfolioIsNonBacktestable === 'function') &&
         customPortfolioIsNonBacktestable();
       let model = advMCState.model;

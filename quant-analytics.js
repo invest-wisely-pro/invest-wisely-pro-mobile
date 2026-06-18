@@ -412,6 +412,40 @@ function findMinVariance(frontier) {
 // ── Posizione del portafoglio corrente sul grafico ─────────────────────────
 function getCurrentPortfolioPoint(ter) {
   const key = state.portfolio;
+  // Glide path: usa la composizione all'età corrente, espansa nei sottostanti
+  // atomici (come il custom). PORT['glide'] ha μ/σ null → senza questo ramo
+  // cadrebbe nel fallback e ritornerebbe null (triangolo assente, params "—/a").
+  if (key === 'glide') {
+    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
+    const slots = gs.filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
+    if (!slots.length) return null;
+    const rawTotal = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
+    if (rawTotal<=0) return null;
+    const expandedMap = {};
+    let notionalSum = 0;
+    for (const sl of slots) {
+      const pctNorm = (+sl.pct||0) / rawTotal;
+      const ac = ASSET_CLASSES[sl.ac];
+      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+        const notional = ac.composite.reduce((a,c)=>a+c.w,0);
+        notionalSum += pctNorm * notional;
+        for (const comp of ac.composite)
+          if (ASSET_CLASSES[comp.ac]) expandedMap[comp.ac] = (expandedMap[comp.ac]||0) + pctNorm*(comp.w/notional);
+      } else {
+        notionalSum += pctNorm;
+        expandedMap[sl.ac] = (expandedMap[sl.ac]||0) + pctNorm;
+      }
+    }
+    const expSum = Object.values(expandedMap).reduce((a,b)=>a+b,0) || 1;
+    const keys = Object.keys(expandedMap);
+    const weights = keys.map(k => expandedMap[k]/expSum);
+    const leverage = Math.max(1, notionalSum); // notional totale (>1 se lato a leva)
+    const mu0 = portfolioMu(weights, keys, ter);
+    const levCost = (leverage - 1.0) * RF_RATE;
+    const mu = mu0 - levCost;
+    const vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
+    return { mu, vol, sharpe:(mu-RF_RATE)/(vol||0.001), label:`Glide Path @${state.age}a`, isCurrent:true, leverage: leverage>1.001?leverage:undefined };
+  }
   // FIX: anche per i preset, ricostruisce μ/σ/Sharpe dalla composizione reale in
   // asset class, passando dalla matrice di correlazione e rispettando il toggle
   // Forward/Storico — invece di usare PORT.normal/PORT.vol congelati (che davano
@@ -926,7 +960,31 @@ function _renderVaRView() {
 
   const key = state.portfolio;
   let mu, vol;
-  if (key === 'custom') {
+  if (key === 'glide') {
+    // Composizione del glide all'età corrente, espansa nei sottostanti atomici
+    // (come il custom) — riusa _getCurrentPortfolioWeights che già espande i
+    // composite a leva e normalizza i pesi.
+    const w = (typeof _getCurrentPortfolioWeights === 'function') ? _getCurrentPortfolioWeights() : null;
+    if (!w || !w.keys.length) { el.innerHTML='<p style="color:var(--text3)">Configura prima il Glide Path.</p>'; return; }
+    // Espandi eventuali composite rimasti nei keys (ec_*_core) nei sottostanti
+    const expandedMap = {};
+    for (let i = 0; i < w.keys.length; i++) {
+      const acKey = w.keys[i], wgt = w.weights[i];
+      const ac = ASSET_CLASSES[acKey];
+      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+        const notional = ac.composite.reduce((a,c)=>a+c.w,0);
+        for (const comp of ac.composite)
+          if (ASSET_CLASSES[comp.ac]) expandedMap[comp.ac] = (expandedMap[comp.ac]||0) + wgt*(comp.w/notional);
+      } else {
+        expandedMap[acKey] = (expandedMap[acKey]||0) + wgt;
+      }
+    }
+    const expSum = Object.values(expandedMap).reduce((a,b)=>a+b,0) || 1;
+    const keys = Object.keys(expandedMap);
+    const weights = keys.map(k => expandedMap[k]/expSum);
+    mu  = portfolioMu(weights, keys, 0);
+    vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
+  } else if (key === 'custom') {
     const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
     if (!slots.length) { el.innerHTML='<p style="color:var(--text3)">Configura prima il portafoglio Custom.</p>'; return; }
     const total = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
@@ -969,12 +1027,16 @@ function _renderVaRView() {
   // Per i custom con Efficient Core: segnala che il calcolo usa i sottostanti atomici
   const _hasComposite = key === 'custom' &&
     (state.customPortfolio?.slots||[]).some(s => { const ac = ASSET_CLASSES[s.ac]; return ac && ac.isComposite; });
-  // Leva presente: preset Efficient Core / Return Stacking, o custom con composite.
+  // Glide: leva presente se uno dei lati contiene composite a leva o trend/carry.
+  const _glideLeveraged = key === 'glide' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
+  // Leva presente: preset Efficient Core / Return Stacking, o custom con composite, o glide con lato a leva.
   // Il VaR normalizza i pesi al 100%, quindi sottostima il rischio amplificato dalla leva.
-  const _varLeveraged = _hasComposite || key === 'ec_us_9060' || key === 'ec_glob_9060' || key === 'return_stack';
+  const _varLeveraged = _hasComposite || _glideLeveraged || key === 'ec_us_9060' || key === 'ec_glob_9060' || key === 'return_stack';
   const portLabel = key==='custom'
     ? ('Custom' + (_hasComposite ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">(Efficient Core espanso nei sottostanti)</span>' : ''))
-    : (PORT[key]?.label||key);
+    : key==='glide'
+      ? (`Glide Path @${state.age}a` + (_glideLeveraged ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">(composizione corrente, sottostanti espansi)</span>' : ' <span style="font-size:10px;color:var(--text3);font-weight:400">(composizione all\'età corrente)</span>'))
+      : (PORT[key]?.label||key);
   // fmt/fmtP: null = "nessuna perdita attesa" (VaR negativo su orizzonte lungo)
   const fmt  = v => v === null ? '<span style="color:var(--green);font-size:11px">nessuna perdita attesa</span>'
                                : v >= 0 ? '−€'+Math.round(v).toLocaleString('it-IT')
@@ -1299,6 +1361,13 @@ function _portfolioToAssetClasses(portKey, p) {
     { ac: 'gold',          w: 0.075 },
     { ac: 'commodities',   w: 0.075 },
   ];
+  if (portKey === 'glide') {
+    // Composizione del glide all'età corrente (slot interpolati A↔B).
+    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
+    const tot = gs.reduce((s, x) => s + x.pct, 0) || 1;
+    const r = gs.map(x => ({ ac: x.ac, w: x.pct / tot }));
+    if (r.length) return r;
+  }
   if (portKey === 'lifecycle') {
     const eW = typeof getLCWeight === 'function' ? getLCWeight(state.age) : 0.5;
     return [
@@ -1320,6 +1389,23 @@ function _portfolioToAssetClasses(portKey, p) {
 
 // ── Ottiene pesi del portafoglio corrente (custom o predefinito) ──────────
 function _getCurrentPortfolioWeights() {
+  if (state.portfolio === 'glide') {
+    // Composizione del glide all'età corrente, espansa nei componenti atomici
+    // (come il custom) così frontiera/fattori/VaR ricevono asset reali e finCost.
+    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
+    const raw = gs.filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
+    if (!raw.length) return null;
+    const exp = (typeof expandCustomSlots === 'function')
+      ? expandCustomSlots(raw)
+      : { slots: raw, total: raw.reduce((s, sl) => s + (+sl.pct || 0), 0), finCostTotal: 0 };
+    const total = exp.slots.reduce((s, sl) => s + (+sl.pct || 0), 0) || 1;
+    return {
+      keys:    exp.slots.map(s => s.ac),
+      weights: exp.slots.map(s => (+s.pct || 0) / total),
+      label:   'Glide Path',
+      finCost: exp.finCostTotal || 0,
+    };
+  }
   if (state.portfolio === 'custom') {
     const raw = (state.customPortfolio?.slots || [])
       .filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);

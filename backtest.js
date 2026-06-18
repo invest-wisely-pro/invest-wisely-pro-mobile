@@ -468,18 +468,32 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
 // Stesso blocco per asset compositi a leva (Efficient Core 90/60 USA/Globale):
 // isComposite+finCost > 0 indica esposizione notional >100%; il backtest storico
 // ignorerebbe la leva e il costo di finanziamento, producendo risultati fuorvianti.
-function customPortfolioIsNonBacktestable() {
-  if (state.portfolio !== 'custom') return false;
+// Verifica se un array di slot contiene asset non backtestabili (trend/carry o
+// compositi a leva). Riusabile per custom e per i due lati del glide.
+function slotsAreNonBacktestable(slots) {
   const NON_BT_CATS = new Set(['trend', 'carry']);
-  return (state.customPortfolio?.slots || []).some(sl => {
+  return (slots || []).some(sl => {
     const ac = ASSET_CLASSES[sl.ac];
     if (!ac || !(Number(sl.pct) > 0)) return false;
-    // Categoria non backtestabile (trend following, carry, managed futures)
     if (NON_BT_CATS.has(ac.cat)) return true;
-    // Asset composito a leva (efficient core 90/60 USA o Globale)
     if (ac.isComposite && ac.finCost > 0) return true;
     return false;
   });
+}
+
+function customPortfolioIsNonBacktestable() {
+  if (state.portfolio === 'glide') {
+    // Il glide è non-backtestabile se UNO dei due lati contiene leva/trend/carry,
+    // perché lungo l'orizzonte miscela quelle esposizioni (mancano dalla serie
+    // storica 1970-2024 e gli strumenti UCITS non esistevano).
+    const g = state.glide;
+    if (!g) return false;
+    const sA = (typeof strategyToSlots === 'function') ? strategyToSlots(g.sideA) : [];
+    const sB = (typeof strategyToSlots === 'function') ? strategyToSlots(g.sideB) : [];
+    return slotsAreNonBacktestable(sA) || slotsAreNonBacktestable(sB);
+  }
+  if (state.portfolio !== 'custom') return false;
+  return slotsAreNonBacktestable(state.customPortfolio?.slots || []);
 }
 
 function runBacktest() {
@@ -491,7 +505,7 @@ function runBacktest() {
   // azioni/obbligazioni/oro (manca il managed futures), la leva verrebbe
   // ignorata, e gli strumenti UCITS non esistevano nelle finestre storiche.
   // Stessa cosa per il portafoglio custom che include Trend Following / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
   if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable())) {
     document.getElementById('btResults').style.display = 'block';
     document.getElementById('btCompareSec').style.display = 'none';
@@ -868,7 +882,7 @@ function runAllBacktests() {
   const portKey = btState.port === 'sim' ? state.portfolio : btState.port;
   // Stessa esclusione di runBacktest: i preset con leva / managed futures non
   // sono backtestabili sulla serie storica. Idem per custom con Trend / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
   if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable())) {
     document.getElementById('btResults').style.display = 'block';
     document.getElementById('btCompareSec').style.display = 'none';
