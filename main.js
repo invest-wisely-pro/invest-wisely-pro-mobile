@@ -4011,7 +4011,10 @@ document.getElementById('decAllocBtns').onclick = e => { const b = e.target.clos
   const decAllocWarn = document.getElementById('decAllocWarn');
   if (decAllocWarn) {
     const slots = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0);
-    if (b.dataset.k === 'custom' && slots.length === 0) {
+    if (b.dataset.k === 'custom' && state.portfolio === 'glide') {
+      decAllocWarn.style.display = 'block';
+      decAllocWarn.innerHTML = '⚠️ Hai il <strong>Glide Path</strong> attivo nel Simulatore, ma questa scheda usa l\'Allocazione Custom (pesi fissi). I risultati <strong>non riflettono il de-risking del lifecycle</strong>: la composizione viene congelata all\'età corrente per tutti gli anni del decumulo. Per analizzare il glide path usa il <strong>Monte Carlo Avanzato</strong> (modella correttamente il cambio di composizione anno per anno).';
+    } else if (b.dataset.k === 'custom' && slots.length === 0) {
       decAllocWarn.style.display = 'block';
       decAllocWarn.innerHTML = '⚠️ Non hai ancora configurato un\'allocazione personalizzata nella scheda Simulatore. Vai al Simulatore, scegli "Allocazione personalizzata" e imposta gli asset, poi torna qui.';
     } else {
