@@ -515,12 +515,20 @@ function runBacktest() {
     box.style.background = 'var(--orange-dim, rgba(230,138,0,.08))';
     box.style.border = '1px solid rgba(230,138,0,.35)';
     box.style.color = 'var(--orange, #b8860b)';
-    const isCustomMF = portKey === 'custom' && customPortfolioIsNonBacktestable();
+    const isCustomMF  = portKey === 'custom' && customPortfolioIsNonBacktestable();
+    const isGlidePath = portKey === 'glide';
     box.innerHTML = isCustomMF
       ? `Il portafoglio custom include <strong>Trend Following / Managed Futures</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>, ` +
         `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
         `Il backtest ignorerebbe la leva e i costi di finanziamento, producendo risultati fuorvianti. ` +
         `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>.`
+      : isGlidePath
+      ? `Il backtest storico non è applicabile al <strong>Glide Path</strong>, indipendentemente dagli asset che lo compongono. ` +
+        `Il backtester simula un portafoglio a <strong>pesi fissi</strong> su una finestra storica contigua: ` +
+        `non modella il ribilanciamento dinamico annuale tra Lato A e Lato B che è il meccanismo centrale del lifecycle. ` +
+        `Applicarlo produrrebbe risultati riferiti a un portafoglio statico diverso da quello configurato. ` +
+        `Usa il <strong>Monte Carlo Avanzato</strong> (modella correttamente il cambio di composizione anno per anno) ` +
+        `o il <strong>Simulatore</strong> per analizzare questa strategia.`
       : `Il backtest storico non è applicabile a <strong>${lbl}</strong>. ` +
         `Questa strategia usa leva (esposizione &gt;100%) e/o managed futures, ` +
         `asset per cui non esiste una serie storica coerente in questo modello ` +

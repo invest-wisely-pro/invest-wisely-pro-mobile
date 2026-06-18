@@ -3468,26 +3468,112 @@ const GLIDE_PRESET_OPTIONS = [
 // Genera il path SVG della curva α(età) e la quota azionaria effettiva lungo il glide.
 function _glideCurveSVG() {
   const g = state.glide; if (!g) return '';
-  const W = 460, H = 120, padL = 34, padR = 10, padT = 8, padB = 22;
+  // Dimensioni generose: più alta per separare le due curve e leggere i valori.
+  // padT alzato a 22 (era 14): quando il valore iniziale coincide col tetto della
+  // scala sinistra (caso frequente: l'azionario di partenza è spesso il massimo
+  // del range), l'etichetta in grassetto sopra il punto aveva pochissimo respiro.
+  const W = 460, H = 168, padL = 42, padR = 46, padT = 22, padB = 26;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
   const aMin = Math.min(g.ageStart, g.ageEnd), aMax = Math.max(g.ageStart, g.ageEnd);
   const span = Math.max(1, aMax - aMin);
-  const xOf = age => padL + (age - aMin) / span * (W - padL - padR);
-  // Asse Y = quota azionaria effettiva (0..max). Calcola eq lungo il glide.
-  const ages = []; for (let a = aMin; a <= aMax; a++) ages.push(a);
-  const eqs = ages.map(a => Math.max(0, getGlideParams(a).eq));
-  const eqMax = Math.max(1, ...eqs);
-  const yOf = eq => padT + (1 - eq / eqMax) * (H - padT - padB);
-  const ptEq = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOf(eqs[i]).toFixed(1)}`).join(' ');
-  // α come linea tratteggiata (riferimento di forma) sullo stesso riquadro
-  const ptA = ages.map(a => `${xOf(a).toFixed(1)},${(padT + (1 - getGlideAlpha(a, g.ageStart, g.ageEnd, g.k)) * (H - padT - padB)).toFixed(1)}`).join(' ');
-  const gridY = [0, 0.5, 1].map(f => { const y = padT + (1 - f) * (H - padT - padB); return `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="var(--border2)" stroke-width="1"/><text x="4" y="${y+3}" font-size="8" fill="var(--text3)" font-family="DM Mono">${Math.round(f*eqMax*100)}%</text>`; }).join('');
-  const xTicks = [aMin, Math.round((aMin+aMax)/2), aMax].map(a => `<text x="${xOf(a)}" y="${H-6}" font-size="8" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">${a}a</text>`).join('');
+  const xOf = age => padL + (age - aMin) / span * plotW;
+
+  const ages   = []; for (let a = aMin; a <= aMax; a++) ages.push(a);
+  const params = ages.map(a => getGlideParams(a));
+  const eqs    = params.map(p => Math.max(0, p.eq     ?? 0));
+  const mus    = params.map(p => Math.max(0, p.normal ?? 0));
+
+  // Scala sinistra: Az% (0 → eqScale arrotondato al 10% superiore)
+  const eqMax   = Math.max(0.01, ...eqs);
+  const eqScale = Math.ceil(eqMax * 10) / 10;
+  const yOfEq   = eq => padT + (1 - eq / eqScale) * plotH;
+
+  // Scala destra: μ% (0 → muScale arrotondato al 2% superiore)
+  const muMax   = Math.max(0.01, ...mus);
+  const muScale = Math.ceil(muMax * 50) / 50;
+  const yOfMu   = mu => padT + (1 - mu / muScale) * plotH;
+
+  const ptEq = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfEq(eqs[i]).toFixed(1)}`).join(' ');
+  const ptMu = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfMu(mus[i]).toFixed(1)}`).join(' ');
+
+  // Area riempita sotto la curva azionaria (fill semitrasparente)
+  const fillPts = `${xOf(aMin).toFixed(1)},${(padT + plotH).toFixed(1)} ` + ptEq + ` ${xOf(aMax).toFixed(1)},${(padT + plotH).toFixed(1)}`;
+
+  // Griglia orizzontale 3 livelli con label asse sinistro
+  const gridLines = [0, 0.5, 1].map(f => {
+    const y   = padT + (1 - f) * plotH;
+    const lbl = Math.round(f * eqScale * 100) + '%';
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(padL+plotW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border2)" stroke-width="1"/>` +
+           `<text x="${(padL-4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--text3)" font-family="DM Mono" text-anchor="end">${lbl}</text>`;
+  }).join('');
+
+  // Label asse destro μ% — viola, NON verde: il verde è già "Lato B" altrove
+  // nel builder (header, radio, pallino di arrivo). Usarlo anche per μ creava
+  // due significati diversi sovrapposti sullo stesso colore.
+  const muLabels = [0, 0.5, 1].map(f => {
+    const mu = f * muScale;
+    const y  = padT + (1 - f) * plotH;
+    return `<text x="${(padL+plotW+4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.85">${(mu*100).toFixed(1)}%</text>`;
+  }).join('');
+
+  // Tick età asse X
+  const xTicks = [aMin, Math.round((aMin+aMax)/2), aMax]
+    .map(a => `<text x="${xOf(a).toFixed(1)}" y="${H-5}" font-size="8.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">${a}a</text>`)
+    .join('');
+
+  // Marcatore "oggi": se l'età attuale impostata nel Simulatore cade dentro al
+  // range del glide e non coincide con l'inizio, la mostriamo come riferimento —
+  // il glide può partire da un'età diversa da quella corrente (proiezione storica
+  // o ipotesi futura), ed è utile capire subito "dove sono io" sulla curva.
+  let todayMarker = '';
+  const todayAge = Math.round(state.age);
+  if (todayAge > aMin && todayAge < aMax) {
+    const xT = xOf(todayAge);
+    todayMarker = `<line x1="${xT.toFixed(1)}" y1="${padT.toFixed(1)}" x2="${xT.toFixed(1)}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>` +
+      `<text x="${xT.toFixed(1)}" y="${(padT-7).toFixed(1)}" font-size="7.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">oggi ${todayAge}a</text>`;
+  }
+
+  // ── Callout valori di inizio e fine direttamente sulle curve ────────────────
+  // Curva azionaria: valore iniziale (punto blu) + valore finale (punto verde)
+  const eqStart = eqs[0], eqEnd = eqs[eqs.length - 1];
+  const muStart = mus[0], muEnd = mus[mus.length - 1];
+
+  const xS = xOf(aMin), xE = xOf(aMax);
+  const yEqS = yOfEq(eqStart), yEqE = yOfEq(eqEnd);
+  const yMuS = yOfMu(muStart), yMuE = yOfMu(muEnd);
+
+  // Punto intermedio: senza un riferimento a metà percorso la "Curvatura k" —
+  // il parametro che lo slider qui sotto fa effettivamente variare — non è
+  // leggibile sul grafico, solo nei due estremi (che k non altera). Un piccolo
+  // marker discreto rende visibile quanto la curva si scosta dalla linea retta.
+  const aMid = Math.round((aMin + aMax) / 2);
+  const eqMid = eqs[aMid - aMin];
+  const xMid = xOf(aMid), yEqMid = yOfEq(eqMid);
+  const midMarker = aMid > aMin && aMid < aMax
+    ? `<circle cx="${xMid.toFixed(1)}" cy="${yEqMid.toFixed(1)}" r="2.5" fill="var(--blue)" opacity="0.55"/>` +
+      `<text x="${xMid.toFixed(1)}" y="${(yEqMid-7).toFixed(1)}" font-size="8" font-weight="600" fill="var(--blue)" font-family="DM Mono" text-anchor="middle" opacity="0.75">${Math.round(eqMid*100)}%</text>`
+    : '';
+
+  // Label valore Az% inizio (sopra il punto, asse sin.)
+  const lblEqStart = `<text x="${(xS+6).toFixed(1)}" y="${(yEqS-6).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="start">${Math.round(eqStart*100)}%</text>`;
+  // Label valore Az% fine (a sinistra del punto, per non uscire dal box)
+  const lblEqEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yEqE-7).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="end">${Math.round(eqEnd*100)}%</text>`;
+
+  // Label valore μ inizio/fine — viola, coerente col titolo e con la linea tratteggiata
+  const lblMuStart = `<text x="${(xS+6).toFixed(1)}" y="${(yMuS+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.9">${(muStart*100).toFixed(1)}%</text>`;
+  const lblMuEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yMuE+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="end" opacity="0.9">${(muEnd*100).toFixed(1)}%</text>`;
+
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
-    ${gridY}${xTicks}
-    <polyline points="${ptA}" fill="none" stroke="var(--purple)" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.6"/>
-    <polyline points="${ptEq}" fill="none" stroke="var(--blue)" stroke-width="2.4"/>
-    <circle cx="${xOf(aMin)}" cy="${yOf(eqs[0])}" r="3.5" fill="var(--blue)"/>
-    <circle cx="${xOf(aMax)}" cy="${yOf(eqs[eqs.length-1])}" r="3.5" fill="var(--green)"/>
+    ${gridLines}${muLabels}${xTicks}${todayMarker}
+    <polygon points="${fillPts}" fill="var(--blue)" opacity="0.07"/>
+    <polyline points="${ptMu}" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-dasharray="6 3" opacity="0.7"/>
+    <polyline points="${ptEq}" fill="none" stroke="var(--blue)"  stroke-width="2.8"/>
+    ${midMarker}
+    <circle cx="${xS.toFixed(1)}" cy="${yEqS.toFixed(1)}" r="4" fill="var(--blue)"/>
+    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="4" fill="var(--blue)" opacity="0.7"/>
+    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="3" fill="var(--green)"/>
+    ${lblEqStart}${lblEqEnd}${lblMuStart}${lblMuEnd}
   </svg>`;
 }
 
@@ -3561,7 +3647,7 @@ function renderGlideBuilder() {
     <div class="sec-label" style="margin-bottom:12px">⤵ Glide Path — transizione tra due strategie</div>
     <div class="glide-sides">${_glideSideHTML('a')}${_glideSideHTML('b')}</div>
     <div class="glide-curve-wrap">
-      <div class="glide-curve-title">Quota azionaria effettiva lungo l'età (— blu) · curva α di miscela (- - viola)</div>
+      <div class="glide-curve-title">Quota azionaria effettiva lungo l'età (— blu) · rendimento atteso <span style="text-transform:none">μ</span> del blend (- - viola)</div>
       ${_glideCurveSVG()}
     </div>
     <div class="glide-controls">

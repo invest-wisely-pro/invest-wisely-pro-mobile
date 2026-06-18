@@ -350,10 +350,15 @@ function runAdvancedMC() {
       // il Block Bootstrap li modellerebbe come mix az/obbl/oro ignorando leva e
       // trend. Per questi, se è selezionato 'bootstrap', si ricade su GARCH
       // (parametrico, che usa il rendimento/vol corretti del portafoglio).
-      // Stessa cosa per il portafoglio custom che include Trend Following / Carry
-      // o asset compositi a leva (Efficient Core 90/60): fat_trend, fat_carry_bond,
-      // fat_carry_fx, ec_us_core, ec_glob_core non hanno serie in HIST_MONTHLY.
-      const LEVERAGED = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
+      // Stessa cosa per il portafoglio custom O per un Glide Path che includa
+      // Trend Following / Carry o asset compositi a leva (Efficient Core 90/60)
+      // in uno dei due lati: fat_trend, fat_carry_bond, fat_carry_fx, ec_us_core,
+      // ec_glob_core non hanno serie in HIST_MONTHLY.
+      // NB: 'glide' NON va in questa mappa fissa — un Glide Path è "non
+      // backtestabile" solo se Lato A o Lato B contengono effettivamente quegli
+      // asset (lo verifica già customPortfolioIsNonBacktestable() qui sotto).
+      // Prima un glide qualsiasi, anche senza leva, ricadeva sempre su GARCH.
+      const LEVERAGED = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
       const isCustomWithMF = (portfolio === 'custom' || portfolio === 'glide') &&
         (typeof customPortfolioIsNonBacktestable === 'function') &&
         customPortfolioIsNonBacktestable();
@@ -362,7 +367,9 @@ function runAdvancedMC() {
       if ((model === 'bootstrap' || model === 'bootstrap5y') && (LEVERAGED[portfolio] || isCustomWithMF)) {
         model = 'garch';
         modelFallbackNote = isCustomWithMF
-          ? 'Il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità del portafoglio custom.'
+          ? (portfolio === 'glide'
+              ? 'Uno dei due lati del Glide Path include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità della miscela.'
+              : 'Il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità del portafoglio custom.')
           : 'Il Block Bootstrap storico non è applicabile ai portafogli con leva / managed futures: usato il modello GARCH(1,1) parametrico.';
       }
       const terRate = ter/100;
@@ -474,8 +481,8 @@ function runAdvancedMC() {
             // Block Bootstrap a 5 anni: campiona blocchi di 60 mesi CONTIGUI (overlapping),
             // così azioni/obbligazioni/oro e inflazione mantengono le correlazioni reali
             // lungo un ciclo intero (es. la stagflazione 1973-77, il bull 1995-99).
-            const goldW_b = getGoldWeight(portfolio);
-            const cashW_b = getCashWeight(portfolio);
+            const goldW_b = getGoldWeight(portfolio, age + y);
+            const cashW_b = getCashWeight(portfolio, age + y);
             const obW_b   = Math.max(0, 1 - eqW - goldW_b - cashW_b);
             const n_hist  = HIST_MONTHLY.length;
             const BLOCK_M = 60; // 5 anni
@@ -499,8 +506,8 @@ function runAdvancedMC() {
             const scaleFactor5 = (1 + muY) / (1 + histMean5);
             r = annR * scaleFactor5 - 1;
           } else { // bootstrap — Block Bootstrap con dati storici reali 1970–2024
-            const goldW_b = getGoldWeight(portfolio);
-            const cashW_b = getCashWeight(portfolio);
+            const goldW_b = getGoldWeight(portfolio, age + y);
+            const cashW_b = getCashWeight(portfolio, age + y);
             const obW_b   = Math.max(0, 1 - eqW - goldW_b - cashW_b);
             // Campiona un blocco di 12 mesi contigui dai dati reali
             const n_hist = HIST_MONTHLY.length;

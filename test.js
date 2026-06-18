@@ -158,12 +158,19 @@ function loadSimulator() {
     /const RECOVERY_YEARS = [\s\S]*?;/, /const BOND_RALLY_RATE = [\s\S]*?;/,
     /const RECOVERY_CATCHUP = [\s\S]*?;/, /const SEQ_CRASH_GAP = [\s\S]*?;/,
     /const CRASH_BETA = \{[\s\S]*?\};/,
+    /const PRESET_SLOTS = \{[\s\S]*?\n\};/,
   ].forEach(re => { const c = grab(SRC.main, re); if (c) eval(c.replace('const ', 'global.')); });
   eval(grab(SRC.main, /let state = \{[\s\S]*?\n\};/).replace('let ', 'global.'));
+  // Inizializza _glideCache stub per il contesto test (non c'e' DOM)
+  global._glideCache = { sig: null, byAge: {} };
   ['fmt','fmtN','fmtFull','getCrashYears',
    'getCrashYear','_sanitizeCrashYears','getCrashWeights','getLCWeight','getEquityWeight',
    'getGoldWeight','getCashWeight','expandCustomSlots','calcCustomParams','getRate','getRateEco','getEcoWindow',
-   'projectEco','getPacForYear','project','blendedTaxRate','calcNetNom','cagrSafe'].forEach(fn => loadFn(SRC.main, fn));
+   'projectEco','getPacForYear','project','blendedTaxRate','calcNetNom','cagrSafe',
+   // Glide path: necessari per project() con portfolio='glide'
+   'strategyToSlots','getGlideAlpha','getGlideSlots','_glideSig','getGlideParams',
+   'getPortParams','getFxExposure','getFxAdjustment',
+  ].forEach(fn => loadFn(SRC.main, fn));
 }
 function setState(o) {
   Object.assign(global.state, {
@@ -172,7 +179,11 @@ function setState(o) {
     seq:{on:false,mode:'single',timing:'mid',severity:'moderate',dynCorr:false},
     fxHedge:false, fxHedgeCost:0.005, fxVol:0.08, inflBottom:2, inflVol:1, ecoTiming:'early',
     customPortfolio:{slots:[]},
+    // Glide path: valori di default per i test (stessa struttura di state iniziale in main.js)
+    glide:{ sideA:{type:'preset',ref:'ec_glob_9060'}, sideB:{type:'preset',ref:'golden_butterfly'}, ageStart:30, ageEnd:65, k:2 },
   }, o);
+  // Invalida la cache del glide ad ogni cambio di state (come fa _afterGlideChange nel browser)
+  if (global._glideCache) global._glideCache.sig = null;
 }
 function suiteSimulator() {
   header('SUITE 2 — SIMULATORE');
