@@ -2974,8 +2974,15 @@ function runDecumuloHistorical() {
   const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
   if (DEC_HIST_SKIP[port] || customNonBT) {
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(port) : port;
-    const err = new Error(`Backtest storico non disponibile per "${lbl}": i portafogli con leva (efficient core, return stacking) o con trend following / carry non hanno una serie storica coerente nel dataset 1970-2024 (azioni/obbligazioni/oro). Usa il Monte Carlo Avanzato con un modello parametrico.`);
+    const isGlide = port === 'glide';
+    const msg = isGlide
+      ? `Backtest storico non disponibile per il Glide Path: il backtester usa pesi fissi su una finestra storica contigua e non puo modellare il ribilanciamento dinamico annuale tra Lato A e Lato B. Usa il Monte Carlo Avanzato (modella correttamente il cambio di composizione anno per anno) o il Simulatore.`
+      : customNonBT
+        ? `Backtest storico non disponibile per "${lbl}": il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva), asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`
+        : `Backtest storico non disponibile per "${lbl}": questa strategia usa leva o managed futures, privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`;
+    const err = new Error(msg);
     err.decHistBlocked = true;
+    err.isGlide = isGlide;
     throw err;
   }
 
@@ -3174,8 +3181,17 @@ function runDecHistorical() {
         </div>`;
       document.getElementById('decHistResults').innerHTML = html;
     } catch (e) {
-      document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
-      console.error(e);
+      if (e.decHistBlocked) {
+        const icon = e.isGlide ? '⤵' : '⚡';
+        document.getElementById('decHistResults').innerHTML =
+          `<div style="background:rgba(230,138,0,.07);border:1px solid rgba(230,138,0,.30);border-radius:6px;padding:16px 20px;line-height:1.7">` +
+          `<div style="font-size:13px;font-weight:700;color:#b8860b;margin-bottom:6px">${icon} Backtest storico non disponibile</div>` +
+          `<div style="font-size:12.5px;color:var(--text2)">${e.message}</div>` +
+          `</div>`;
+      } else {
+        document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
+        console.error(e);
+      }
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '📅 Esegui Backtest Storico'; }
     }
