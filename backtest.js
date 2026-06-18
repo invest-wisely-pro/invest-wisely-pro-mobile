@@ -481,7 +481,14 @@ function slotsAreNonBacktestable(slots) {
   });
 }
 
-function customPortfolioIsNonBacktestable() {
+function customPortfolioIsNonBacktestable(slotsOverride) {
+  // slotsOverride: se fornito, controlla QUESTI slot invece di dedurre dal
+  // contesto state. Serve al decumulo, che usa decState.portfolio (può essere
+  // 'custom' mentre il Simulatore è su 'glide'): senza override la funzione
+  // ispezionerebbe i lati del glide invece degli slot custom realmente usati.
+  if (Array.isArray(slotsOverride)) {
+    return slotsAreNonBacktestable(slotsOverride);
+  }
   if (state.portfolio === 'glide') {
     // Il glide è non-backtestabile se UNO dei due lati contiene leva/trend/carry,
     // perché lungo l'orizzonte miscela quelle esposizioni (mancano dalla serie
