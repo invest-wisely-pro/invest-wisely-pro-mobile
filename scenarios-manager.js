@@ -74,14 +74,12 @@ function _applySnapshot(snap) {
   state.fxHedge       = !!snap.fxHedge;
   state.fxVol         = n(snap.fxVol, 0.085);
   state.fxHedgeCost   = n(snap.fxHedgeCost, 0.003);
-
-  // Ripristina la config Glide Path (con validazione difensiva): senza questo,
-  // uno scenario salvato con glide attivo perderebbe lati/età/k al ripristino,
-  // ricadendo sul glide di default.
+  // Ripristina la config Glide Path (validazione difensiva): senza questo uno
+  // scenario salvato con glide perderebbe lati/età/k al ripristino.
   if (snap.glide && typeof snap.glide === 'object') {
     const gg = snap.glide;
-    const validSide = s => s && (s.type === 'preset' ? typeof s.ref === 'string'
-                                : (s.type === 'custom' && Array.isArray(s.slots)));
+    const validSide = sd => sd && (sd.type === 'preset' ? typeof sd.ref === 'string'
+                                  : (sd.type === 'custom' && Array.isArray(sd.slots)));
     if (validSide(gg.sideA) && validSide(gg.sideB)
         && !isNaN(+gg.ageStart) && !isNaN(+gg.ageEnd) && !isNaN(+gg.k)) {
       state.glide = {

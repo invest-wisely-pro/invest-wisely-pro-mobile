@@ -2970,13 +2970,35 @@ function runDecumuloHistorical() {
   // Gate: i preset con leva / managed futures (efficient core, return stacking) e i
   // custom con trend/carry non hanno serie storica coerente in HIST_MONTHLY (solo
   // azioni/obbligazioni/oro). Simularli falserebbe rischio e decorrelazione.
-  const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
-  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
-  if (DEC_HIST_SKIP[port] || customNonBT) {
+  const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  // Per "Mia allocazione" il decumulo usa state.customPortfolio.slots: passa QUEGLI
+  // slot esplicitamente, altrimenti la funzione ispezionerebbe il contesto del
+  // Simulatore (che può essere su glide) invece dell'allocazione realmente usata.
+  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function'
+    && customPortfolioIsNonBacktestable(state.customPortfolio?.slots || []);
+  // Glide nel decumulo: la composizione è CONGELATA al Lato B (de-risking finale,
+  // perché decAge ≥ ageEnd). È quindi un'allocazione fissa: backtestabile sul piano
+  // storico SE il Lato B non contiene leva/trend/carry e il glide è già concluso a
+  // pensionamento. Altrimenti serve il modello dinamico (Monte Carlo).
+  let glideNonBT = false;
+  if (port === 'glide') {
+    const decAge0 = state.age + state.years;
+    const g = state.glide;
+    const inTransition = g && decAge0 < g.ageEnd;
+    const sideBslots = (g && typeof strategyToSlots === 'function') ? strategyToSlots(g.sideB) : [];
+    const sideBleveraged = typeof customPortfolioIsNonBacktestable === 'function'
+      ? customPortfolioIsNonBacktestable(sideBslots) : true;
+    glideNonBT = sideBleveraged || inTransition;
+  }
+  if (DEC_HIST_SKIP[port] || customNonBT || glideNonBT) {
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(port) : port;
     const isGlide = port === 'glide';
+    const g = state.glide;
+    const decAge0 = state.age + state.years;
     const msg = isGlide
-      ? `Backtest storico non disponibile per il Glide Path: il backtester usa pesi fissi su una finestra storica contigua e non puo modellare il ribilanciamento dinamico annuale tra Lato A e Lato B. Usa il Monte Carlo Avanzato (modella correttamente il cambio di composizione anno per anno) o il Simulatore.`
+      ? ((g && decAge0 < g.ageEnd)
+          ? `Backtest storico non disponibile: il tuo pensionamento (età ${decAge0}) cade prima della fine del Glide Path (età ${g.ageEnd}), quindi la composizione è ancora in transizione tra Lato A e Lato B. Il backtester usa pesi fissi e non puo modellare il ribilanciamento dinamico. Usa il Monte Carlo Avanzato.`
+          : `Backtest storico non disponibile: il Lato B del Glide Path include leva (Efficient Core), Trend Following o Carry, asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato.`)
       : customNonBT
         ? `Backtest storico non disponibile per "${lbl}": il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva), asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`
         : `Backtest storico non disponibile per "${lbl}": questa strategia usa leva o managed futures, privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`;
@@ -2986,11 +3008,11 @@ function runDecumuloHistorical() {
     throw err;
   }
 
-  // Pesi del portafoglio
+  // Pesi del portafoglio (per glide: composizione del Lato B all'età di pensionamento)
   const decAge = state.age + state.years;
   const eqW = getEquityWeight(port, decAge);
-  const goldW = getGoldWeight(port);
-  const cashW = getCashWeight(port);
+  const goldW = getGoldWeight(port, decAge);
+  const cashW = getCashWeight(port, decAge);
   const obW = Math.max(0, 1 - eqW - goldW - cashW);
 
   // Anni di partenza disponibili (servono Y anni di dati dopo)
@@ -4007,13 +4029,25 @@ bindDecSlider('sDecTer', 'lDecTer', 'ter', v => v.toFixed(2) + '%');
 bindDecSlider('sDecI', 'lDecI', 'inflation', v => v.toFixed(1) + '%');
 
 document.getElementById('decAllocBtns').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; decState.portfolio = b.dataset.k; document.querySelectorAll('#decAllocBtns .gbtn').forEach(x => x.classList.remove('a-blue')); b.classList.add('a-blue'); 
-  // Avviso se si sceglie "Mia allocazione" ma il Simulatore non ha un'allocazione custom configurata
   const decAllocWarn = document.getElementById('decAllocWarn');
   if (decAllocWarn) {
     const slots = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0);
-    if (b.dataset.k === 'custom' && state.portfolio === 'glide') {
+    if (b.dataset.k === 'glide') {
+      // Il decumulo usa il Glide Path all'età di pensionamento (state.age + state.years).
+      // Poiché quell'età è ≥ ageEnd, il glide è clampato al LATO B (de-risking finale).
+      const g = state.glide;
+      const decAge = state.age + state.years;
+      const sideLbl = s => s && (s.type === 'custom' ? 'allocazione custom'
+        : (typeof getPortLabel === 'function' ? getPortLabel(s.ref) : (s && s.ref)) || (s && s.ref));
       decAllocWarn.style.display = 'block';
-      decAllocWarn.innerHTML = '⚠️ Hai il <strong>Glide Path</strong> attivo nel Simulatore, ma questa scheda usa l\'Allocazione Custom (pesi fissi). I risultati <strong>non riflettono il de-risking del lifecycle</strong>: la composizione viene congelata all\'età corrente per tutti gli anni del decumulo. Per analizzare il glide path usa il <strong>Monte Carlo Avanzato</strong> (modella correttamente il cambio di composizione anno per anno).';
+      if (g && decAge < g.ageEnd) {
+        decAllocWarn.innerHTML = `⚠️ Il tuo pensionamento (età ${decAge}) cade <strong>prima</strong> della fine del Glide Path (età ${g.ageEnd}). Il decumulo congela la composizione all'età ${decAge} — una <strong>miscela A/B ancora in transizione</strong>, non il Lato B finale. Per modellare il de-risking che prosegue durante il decumulo, usa il <strong>Monte Carlo Avanzato</strong>.`;
+      } else {
+        decAllocWarn.innerHTML = `✓ Decumulo del <strong>Lato B</strong> del Glide Path (${sideLbl(g && g.sideB)}), la composizione di de-risking raggiunta a fine accumulo (età ${g ? g.ageEnd : decAge}). È l'allocazione corretta da prelevare in pensione. <span style="color:var(--text3)">La composizione resta fissa: il glide ha già completato la transizione.</span>`;
+      }
+    } else if (b.dataset.k === 'custom' && state.portfolio === 'glide') {
+      decAllocWarn.style.display = 'block';
+      decAllocWarn.innerHTML = '⚠️ Hai il <strong>Glide Path</strong> attivo nel Simulatore, ma questa scheda usa l\'Allocazione Custom (pesi fissi del builder), <strong>non</strong> il Lato B del glide. Se vuoi decumulare la composizione di de-risking del lifecycle, scegli il bottone <strong>⤵ Glide Path (Lato B)</strong> qui sopra.';
     } else if (b.dataset.k === 'custom' && slots.length === 0) {
       decAllocWarn.style.display = 'block';
       decAllocWarn.innerHTML = '⚠️ Non hai ancora configurato un\'allocazione personalizzata nella scheda Simulatore. Vai al Simulatore, scegli "Allocazione personalizzata" e imposta gli asset, poi torna qui.';

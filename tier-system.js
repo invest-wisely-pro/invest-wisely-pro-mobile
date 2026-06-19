@@ -587,6 +587,7 @@ const INFO_TEXTS = {
 
   // Popover globale riusabile
   let _popover = null;
+  let _backdrop = null;
   let _activeBtn = null;
 
   function toggleInfoPopover(btn, info) {
@@ -600,19 +601,37 @@ const INFO_TEXTS = {
 
   function openInfoPopover(btn, info) {
     if (!_popover) {
+      // Backdrop (visibile solo su mobile come sfondo del bottom-sheet)
+      _backdrop = document.createElement('div');
+      _backdrop.className = 'info-popover-backdrop';
+      _backdrop.addEventListener('click', closeInfoPopover);
+      document.body.appendChild(_backdrop);
+
       _popover = document.createElement('div');
       _popover.className = 'info-popover';
       _popover.innerHTML = `
+        <button class="info-popover-close" aria-label="Chiudi" type="button">&times;</button>
         <div class="info-popover-title"></div>
         <div class="info-popover-text"></div>
       `;
       document.body.appendChild(_popover);
-      // Chiudi cliccando fuori
+      // Pulsante di chiusura esplicito (essenziale su touch dove "click fuori" è inaffidabile)
+      _popover.querySelector('.info-popover-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeInfoPopover();
+      });
+      // Chiudi cliccando fuori (desktop)
       document.addEventListener('click', (e) => {
-        if (_popover && !_popover.contains(e.target) && e.target !== _activeBtn) {
+        if (_popover && _popover.classList.contains('visible')
+            && !_popover.contains(e.target) && e.target !== _activeBtn
+            && (!_activeBtn || !_activeBtn.contains(e.target))) {
           closeInfoPopover();
         }
       }, true);
+      // Chiudi con ESC (desktop/tastiera)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && _popover && _popover.classList.contains('visible')) closeInfoPopover();
+      });
     }
 
     _popover.querySelector('.info-popover-title').textContent = info.title;
@@ -620,16 +639,32 @@ const INFO_TEXTS = {
     _popover.style.display = 'block';
     _activeBtn = btn;
 
-    // Posizionamento smart: sotto il pulsante, con reflow se esce dallo schermo
-    positionPopover(btn);
-    requestAnimationFrame(() => _popover.classList.add('visible'));
+    const isMobile = window.matchMedia('(max-width: 580px)').matches;
+    if (isMobile) {
+      // Bottom-sheet: niente posizionamento JS, ci pensa il CSS. Mostra backdrop.
+      _popover.style.top = '';
+      _popover.style.left = '';
+      _popover.style.width = '';
+      _popover.classList.add('sheet');
+      if (_backdrop) _backdrop.style.display = 'block';
+    } else {
+      _popover.classList.remove('sheet');
+      if (_backdrop) _backdrop.style.display = 'none';
+      positionPopover(btn);
+    }
+    requestAnimationFrame(() => {
+      _popover.classList.add('visible');
+      if (isMobile && _backdrop) _backdrop.classList.add('visible');
+    });
   }
 
   function closeInfoPopover() {
     if (!_popover) return;
     _popover.classList.remove('visible');
+    if (_backdrop) _backdrop.classList.remove('visible');
     setTimeout(() => {
       if (_popover) _popover.style.display = 'none';
+      if (_backdrop) _backdrop.style.display = 'none';
     }, 180);
     _activeBtn = null;
   }
@@ -1068,6 +1103,70 @@ const INFO_TEXTS = {
   font-size: 12.5px;
   color: var(--text2);
   line-height: 1.65;
+}
+/* Pulsante di chiusura: piccolo e in alto a destra (desktop), grande su mobile */
+.info-popover-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.info-popover-close:hover { background: var(--bg2); color: var(--text); }
+.info-popover-title { padding-right: 30px; } /* spazio per la X */
+/* Backdrop semitrasparente (solo mobile bottom-sheet) */
+.info-popover-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.38);
+  z-index: 998;
+  opacity: 0;
+  transition: opacity .18s;
+}
+.info-popover-backdrop.visible { opacity: 1; }
+
+/* ── MOBILE: il popover diventa un bottom-sheet ancorato in basso ──
+   Risolve il bug S21 dove il popover absolute copriva lo schermo senza
+   modo di chiuderlo: ora è ancorato in basso, max 80% altezza, scrollabile,
+   con X grande e backdrop tappabile. */
+@media (max-width: 580px) {
+  .info-popover.sheet {
+    position: fixed;
+    left: 0 !important;
+    right: 0;
+    bottom: 0;
+    top: auto !important;
+    width: 100% !important;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 32px rgba(0,0,0,.22);
+    transform: translateY(100%);
+    -webkit-overflow-scrolling: touch;
+  }
+  .info-popover.sheet.visible { transform: translateY(0); }
+  .info-popover.sheet .info-popover-close {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+    top: 10px;
+    right: 10px;
+  }
+  .info-popover.sheet .info-popover-title { font-size: 13px; padding-right: 44px; }
+  .info-popover.sheet .info-popover-text { font-size: 14px; }
 }
     `;
     document.head.appendChild(style);
