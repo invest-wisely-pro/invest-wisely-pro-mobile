@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════════════════════════════════════════
 // tier-system.js — Suite Patrimoniale Pro v3
-// Gestione tier Base/Pro + Info Helper (<i data-lucide="info" class="lucide-sm"></i>) popovers
+// Gestione tier Base/Pro + Info Helper (ℹ) popovers
 // ══════════════════════════════════════════════════════════════════════════════
 
 // ─── CONFIGURAZIONE TIER ─────────────────────────────────────────────────────
@@ -12,12 +12,12 @@ const TIER_PRO_TABS = new Set([
 ]);
 
 const PRO_TAB_LABELS = {
-  advmc:     { icon: '<i data-lucide="calculator" class="lucide-sm"></i>', name: 'MC Avanzato',        desc: 'Monte Carlo con modelli GARCH, t-Student e Regime-Switching per code di rischio più realistiche e distribuzioni fat-tail.' },
-  fiscale:   { icon: '<i data-lucide="landmark" class="lucide-sm"></i>',  name: 'Fiscalità IT',       desc: 'Analisi completa della tassazione italiana: capital gain, switch di portafoglio, confronto regimi e proiezione netta fiscale.' },
-  pensione:  { icon: '<i data-lucide="user-round" class="lucide-sm"></i>', name: 'Piano Pensione',      desc: 'Simulazione integrata pensione pubblica + privata con fase di accumulo e decumulo previdenziale personalizzato.' },
-  valuation: { icon: '<i data-lucide="alert-triangle" class="lucide-sm"></i>',  name: 'Stress Valutazioni', desc: 'Analisi CAPE/Bogle, stress test macro e scenario di mean-reversion per valutare la sopravvalutazione di mercato.' },
-  goal:      { icon: '<i data-lucide="trophy" class="lucide-sm"></i>', name: 'Obiettivo Inverso',  desc: 'Dato un obiettivo patrimoniale, calcola PAC necessario, orizzonte minimo e sensitività ai parametri.' },
-  quant:     { icon: '<i data-lucide="ruler" class="lucide-sm"></i>', name: 'Quant Analytics',    desc: 'Ottimizzazione Markowitz, VaR/CVaR multi-metodo, Factor Decomposition Fama-French e analisi rolling.' },
+  advmc:     { icon: '🧮', name: 'MC Avanzato',        desc: 'Monte Carlo con modelli GARCH, t-Student e Regime-Switching per code di rischio più realistiche e distribuzioni fat-tail.' },
+  fiscale:   { icon: '🏛️',  name: 'Fiscalità IT',       desc: 'Analisi completa della tassazione italiana: capital gain, switch di portafoglio, confronto regimi e proiezione netta fiscale.' },
+  pensione:  { icon: '👴', name: 'Piano Pensione',      desc: 'Simulazione integrata pensione pubblica + privata con fase di accumulo e decumulo previdenziale personalizzato.' },
+  valuation: { icon: '⚠️',  name: 'Stress Valutazioni', desc: 'Analisi CAPE/Bogle, stress test macro e scenario di mean-reversion per valutare la sopravvalutazione di mercato.' },
+  goal:      { icon: '🏆', name: 'Obiettivo Inverso',  desc: 'Dato un obiettivo patrimoniale, calcola PAC necessario, orizzonte minimo e sensitività ai parametri.' },
+  quant:     { icon: '📐', name: 'Quant Analytics',    desc: 'Ottimizzazione Markowitz, VaR/CVaR multi-metodo, Factor Decomposition Fama-French e analisi rolling.' },
 };
 
 // ─── INFO HELPER TEXTS ────────────────────────────────────────────────────────
@@ -317,12 +317,12 @@ const INFO_TEXTS = {
       if (isPro) {
         badge.textContent = 'PRO SUITE';
         badge.style.color = 'var(--blue)';
-        badge.style.borderColor = 'var(--border-color)';
+        badge.style.borderColor = 'rgba(26,115,232,.3)';
         badge.style.background = 'var(--blue-dim)';
       } else {
         badge.textContent = 'BASE';
         badge.style.color = 'var(--teal)';
-        badge.style.borderColor = 'var(--border-color)';
+        badge.style.borderColor = 'rgba(0,137,123,.3)';
         badge.style.background = 'var(--teal-dim)';
       }
     }
@@ -377,7 +377,7 @@ const INFO_TEXTS = {
     const panel = document.getElementById(`tab-${tabId}`);
     if (!panel) return;
     if (panel.querySelector('.pro-lock-overlay')) return; // già presente
-    const info = PRO_TAB_LABELS[tabId] || { icon: '<i data-lucide="lock" class="lucide-sm"></i>', name: tabId, desc: '' };
+    const info = PRO_TAB_LABELS[tabId] || { icon: '🔒', name: tabId, desc: '' };
     const overlay = document.createElement('div');
     overlay.className = 'pro-lock-overlay';
     overlay.innerHTML = `
@@ -385,13 +385,12 @@ const INFO_TEXTS = {
         <div class="pro-lock-icon">${info.icon}</div>
         <div class="pro-lock-title">${info.name}</div>
         <div class="pro-lock-desc">${info.desc}</div>
-        <div class="pro-lock-badge"><i data-lucide="lock" class="lucide-sm"></i> Funzione Pro</div>
+        <div class="pro-lock-badge">🔒 Funzione Pro</div>
         <button class="pro-lock-cta" onclick="window.showTierChooser()">
           Sblocca versione completa →
         </button>
       </div>
     `;
-    if (window.refreshIcons) window.refreshIcons();
     panel.appendChild(overlay);
   }
 
@@ -409,46 +408,45 @@ const INFO_TEXTS = {
         </div>
         <div class="tier-modal-cards">
           <button class="tier-card tier-card-base" onclick="window.setTier('base'); window.hideTierChooser()">
-            <div class="tier-card-icon"><i data-lucide="bar-chart-3" class="lucide-sm"></i></div>
+            <div class="tier-card-icon">📊</div>
             <div class="tier-card-name">Versione Base</div>
             <div class="tier-card-tagline">Essenziale e intuitiva</div>
             <ul class="tier-card-list">
-              <li><i data-lucide="check" class="lucide-sm"></i> Simulatore patrimoniale completo</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Scenari economici (6 regimi macro)</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Confronto A/B portafogli</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Probabilità di successo (Monte Carlo base)</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Simulazione decumulo</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Backtesting storico 1970-2024</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> MC Avanzato (GARCH, t-Student)</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> Fiscalità IT completa</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> Piano Pensione integrativo</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> Stress Valutazioni (CAPE)</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> Obiettivo Inverso</li>
-              <li class="tier-list-locked"><i data-lucide="lock" class="lucide-sm"></i> Quant Analytics (Markowitz, VaR)</li>
+              <li>✓ Simulatore patrimoniale completo</li>
+              <li>✓ Scenari economici (6 regimi macro)</li>
+              <li>✓ Confronto A/B portafogli</li>
+              <li>✓ Probabilità di successo (Monte Carlo base)</li>
+              <li>✓ Simulazione decumulo</li>
+              <li>✓ Backtesting storico 1970-2024</li>
+              <li class="tier-list-locked">🔒 MC Avanzato (GARCH, t-Student)</li>
+              <li class="tier-list-locked">🔒 Fiscalità IT completa</li>
+              <li class="tier-list-locked">🔒 Piano Pensione integrativo</li>
+              <li class="tier-list-locked">🔒 Stress Valutazioni (CAPE)</li>
+              <li class="tier-list-locked">🔒 Obiettivo Inverso</li>
+              <li class="tier-list-locked">🔒 Quant Analytics (Markowitz, VaR)</li>
             </ul>
             <span class="tier-card-cta">Inizia in Base →</span>
           </button>
           <button class="tier-card tier-card-pro" onclick="window.setTier('pro'); window.hideTierChooser()">
-            <div class="tier-card-badge-pro"><i data-lucide="sparkle" class="lucide-sm"></i> SUITE COMPLETA</div>
-            <div class="tier-card-icon"><i data-lucide="rocket" class="lucide-sm"></i></div>
+            <div class="tier-card-badge-pro">✦ SUITE COMPLETA</div>
+            <div class="tier-card-icon">🚀</div>
             <div class="tier-card-name">Versione Pro</div>
             <div class="tier-card-tagline">Strumenti quantitativi avanzati</div>
             <ul class="tier-card-list">
-              <li><i data-lucide="check" class="lucide-sm"></i> Tutto della versione Base</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> MC Avanzato (GARCH, t-Student, Regime-Switching)</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Fiscalità IT (regimi, switch, zainetto)</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Piano Pensione integrativo completo</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Stress Valutazioni CAPE/Bogle</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Obiettivo Inverso con sensitività</li>
-              <li><i data-lucide="check" class="lucide-sm"></i> Quant Analytics (Markowitz, VaR, Factor, Rolling)</li>
+              <li>✓ Tutto della versione Base</li>
+              <li>✓ MC Avanzato (GARCH, t-Student, Regime-Switching)</li>
+              <li>✓ Fiscalità IT (regimi, switch, zainetto)</li>
+              <li>✓ Piano Pensione integrativo completo</li>
+              <li>✓ Stress Valutazioni CAPE/Bogle</li>
+              <li>✓ Obiettivo Inverso con sensitività</li>
+              <li>✓ Quant Analytics (Markowitz, VaR, Factor, Rolling)</li>
             </ul>
             <span class="tier-card-cta">Accedi a tutte le funzioni →</span>
           </button>
         </div>
-        <button class="tier-modal-close" onclick="window.hideTierChooser()" title="Chiudi"><i data-lucide="x" class="lucide-sm"></i></button>
+        <button class="tier-modal-close" onclick="window.hideTierChooser()" title="Chiudi">✕</button>
       </div>
     `;
-    if (window.refreshIcons) window.refreshIcons();
     document.body.appendChild(modal);
     // Chiudi cliccando backdrop
     modal.addEventListener('click', (e) => {
@@ -488,13 +486,11 @@ const INFO_TEXTS = {
       }
     }
     if (tier === 'pro') {
-      btn.innerHTML = '<i data-lucide="zap" class="lucide-sm"></i> Pro — cambia modalità';
-      if (window.refreshIcons) window.refreshIcons();
+      btn.innerHTML = '⚡ Pro — cambia modalità';
       btn.classList.remove('btn-base');
       btn.classList.add('btn-pro');
     } else {
-      btn.innerHTML = '<i data-lucide="bar-chart-3" class="lucide-sm"></i> Base — sblocca Pro';
-      if (window.refreshIcons) window.refreshIcons();
+      btn.innerHTML = '📊 Base — sblocca Pro';
       btn.classList.remove('btn-pro');
       btn.classList.add('btn-base');
     }
@@ -537,7 +533,7 @@ const INFO_TEXTS = {
   window._tierPendingHook = true;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // INFO HELPER — Popover <i data-lucide="info" class="lucide-sm"></i> cliccabile su ogni sezione
+  // INFO HELPER — Popover ℹ cliccabile su ogni sezione
   // ══════════════════════════════════════════════════════════════════════════
   function buildInfoHelpers() {
     // Trova tutti gli elementi con data-info-id
@@ -553,7 +549,7 @@ const INFO_TEXTS = {
   window.buildInfoHelpers = buildInfoHelpers;
 
   // Osserva il DOM: le sezioni renderizzate dinamicamente (Quant, Backtest,
-  // Stress Test…) ricevono il pulsante <i data-lucide="info" class="lucide-sm"></i> appena compaiono. Debounce per non
+  // Stress Test…) ricevono il pulsante ℹ appena compaiono. Debounce per non
   // pesare sui re-render frequenti; idempotente (skip se il btn esiste già).
   let _ihBuilding = false;
   let _ihDebounce = null;
@@ -579,7 +575,7 @@ const INFO_TEXTS = {
     btn.className = 'info-helper-btn';
     btn.setAttribute('aria-label', `Informazioni su ${info.title}`);
     btn.setAttribute('type', 'button');
-    btn.textContent = 'i';
+    btn.innerHTML = 'ℹ';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       e.preventDefault(); // evita il toggle dei <details> quando il label è un <summary>
@@ -605,42 +601,61 @@ const INFO_TEXTS = {
 
   function openInfoPopover(btn, info) {
     if (!_popover) {
+      // Backdrop (visibile solo su mobile come sfondo del bottom-sheet)
+      _backdrop = document.createElement('div');
+      _backdrop.className = 'info-popover-backdrop';
+      _backdrop.addEventListener('click', closeInfoPopover);
+      document.body.appendChild(_backdrop);
+
       _popover = document.createElement('div');
       _popover.className = 'info-popover';
       _popover.innerHTML = `
-        <button class="info-popover-close" aria-label="Chiudi"><i data-lucide="x" class="lucide-sm"></i></button>
+        <button class="info-popover-close" aria-label="Chiudi" type="button">&times;</button>
         <div class="info-popover-title"></div>
         <div class="info-popover-text"></div>
       `;
-      if (window.refreshIcons) window.refreshIcons();
       document.body.appendChild(_popover);
-      // Backdrop (visibile solo su mobile): tap per chiudere, sempre affidabile su touch
-      _backdrop = document.createElement('div');
-      _backdrop.className = 'info-popover-backdrop';
-      document.body.appendChild(_backdrop);
-      _backdrop.addEventListener('click', closeInfoPopover);
-      _backdrop.addEventListener('touchend', (e) => { e.preventDefault(); closeInfoPopover(); });
-      // Pulsante di chiusura esplicito (touch + click)
-      const closeBtn = _popover.querySelector('.info-popover-close');
-      closeBtn.addEventListener('click', closeInfoPopover);
-      closeBtn.addEventListener('touchend', (e) => { e.preventDefault(); closeInfoPopover(); });
+      // Pulsante di chiusura esplicito (essenziale su touch dove "click fuori" è inaffidabile)
+      _popover.querySelector('.info-popover-close').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeInfoPopover();
+      });
       // Chiudi cliccando fuori (desktop)
       document.addEventListener('click', (e) => {
-        if (_popover && _popover.style.display !== 'none' && !_popover.contains(e.target) && e.target !== _activeBtn) {
+        if (_popover && _popover.classList.contains('visible')
+            && !_popover.contains(e.target) && e.target !== _activeBtn
+            && (!_activeBtn || !_activeBtn.contains(e.target))) {
           closeInfoPopover();
         }
       }, true);
+      // Chiudi con ESC (desktop/tastiera)
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && _popover && _popover.classList.contains('visible')) closeInfoPopover();
+      });
     }
 
     _popover.querySelector('.info-popover-title').textContent = info.title;
     _popover.querySelector('.info-popover-text').textContent = info.text;
     _popover.style.display = 'block';
-    if (_backdrop) _backdrop.classList.add('visible');
     _activeBtn = btn;
 
-    // Posizionamento smart: sotto il pulsante, con reflow se esce dallo schermo
-    positionPopover(btn);
-    requestAnimationFrame(() => _popover.classList.add('visible'));
+    const isMobile = window.matchMedia('(max-width: 580px)').matches;
+    if (isMobile) {
+      // Bottom-sheet: niente posizionamento JS, ci pensa il CSS. Mostra backdrop.
+      _popover.style.top = '';
+      _popover.style.left = '';
+      _popover.style.width = '';
+      _popover.classList.add('sheet');
+      if (_backdrop) _backdrop.style.display = 'block';
+    } else {
+      _popover.classList.remove('sheet');
+      if (_backdrop) _backdrop.style.display = 'none';
+      positionPopover(btn);
+    }
+    requestAnimationFrame(() => {
+      _popover.classList.add('visible');
+      if (isMobile && _backdrop) _backdrop.classList.add('visible');
+    });
   }
 
   function closeInfoPopover() {
@@ -649,6 +664,7 @@ const INFO_TEXTS = {
     if (_backdrop) _backdrop.classList.remove('visible');
     setTimeout(() => {
       if (_popover) _popover.style.display = 'none';
+      if (_backdrop) _backdrop.style.display = 'none';
     }, 180);
     _activeBtn = null;
   }
@@ -698,7 +714,7 @@ const INFO_TEXTS = {
   cursor: pointer;
 }
 .tab-btn-locked::after {
-  content: ' <i data-lucide="lock" class="lucide-sm"></i>';
+  content: ' 🔒';
   font-size: 10px;
 }
 
@@ -720,8 +736,8 @@ const INFO_TEXTS = {
   padding: 40px 32px;
   background: #fff;
   border: 1px solid var(--border);
-  border-radius:2px;
-  box-shadow: none;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,.08);
 }
 .pro-lock-icon {
   font-size: 40px;
@@ -749,8 +765,8 @@ const INFO_TEXTS = {
   font-weight: 700;
   color: var(--orange);
   background: var(--orange-dim);
-  border: 1px solid rgba(89,89,89,.2);
-  border-radius:2px;
+  border: 1px solid rgba(227,116,0,.2);
+  border-radius: 4px;
   padding: 3px 10px;
   margin-bottom: 20px;
   text-transform: uppercase;
@@ -763,7 +779,7 @@ const INFO_TEXTS = {
   background: var(--blue);
   color: #fff;
   border: none;
-  border-radius:2px;
+  border-radius: 8px;
   padding: 10px 22px;
   font-size: 14px;
   font-weight: 600;
@@ -772,7 +788,7 @@ const INFO_TEXTS = {
   transition: background .15s, transform .1s;
 }
 .pro-lock-cta:hover {
-  background: var(--brand-red-hover);
+  background: #1558b0;
   transform: translateY(-1px);
 }
 
@@ -781,7 +797,7 @@ const INFO_TEXTS = {
   font-size: 11.5px;
   font-family: 'DM Mono', monospace;
   font-weight: 600;
-  border-radius:2px;
+  border-radius: 5px;
   padding: 4px 10px;
   border: 1px solid;
   cursor: pointer;
@@ -791,19 +807,19 @@ const INFO_TEXTS = {
 }
 .tier-toggle-btn.btn-base {
   color: var(--teal);
-  border-color: rgba(89,89,89,.3);
+  border-color: rgba(0,137,123,.3);
   background: var(--teal-dim);
 }
 .tier-toggle-btn.btn-base:hover {
-  background: rgba(89,89,89,.18);
+  background: rgba(0,137,123,.18);
 }
 .tier-toggle-btn.btn-pro {
   color: var(--blue);
-  border-color: var(--border-color);
+  border-color: rgba(26,115,232,.3);
   background: var(--blue-dim);
 }
 .tier-toggle-btn.btn-pro:hover {
-  background: rgba(158,27,50,.18);
+  background: rgba(26,115,232,.18);
 }
 
 /* ── Tier Chooser Modal ───────────────────────────────────────── */
@@ -825,11 +841,11 @@ const INFO_TEXTS = {
 }
 .tier-modal {
   background: #fff;
-  border-radius:2px;
+  border-radius: 18px;
   padding: 32px 28px 28px;
   max-width: 780px;
   width: 100%;
-  box-shadow: none;
+  box-shadow: 0 24px 64px rgba(0,0,0,.18);
   position: relative;
   transform: translateY(10px);
   transition: transform .22s;
@@ -861,7 +877,7 @@ const INFO_TEXTS = {
   .tier-modal-cards { grid-template-columns: 1fr; }
 }
 .tier-card {
-  border-radius:2px;
+  border-radius: 14px;
   padding: 24px 22px;
   cursor: pointer;
   text-align: left;
@@ -877,15 +893,15 @@ const INFO_TEXTS = {
 }
 .tier-card-base:hover {
   border-color: var(--teal);
-  box-shadow: none;
+  box-shadow: 0 8px 24px rgba(0,137,123,.14);
 }
 .tier-card-pro {
-  border-color: rgba(158,27,50,.35);
-  background: linear-gradient(135deg, #fff 60%, rgba(158,27,50,.04));
+  border-color: rgba(26,115,232,.35);
+  background: linear-gradient(135deg, #fff 60%, rgba(26,115,232,.04));
 }
 .tier-card-pro:hover {
   border-color: var(--blue);
-  box-shadow: none;
+  box-shadow: 0 8px 24px rgba(26,115,232,.18);
 }
 .tier-card-badge-pro {
   position: absolute;
@@ -896,8 +912,8 @@ const INFO_TEXTS = {
   font-weight: 700;
   color: var(--blue);
   background: var(--blue-dim);
-  border: 1px solid rgba(158,27,50,.25);
-  border-radius:2px;
+  border: 1px solid rgba(26,115,232,.25);
+  border-radius: 4px;
   padding: 2px 7px;
   letter-spacing: .07em;
   text-transform: uppercase;
@@ -955,7 +971,7 @@ const INFO_TEXTS = {
   cursor: pointer;
   line-height: 1;
   padding: 4px 6px;
-  border-radius:2px;
+  border-radius: 4px;
   transition: color .12s, background .12s;
 }
 .tier-modal-close:hover {
@@ -971,8 +987,8 @@ const INFO_TEXTS = {
 }
 .home-tier-banner {
   background: linear-gradient(135deg, var(--blue-dim) 0%, var(--purple-dim) 100%);
-  border: 1px solid rgba(158,27,50,.2);
-  border-radius:2px;
+  border: 1px solid rgba(26,115,232,.2);
+  border-radius: 14px;
   padding: 22px 24px;
   display: flex;
   align-items: center;
@@ -1002,7 +1018,7 @@ const INFO_TEXTS = {
 }
 .home-tier-btn {
   padding: 9px 18px;
-  border-radius:2px;
+  border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1014,7 +1030,7 @@ const INFO_TEXTS = {
 .home-tier-btn-base {
   background: #fff;
   color: var(--teal);
-  border-color: rgba(89,89,89,.3);
+  border-color: rgba(0,137,123,.3);
 }
 .home-tier-btn-base:hover {
   background: var(--teal-dim);
@@ -1025,10 +1041,10 @@ const INFO_TEXTS = {
   border-color: var(--blue);
 }
 .home-tier-btn-pro:hover {
-  background: var(--brand-red-hover);
+  background: #1558b0;
 }
 
-/* ── Info Helper <i data-lucide="info" class="lucide-sm"></i> button ─────────────────────────────────────── */
+/* ── Info Helper ℹ button ─────────────────────────────────────── */
 .info-helper-btn {
   display: inline-flex;
   align-items: center;
@@ -1052,7 +1068,7 @@ const INFO_TEXTS = {
 .info-helper-btn:hover {
   background: var(--blue-dim);
   color: var(--blue);
-  border-color: var(--border-color);
+  border-color: rgba(26,115,232,.3);
 }
 
 /* ── Info Popover ─────────────────────────────────────────────── */
@@ -1064,7 +1080,7 @@ const INFO_TEXTS = {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 13px 15px;
-  box-shadow: none;
+  box-shadow: 0 6px 24px rgba(0,0,0,.13);
   opacity: 0;
   transform: translateY(4px);
   transition: opacity .18s, transform .18s;
@@ -1088,53 +1104,69 @@ const INFO_TEXTS = {
   color: var(--text2);
   line-height: 1.65;
 }
+/* Pulsante di chiusura: piccolo e in alto a destra (desktop), grande su mobile */
 .info-popover-close {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 30px;
-  height: 30px;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: transparent;
   color: var(--text3);
-  font-size: 16px;
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
-  border-radius:2px;
-  display: none;
+  border-radius: 6px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: manipulation;
+  padding: 0;
 }
 .info-popover-close:hover { background: var(--bg2); color: var(--text); }
+.info-popover-title { padding-right: 30px; } /* spazio per la X */
+/* Backdrop semitrasparente (solo mobile bottom-sheet) */
 .info-popover-backdrop {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.35);
+  background: rgba(0,0,0,.38);
   z-index: 998;
   opacity: 0;
   transition: opacity .18s;
 }
 .info-popover-backdrop.visible { opacity: 1; }
-/* Su mobile: il popover diventa un modale centrato con X e backdrop tappabile.
-   Risolve il caso in cui il popover copriva lo schermo senza via di chiusura (Android). */
-@media (max-width: 480px) {
-  .info-popover-backdrop { display: block; }
-  .info-popover {
-    position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -48%) !important;
-    width: calc(100vw - 40px) !important;
-    max-width: 360px !important;
-    max-height: 70vh;
+
+/* ── MOBILE: il popover diventa un bottom-sheet ancorato in basso ──
+   Risolve il bug S21 dove il popover absolute copriva lo schermo senza
+   modo di chiuderlo: ora è ancorato in basso, max 80% altezza, scrollabile,
+   con X grande e backdrop tappabile. */
+@media (max-width: 580px) {
+  .info-popover.sheet {
+    position: fixed;
+    left: 0 !important;
+    right: 0;
+    bottom: 0;
+    top: auto !important;
+    width: 100% !important;
+    max-height: 80vh;
     overflow-y: auto;
-    padding: 18px 16px 16px;
-    z-index: 999;
+    border-radius: 16px 16px 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: 0 -8px 32px rgba(0,0,0,.22);
+    transform: translateY(100%);
+    -webkit-overflow-scrolling: touch;
   }
-  .info-popover.visible { transform: translate(-50%, -50%) !important; }
-  .info-popover-close { display: inline-flex; }
-  .info-popover-title { padding-right: 28px; }
+  .info-popover.sheet.visible { transform: translateY(0); }
+  .info-popover.sheet .info-popover-close {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+    top: 10px;
+    right: 10px;
+  }
+  .info-popover.sheet .info-popover-title { font-size: 13px; padding-right: 44px; }
+  .info-popover.sheet .info-popover-text { font-size: 14px; }
 }
     `;
     document.head.appendChild(style);

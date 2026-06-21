@@ -378,8 +378,8 @@ function getBondSignal(yield10y, inflExpected = 0.025) {
 }
 
 const SIGNAL_COLORS = {
-  cheap: '#0e7a44', fair: '#9e1b32', expensive: '#8a8a8a', very_expensive: '#c92a2a',
-  attractive: '#0e7a44', poor: '#8a8a8a', very_poor: '#c92a2a',
+  cheap: '#36d490', fair: '#1a73e8', expensive: '#e37400', very_expensive: '#d93025',
+  attractive: '#36d490', poor: '#e37400', very_poor: '#d93025',
 };
 const SIGNAL_LABELS_IT = {
   cheap: 'Sottovalutato', fair: 'Fair value', expensive: 'Caro', very_expensive: 'Molto caro',
@@ -454,7 +454,7 @@ function recalibratePortfolios(data) {
   // In regime storico (delta=0) p.normal resta esattamente = _baseNormal calibrato.
   const recalib = (portKey) => {
     const p = PORT[portKey];
-    if (!p || portKey === 'lifecycle' || portKey === 'custom') return;
+    if (!p || portKey === 'lifecycle' || portKey === 'custom' || portKey === 'glide') return;
     const eqW  = p.eq   ?? 0;
     const obW  = p.ob   ?? 0;
     const goldW = p.gold ?? 0;
@@ -551,16 +551,15 @@ function renderLiveDataBanner() {
 
   if (d.status === 'error') {
     el.innerHTML = `<div class="live-banner live-error">
-      <i data-lucide="alert-triangle" class="lucide-sm"></i> Dati live non disponibili — valori storici calibrati DMS 2024 in uso.
+      ⚠️ Dati live non disponibili — valori storici calibrati DMS 2024 in uso.
       <button onclick="fetchLiveMarketData()" style="margin-left:8px;font-size:11px">↺ Riprova</button>
     </div>`;
-    if (window.refreshIcons) window.refreshIcons();
     return;
   }
 
-  const capeColor  = SIGNAL_COLORS[d.signal_eq_usa]  || '#595959';
-  const capeColorEU = SIGNAL_COLORS[d.signal_eq_eu]  || '#595959';
-  const bondColor  = SIGNAL_COLORS[d.signal_bond]    || '#595959';
+  const capeColor  = SIGNAL_COLORS[d.signal_eq_usa]  || '#5f6368';
+  const capeColorEU = SIGNAL_COLORS[d.signal_eq_eu]  || '#5f6368';
+  const bondColor  = SIGNAL_COLORS[d.signal_bond]    || '#5f6368';
   const lambdaPct  = Math.round(SHRINKAGE_LAMBDA * 100);
   const ts = d.fetchedAt ? new Date(d.fetchedAt).toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' }) : '';
 
@@ -576,7 +575,7 @@ function renderLiveDataBanner() {
         : 'Cyclically Adjusted Price/Earnings S&P500 (Shiller). Media storica: 17.';
     chips.push(`
     <span class="live-chip" title="${usaSrcTitle} Correlazione con rendimento forward 10a: R²≈0.38-0.45.">
-      <i data-lucide="flag" class="lucide-sm"></i> CAPE <strong style="color:${capeColor}">${d.cape_sp500.toFixed(1)}</strong>${(d._capeIsFallback || d._capeExtrapolated) ? '<span style="font-size:9px;opacity:.6">~</span>' : ''}
+      🇺🇸 CAPE <strong style="color:${capeColor}">${d.cape_sp500.toFixed(1)}</strong>${(d._capeIsFallback || d._capeExtrapolated) ? '<span style="font-size:9px;opacity:.6">~</span>' : ''}
       <span class="live-signal" style="background:${capeColor}">${SIGNAL_LABELS_IT[d.signal_eq_usa]}</span>
       ${usaSrcLabel ? `<span style="font-size:9px;opacity:.55;margin-left:2px">${usaSrcLabel}</span>` : ''}
     </span>`);
@@ -597,7 +596,7 @@ function renderLiveDataBanner() {
     }[d.cape_eu_source] || '';
     chips.push(`
     <span class="live-chip" title="${euSrcTitle}. Media storica EU: 14.">
-      <i data-lucide="flag" class="lucide-sm"></i> CAPE EU <strong style="color:${capeColorEU}">${d.cape_europe.toFixed(1)}</strong>${d.cape_eu_source === 'estimated' ? '<span style="font-size:9px;opacity:.6">~</span>' : ''}
+      🇪🇺 CAPE EU <strong style="color:${capeColorEU}">${d.cape_europe.toFixed(1)}</strong>${d.cape_eu_source === 'estimated' ? '<span style="font-size:9px;opacity:.6">~</span>' : ''}
       <span class="live-signal" style="background:${capeColorEU}">${SIGNAL_LABELS_IT[d.signal_eq_eu]}</span>
       <span style="font-size:9px;opacity:.55;margin-left:2px">${euSrcLabel}</span>
     </span>`);
@@ -605,29 +604,29 @@ function renderLiveDataBanner() {
 
   if (d.yield_eur_10y) chips.push(`
     <span class="live-chip" title="Yield sovrano EUR 10 anni AAA (BCE). Usato come proxy rendimento atteso obbligazionario EUR.">
-      <i data-lucide="building-2" class="lucide-sm"></i> Yield EUR 10a <strong style="color:${bondColor}">${(d.yield_eur_10y*100).toFixed(2)}%</strong>
+      🏦 Yield EUR 10a <strong style="color:${bondColor}">${(d.yield_eur_10y*100).toFixed(2)}%</strong>
       <span class="live-signal" style="background:${bondColor}">${SIGNAL_LABELS_IT[d.signal_bond]}</span>
     </span>`);
 
   if (d.yield_usa_10y) chips.push(`
     <span class="live-chip" title="Rendimento Treasury USA 10 anni.">
-      <i data-lucide="flag" class="lucide-sm"></i> T-Note 10a <strong>${(d.yield_usa_10y*100).toFixed(2)}%</strong>
+      🇺🇸 T-Note 10a <strong>${(d.yield_usa_10y*100).toFixed(2)}%</strong>
     </span>`);
 
   if (d.hicp_eu != null) chips.push(`
     <span class="live-chip" title="Inflazione HICP Eurozona (tendenziale, ultimo dato disponibile).">
-      <i data-lucide="trending-up" class="lucide-sm"></i> HICP EU <strong>${(d.hicp_eu*100).toFixed(1)}%</strong>/a
+      📈 HICP EU <strong>${(d.hicp_eu*100).toFixed(1)}%</strong>/a
     </span>`);
 
   // Rendimenti forward
   if (d.fwd_eq_usa) chips.push(`
     <span class="live-chip live-fwd" title="Rendimento nominale atteso azionario USA su 10 anni: regressione CAPE di Shiller blended ${lambdaPct}% CAPE + ${100-lambdaPct}% storico.">
-      <i data-lucide="bar-chart-3" class="lucide-sm"></i> Fwd Eq USA <strong>${(d.fwd_eq_usa*100).toFixed(1)}%</strong>/a
+      📊 Fwd Eq USA <strong>${(d.fwd_eq_usa*100).toFixed(1)}%</strong>/a
     </span>`);
 
   if (d.fwd_bond_eur) chips.push(`
     <span class="live-chip live-fwd" title="Rendimento obbligazionario EUR atteso: yield corrente (buy-and-hold a scadenza).">
-      <i data-lucide="bar-chart-3" class="lucide-sm"></i> Fwd Bond EUR <strong>${(d.fwd_bond_eur*100).toFixed(1)}%</strong>/a
+      📊 Fwd Bond EUR <strong>${(d.fwd_bond_eur*100).toFixed(1)}%</strong>/a
     </span>`);
 
   const partial = d.status === 'partial' ? `<span style="font-size:10.5px;color:var(--text3);margin-left:4px">(dati parziali)</span>` : '';
@@ -806,7 +805,7 @@ function renderValuationStress() {
   const liveNote = document.getElementById('valLiveNote');
 
   if (!d || d.status === 'loading') {
-    if (liveNote) liveNote.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Caricamento dati live in corso...'; if (window.refreshIcons) window.refreshIcons();
+    if (liveNote) liveNote.textContent = '⌛ Caricamento dati live in corso...';
     return;
   }
   if (!d.cape_sp500) {
@@ -823,13 +822,12 @@ function renderValuationStress() {
   if (liveNote) {
     if (d._capeIsFallback) {
       liveNote.style.display = 'block';
-      liveNote.style.color = 'var(--text-muted)';
-      liveNote.innerHTML = `<i data-lucide="alert-triangle" class="lucide-sm"></i> Dati CAPE live non disponibili (API esterne irraggiungibili). Usando valore di riferimento hardcoded (${d.cape_sp500.toFixed(1)}). <button class="gbtn" onclick="fetchLiveMarketData()" style="font-size:11px;margin-left:6px">↺ Riprova</button>`;
-      if (window.refreshIcons) window.refreshIcons();
+      liveNote.style.color = 'var(--orange, #e37400)';
+      liveNote.innerHTML = `⚠️ Dati CAPE live non disponibili (API esterne irraggiungibili). Usando valore di riferimento hardcoded (${d.cape_sp500.toFixed(1)}). <button class="gbtn" onclick="fetchLiveMarketData()" style="font-size:11px;margin-left:6px">↺ Riprova</button>`;
     } else if (d.status === 'ok' || d.status === 'partial') {
       liveNote.style.display = 'block';
-      liveNote.style.color = 'var(--brand-red)';
-      liveNote.innerHTML = `<i data-lucide="check" class="lucide-sm"></i> Dati live aggiornati${d.fetchedAt ? ' alle ' + new Date(d.fetchedAt).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : ''}.${d.status === 'partial' ? ' (dati parziali)' : ''}`; if (window.refreshIcons) window.refreshIcons();
+      liveNote.style.color = 'var(--blue, #1a73e8)';
+      liveNote.textContent = `✓ Dati live aggiornati${d.fetchedAt ? ' alle ' + new Date(d.fetchedAt).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'}) : ''}.${d.status === 'partial' ? ' (dati parziali)' : ''}`;
     } else {
       liveNote.style.display = 'none';
     }
@@ -910,12 +908,11 @@ function renderValuationStress() {
   // altrimenti verrebbe sovrascritto dalla riga CAPE.
   if (liveNote) {
     const srcPrefix = d._capeIsFallback
-      ? `<i data-lucide="alert-triangle" class="lucide-sm"></i> CAPE live non disponibile — riferimento manuale ${capeUSA.toFixed(1)} (multpl) <button class="gbtn" onclick="fetchLiveMarketData()" style="font-size:11px;margin:0 6px;vertical-align:middle">↺ Riprova</button>· `
-      : (d.fetchedAt ? `<i data-lucide="check" class="lucide-sm"></i> live ${new Date(d.fetchedAt).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'})}${d.status === 'partial' ? ' (parziali)' : ''} · ` : '');
+      ? `⚠️ CAPE live non disponibile — riferimento manuale ${capeUSA.toFixed(1)} (multpl) <button class="gbtn" onclick="fetchLiveMarketData()" style="font-size:11px;margin:0 6px;vertical-align:middle">↺ Riprova</button>· `
+      : (d.fetchedAt ? `✓ live ${new Date(d.fetchedAt).toLocaleTimeString('it-IT', {hour:'2-digit',minute:'2-digit'})}${d.status === 'partial' ? ' (parziali)' : ''} · ` : '');
     liveNote.style.display = 'block';
     liveNote.style.color = d._capeIsFallback ? 'var(--orange)' : 'var(--blue)';
-    liveNote.innerHTML = `${srcPrefix}<i data-lucide="zap" class="lucide-sm"></i> CAPE portafoglio: <strong>${capePort.toFixed(1)}</strong>${capeBlendNote} · Media storica USA: 17 · Percentile: stima ${capeUSA > 33 ? '95°+' : capeUSA > 29 ? '90°' : capeUSA > 23 ? '75°' : '65°'}`;
-    if (window.refreshIcons) window.refreshIcons();
+    liveNote.innerHTML = `${srcPrefix}⚡ CAPE portafoglio: <strong>${capePort.toFixed(1)}</strong>${capeBlendNote} · Media storica USA: 17 · Percentile: stima ${capeUSA > 33 ? '95°+' : capeUSA > 29 ? '90°' : capeUSA > 23 ? '75°' : '65°'}`;
   }
 
   // Live stats panel
@@ -939,10 +936,10 @@ function renderValuationStress() {
   // se il portafoglio ha molta Europa, la "media storica" è più bassa (EU~14)
   const histMeanPort = Math.round(capePort < capeUSA * 0.85 ? 14 : capePort < capeUSA * 0.95 ? 15.5 : 17);
   const scenarios = [
-    { label: 'Soft Landing', capeT: Math.max(capeNow * 0.85, histMeanPort + 5), icon: '<i data-lucide="cloud-sun" class="lucide-sm"></i>', desc: 'CAPE scende del 15% (multipli si comprimono leggermente)' },
-    { label: 'Mean-Reversion Storica', capeT: histMeanPort, icon: '<i data-lucide="bar-chart-3" class="lucide-sm"></i>', desc: `CAPE torna alla media storica ${histMeanPort} (portafoglio blended, ${years}a)` },
-    { label: 'Crash Valutazioni', capeT: 12, icon: '<i data-lucide="trending-down" class="lucide-sm"></i>', desc: 'CAPE ai minimi ciclici (1982, 2009)' },
-    { label: 'Espansione Multipli', capeT: Math.min(capeNow * 1.20, 50), icon: '<i data-lucide="trending-up" class="lucide-sm"></i>', desc: 'CAPE sale ulteriormente (+20%)' },
+    { label: 'Soft Landing', capeT: Math.max(capeNow * 0.85, histMeanPort + 5), icon: '🟡', desc: 'CAPE scende del 15% (multipli si comprimono leggermente)' },
+    { label: 'Mean-Reversion Storica', capeT: histMeanPort, icon: '📊', desc: `CAPE torna alla media storica ${histMeanPort} (portafoglio blended, ${years}a)` },
+    { label: 'Crash Valutazioni', capeT: 12, icon: '🔴', desc: 'CAPE ai minimi ciclici (1982, 2009)' },
+    { label: 'Espansione Multipli', capeT: Math.min(capeNow * 1.20, 50), icon: '🟢', desc: 'CAPE sale ulteriormente (+20%)' },
   ];
 
   const gridEl = document.getElementById('valScenarioGrid');
@@ -954,10 +951,10 @@ function renderValuationStress() {
     return `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:14px">
       <div style="font-size:14px;margin-bottom:4px">${s.icon} <strong>${s.label}</strong></div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:10px">${s.desc}</div>
-      <div style="font-size:11px;color:var(--text3)">CAPE port.: <span class="tabular-nums">${capeNow.toFixed(1)}</span> → <strong class="tabular-nums">${s.capeT.toFixed(1)}</strong></div>
-      <div style="margin:8px 0;padding:8px;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius)">
+      <div style="font-size:11px;color:var(--text3)">CAPE port.: ${capeNow.toFixed(1)} → <strong>${s.capeT.toFixed(1)}</strong></div>
+      <div style="margin:8px 0;padding:8px;background:var(--bg);border-radius:6px">
         <div style="font-size:11px;color:var(--text3)">Rend. annualizzato su ${years}a</div>
-        <div class="tabular-nums" style="font-size:22px;font-weight:700;color:${rColor}">${res.rNom >= 0 ? '+' : ''}${(res.rNom * 100).toFixed(1)}%</div>
+        <div style="font-size:22px;font-weight:700;font-family:'DM Mono',monospace;color:${rColor}">${res.rNom >= 0 ? '+' : ''}${(res.rNom * 100).toFixed(1)}%</div>
       </div>
       <div style="font-size:11.5px;display:flex;flex-direction:column;gap:4px">
         <div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Fondamentale</span><strong>${(res.rFundamental * 100).toFixed(1)}%</strong></div>
@@ -966,7 +963,6 @@ function renderValuationStress() {
       </div>
     </div>`;
   }).join('');
-  if (window.refreshIcons) window.refreshIcons();
 
   // ── Grafico: rendimento atteso per vari CAPE target ───────────────────────
   const capeRange = [];
@@ -990,9 +986,9 @@ function renderValuationStress() {
     data: {
       labels: capeRange,
       datasets: [
-        { label: 'Rend. Totale', data: retRange, borderColor: '#9e1b32', borderWidth: 2.5, pointRadius: 0, fill: false, tension: .3 },
-        { label: 'Rend. Fondamentale', data: fundRange, borderColor: '#0e7a44', borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0, fill: false, tension: .3 },
-        { label: 'Rend. Speculativo', data: specRange, borderColor: '#595959', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false, tension: .3 },
+        { label: 'Rend. Totale', data: retRange, borderColor: '#1a73e8', borderWidth: 2.5, pointRadius: 0, fill: false, tension: .3 },
+        { label: 'Rend. Fondamentale', data: fundRange, borderColor: '#36d490', borderWidth: 1.5, borderDash: [5, 3], pointRadius: 0, fill: false, tension: .3 },
+        { label: 'Rend. Speculativo', data: specRange, borderColor: '#e37400', borderWidth: 1.5, borderDash: [3, 3], pointRadius: 0, fill: false, tension: .3 },
       ],
     },
     options: {
@@ -1005,14 +1001,14 @@ function renderValuationStress() {
             title: c => `CAPE target: ${c[0].label}`,
             label: c => ` ${c.dataset.label}: ${c.raw >= 0 ? '+' : ''}${c.raw}%/a`,
           },
-          backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1,
-          titleColor: '#212121', bodyColor: '#595959', padding: 10,
+          backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1,
+          titleColor: '#202124', bodyColor: '#5f6368', padding: 10,
         },
         annotation: {
           annotations: {
-            currentCape: { type: 'line', xMin: capeNow.toFixed(1), xMax: capeNow.toFixed(1), borderColor: 'rgba(201,42,42,.7)', borderWidth: 2, borderDash: [4, 3], label: { display: true, content: `Port. ${capeNow.toFixed(1)}`, position: 'start', font: { size: 10 } } },
-            usaCape: { type: 'line', xMin: capeUSA.toFixed(1), xMax: capeUSA.toFixed(1), borderColor: 'rgba(201,42,42,.35)', borderWidth: 1, borderDash: [2, 4], label: { display: capeUSA.toFixed(1) !== capeNow.toFixed(1), content: `S&P ${capeUSA.toFixed(1)}`, position: 'end', font: { size: 9 } } },
-            histMean: { type: 'line', xMin: histMeanPort.toFixed(1), xMax: histMeanPort.toFixed(1), borderColor: 'rgba(158,27,50,.5)', borderWidth: 1.5, borderDash: [3, 3], label: { display: true, content: `Media ${histMeanPort}`, position: 'end', font: { size: 10 } } },
+            currentCape: { type: 'line', xMin: capeNow.toFixed(1), xMax: capeNow.toFixed(1), borderColor: 'rgba(217,48,37,.7)', borderWidth: 2, borderDash: [4, 3], label: { display: true, content: `Port. ${capeNow.toFixed(1)}`, position: 'start', font: { size: 10 } } },
+            usaCape: { type: 'line', xMin: capeUSA.toFixed(1), xMax: capeUSA.toFixed(1), borderColor: 'rgba(217,48,37,.35)', borderWidth: 1, borderDash: [2, 4], label: { display: capeUSA.toFixed(1) !== capeNow.toFixed(1), content: `S&P ${capeUSA.toFixed(1)}`, position: 'end', font: { size: 9 } } },
+            histMean: { type: 'line', xMin: histMeanPort.toFixed(1), xMax: histMeanPort.toFixed(1), borderColor: 'rgba(26,115,232,.5)', borderWidth: 1.5, borderDash: [3, 3], label: { display: true, content: `Media ${histMeanPort}`, position: 'end', font: { size: 10 } } },
           }
         }
       },
@@ -1035,7 +1031,7 @@ function renderValuationStress() {
       ? ` (USA ${capeUSA.toFixed(1)}, EU ${capeEU.toFixed(1)} → blended ${capePort.toFixed(1)} per ${portLabel})`
       : ` (S&P500)`;
     bogleEl.innerHTML = `
-      <div class="sec-label" style="margin-bottom:12px"><i data-lucide="book-open" class="lucide-sm"></i> Decomposizione Bogle — CAPE${capeBlendDesc} → target ${capeTarget} in ${years} anni</div>
+      <div class="sec-label" style="margin-bottom:12px">📖 Decomposizione Bogle — CAPE${capeBlendDesc} → target ${capeTarget} in ${years} anni</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">
         ${[
           ['Div. Yield', (divYield*100).toFixed(2)+'%', 'Cedola implicita del mercato (E/P x 38% payout — S&P500 2020-2024)', 'var(--blue)'],
@@ -1060,7 +1056,6 @@ function renderValuationStress() {
         Il rendimento fondamentale (dividendi + crescita utili + inflazione) rimane stabile a <strong>${(mainRes.rFundamental*100).toFixed(2)}%/a</strong> indipendentemente dai multipli.
         <div style="margin-top:8px;font-size:10.5px;color:var(--text3);line-height:1.7;border-top:1px solid var(--border2);padding-top:6px">Nota: la decomposizione Fondamentale + Speculativo è un'approssimazione additiva; il rendimento totale (moltiplicativo) è ${(mainRes.rNom*100).toFixed(2)}%/a con termine di interazione ${((mainRes.rNom - mainRes.rFundamental - mainRes.rSpeculative)*100).toFixed(2)}pp. Dividend yield calcolato su payout ratio S&P500 ~38% (2020-2024, al netto dei buyback che sostituiscono dividendi — fonte S&P Global). Regressione Shiller: R²≈0.38-0.45 a 10a, più alta a 20-30a.</div>
       </div>`;
-    if (window.refreshIcons) window.refreshIcons();
   }
 }
 

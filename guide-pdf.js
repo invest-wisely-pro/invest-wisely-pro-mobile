@@ -4,14 +4,14 @@
 async function downloadGuidePDF() {
   const btn = document.getElementById('guideDlBtn');
   const orig = btn.innerHTML;
-  btn.disabled = true; btn.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Generazione...'; if (window.refreshIcons) window.refreshIcons();
+  btn.disabled = true; btn.innerHTML = '⏳ Generazione...';
   await new Promise(r => setTimeout(r, 60));
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const W = 210, H = 297, ML = 16, MR = 16, CW = W - ML - MR;
     let y = 0, pN = 1;
-    const BLU = [158,27,50], PUR = [122,18,36], GRAY = [89,89,89], DARK = [33,33,33], LBG = [244,245,247], AMBER = [89,89,89];
+    const BLU = [26,115,232], PUR = [147,52,230], GRAY = [95,99,104], DARK = [32,33,36], LBG = [248,249,250], AMBER = [251,188,4];
 
     const hdrBar = () => {
       doc.setFillColor(...LBG); doc.rect(0,0,W,12,'F');
@@ -42,11 +42,11 @@ async function downloadGuidePDF() {
       const lines = doc.splitTextToSize(pdfSafe(t), CW-8);
       const boxH = lines.length*4.4 + 10;
       chk(boxH+3);
-      doc.setFillColor(244, 245, 247); doc.rect(ML, y, CW, boxH, 'F');
+      doc.setFillColor(255, 248, 225); doc.rect(ML, y, CW, boxH, 'F');
       doc.setFillColor(...col); doc.rect(ML, y, 1.5, boxH, 'F');
       doc.setFontSize(8.4); doc.setFont('helvetica','bold'); doc.setTextColor(...col);
       doc.text(pdfSafe(title), ML+5, y+5);
-      doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(33,33,33);
+      doc.setFontSize(8.5); doc.setFont('helvetica','normal'); doc.setTextColor(60,55,30);
       doc.text(lines, ML+5, y+10);
       y += boxH + 3; doc.setTextColor(0,0,0);
     };
@@ -57,7 +57,7 @@ async function downloadGuidePDF() {
     doc.text('Guida all\'utilizzo', ML, 24);
     doc.setFontSize(13); doc.setFont('helvetica','normal');
     doc.text(pdfSafe('Suite Patrimoniale Pro v3 — Manuale operativo completo'), ML, 33);
-    doc.setFontSize(9); doc.setTextColor(255,255,255);
+    doc.setFontSize(9); doc.setTextColor(230,215,255);
     doc.text(`Documento generato il ${new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'})}`, ML, 42);
     y = 65;
 
@@ -205,9 +205,9 @@ async function downloadGuidePDF() {
     li('Obbligazioni governative, oro, liquidita: fungono da rifugio (flight to quality), con un lieve rally difensivo durante il crash azionario.');
     li('Trend following / Managed futures: "crisis alpha" — tendono a guadagnare nelle crisi prolungate (2008, 2022) seguendo i trend ribassisti (beta -0.20). Sono veri diversificatori.');
     li('Commodities: NON sono un rifugio. Nei crash di liquidita (2008, marzo 2020) calano insieme alle azioni per de-leveraging e calo della domanda, anche se meno in profondita (beta 0.35).');
-    li('Carry valutario e obbligazionario: soffrono nelle crisi ("raccogliere monetine davanti a uno schiacciasassi") — downside reale, inferiore all\'azionario puro ma significativo (beta 0.45).');
-    li('Carry sulle commodities (curve/roll): a differenza degli altri carry, tende a reggere o guadagnare nei risk-off azionari grazie alla decorrelazione strutturale dalle borse (beta di crash basso, 0.10) — si comporta piu da diversificatore che da asset rischioso.');
-    callout('Questa modellazione differenziata e importante per valutare correttamente portafogli che includono managed futures, commodities o carry: il loro contributo alla resilienza in crisi e molto diverso. I beta sono stime prudenti basate sull\'evidenza storica, non garanzie.', BLU, 'Beta di crash per categoria');
+    li('Carry FX e Carry Obbligazionario: soffrono nelle crisi ("raccogliere monetine davanti a uno schiacciasassi") — downside reale, inferiore all\'azionario puro ma significativo (beta 0.45 sul crollo azionario). Le strategie carry si finanziano a breve e investono a lungo: in crisi lo spread si allarga e il trade si sgonfia rapidamente.');
+    li('Carry Commodities (roll yield / curve): natura strutturalmente diversa dagli altri carry. Non prende posizioni direzionali sui prezzi ma cattura il roll yield della curva dei futures (backwardation vs contango). La decorrelazione dai crash azionari e molto maggiore (beta 0.10) — ed e un diversificatore reale, non un carry direzionale. Strumento su futures con leva implicita: il rendimento dipende dal roll yield, non dal prezzo del sottostante fisico.');
+    callout('Questa modellazione differenziata e importante per valutare correttamente portafogli che includono managed futures, commodities o carry: il loro contributo alla resilienza in crisi e molto diverso. I beta sono stime prudenti basate sull\'evidenza storica, non garanzie. In particolare: Carry FX/Obbligazionario (beta 0.45) e Carry Commodities (beta 0.10) hanno comportamenti opposti in crisi — non vanno aggregati.', BLU, 'Beta di crash per categoria');
 
     h1('7b — Stress Test Macro Storici — Path Mensile Ricostruito');
     p('Sezione aggiuntiva del tab Backtesting: simulazione del percorso mensile preciso del portafoglio durante le 10 principali crisi macro della storia moderna (1970-2024), con la serie mensile ricostruita: i totali annui e i mesi delle crisi (es. ott 1987, ott 2008, mar 2020) corrispondono ai valori storici reali, la distribuzione degli altri mesi è stimata. Come nel Rischio di Sequenza, puoi scegliere la modalita di versamento (capitale + PAC, solo capitale, solo PAC) e la fase del piano in cui arriva la crisi (inizio, meta, fine): cosi il capitale esposto al crollo riflette quello realmente accumulato a quel punto del piano.');
@@ -398,11 +398,11 @@ async function downloadGuidePDF() {
     const total = doc.getNumberOfPages();
     for (let i=1; i<=total; i++){ doc.setPage(i); /* header already drawn via hdrBar on new pages; first page has cover instead */ }
     doc.save('guida-utilizzo-suite-patrimoniale.pdf');
-    btn.innerHTML = '<i data-lucide="check" class="lucide-sm"></i> Scaricato!'; if (window.refreshIcons) window.refreshIcons();
+    btn.innerHTML = '✅ Scaricato!';
     setTimeout(()=>{ btn.innerHTML = orig; btn.disabled = false; }, 2500);
   } catch (e) {
     console.error('Guide PDF error:', e);
-    btn.innerHTML = '<i data-lucide="x" class="lucide-sm"></i> Errore generazione'; if (window.refreshIcons) window.refreshIcons();
+    btn.innerHTML = '❌ Errore generazione';
     setTimeout(()=>{ btn.innerHTML = orig; btn.disabled = false; }, 3000);
   }
 }

@@ -341,7 +341,7 @@ document.getElementById('sAdvNu').oninput = function(){ advMCState.nu=+this.valu
 document.getElementById('advMcModelDesc').innerHTML = ADV_MODEL_DESC['student'];
 
 function runAdvancedMC() {
-  const btn = event.target; btn.disabled=true; btn.innerHTML='<i data-lucide="hourglass" class="lucide-sm"></i> Simulazione...'; if (window.refreshIcons) window.refreshIcons();
+  const btn = event.target; btn.disabled=true; btn.textContent='⏳ Simulazione...';
   setTimeout(()=>{
     try {
       const { w, age, years, portfolio, ter, pics, exps, seq } = state;
@@ -350,11 +350,16 @@ function runAdvancedMC() {
       // il Block Bootstrap li modellerebbe come mix az/obbl/oro ignorando leva e
       // trend. Per questi, se è selezionato 'bootstrap', si ricade su GARCH
       // (parametrico, che usa il rendimento/vol corretti del portafoglio).
-      // Stessa cosa per il portafoglio custom che include Trend Following / Carry
-      // o asset compositi a leva (Efficient Core 90/60): fat_trend, fat_carry_bond,
-      // fat_carry_fx, ec_us_core, ec_glob_core non hanno serie in HIST_MONTHLY.
+      // Stessa cosa per il portafoglio custom O per un Glide Path che includa
+      // Trend Following / Carry o asset compositi a leva (Efficient Core 90/60)
+      // in uno dei due lati: fat_trend, fat_carry_bond, fat_carry_fx, ec_us_core,
+      // ec_glob_core non hanno serie in HIST_MONTHLY.
+      // NB: 'glide' NON va in questa mappa fissa — un Glide Path è "non
+      // backtestabile" solo se Lato A o Lato B contengono effettivamente quegli
+      // asset (lo verifica già customPortfolioIsNonBacktestable() qui sotto).
+      // Prima un glide qualsiasi, anche senza leva, ricadeva sempre su GARCH.
       const LEVERAGED = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
-      const isCustomWithMF = portfolio === 'custom' &&
+      const isCustomWithMF = (portfolio === 'custom' || portfolio === 'glide') &&
         (typeof customPortfolioIsNonBacktestable === 'function') &&
         customPortfolioIsNonBacktestable();
       let model = advMCState.model;
@@ -362,7 +367,9 @@ function runAdvancedMC() {
       if ((model === 'bootstrap' || model === 'bootstrap5y') && (LEVERAGED[portfolio] || isCustomWithMF)) {
         model = 'garch';
         modelFallbackNote = isCustomWithMF
-          ? 'Il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità del portafoglio custom.'
+          ? (portfolio === 'glide'
+              ? 'Uno dei due lati del Glide Path include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità della miscela.'
+              : 'Il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva): il Block Bootstrap storico non dispone di serie storiche coerenti per questi asset. Usato il modello GARCH(1,1) parametrico, che modella correttamente rendimento e volatilità del portafoglio custom.')
           : 'Il Block Bootstrap storico non è applicabile ai portafogli con leva / managed futures: usato il modello GARCH(1,1) parametrico.';
       }
       const terRate = ter/100;
@@ -474,8 +481,8 @@ function runAdvancedMC() {
             // Block Bootstrap a 5 anni: campiona blocchi di 60 mesi CONTIGUI (overlapping),
             // così azioni/obbligazioni/oro e inflazione mantengono le correlazioni reali
             // lungo un ciclo intero (es. la stagflazione 1973-77, il bull 1995-99).
-            const goldW_b = getGoldWeight(portfolio);
-            const cashW_b = getCashWeight(portfolio);
+            const goldW_b = getGoldWeight(portfolio, age + y);
+            const cashW_b = getCashWeight(portfolio, age + y);
             const obW_b   = Math.max(0, 1 - eqW - goldW_b - cashW_b);
             const n_hist  = HIST_MONTHLY.length;
             const BLOCK_M = 60; // 5 anni
@@ -499,8 +506,8 @@ function runAdvancedMC() {
             const scaleFactor5 = (1 + muY) / (1 + histMean5);
             r = annR * scaleFactor5 - 1;
           } else { // bootstrap — Block Bootstrap con dati storici reali 1970–2024
-            const goldW_b = getGoldWeight(portfolio);
-            const cashW_b = getCashWeight(portfolio);
+            const goldW_b = getGoldWeight(portfolio, age + y);
+            const cashW_b = getCashWeight(portfolio, age + y);
             const obW_b   = Math.max(0, 1 - eqW - goldW_b - cashW_b);
             // Campiona un blocco di 12 mesi contigui dai dati reali
             const n_hist = HIST_MONTHLY.length;
@@ -537,7 +544,7 @@ function runAdvancedMC() {
       // Confronto tutti i modelli
       renderAdvMCComparison();
     } catch(e){ console.error('AdvMC error',e); }
-    btn.disabled=false; btn.innerHTML='<i data-lucide="calculator" class="lucide-sm"></i> Esegui Simulazione Avanzata'; if (window.refreshIcons) window.refreshIcons();
+    btn.disabled=false; btn.textContent='🧮 Esegui Simulazione Avanzata';
   }, 80);
 }
 
@@ -547,8 +554,7 @@ function renderAdvMCResults() {
   const modelLabel = { gaussian:'Gaussiano', student:'t di Student', garch:'GARCH(1,1)', regime:'Regime-Switching', bootstrap:'Bootstrap Storico' }[model] || model;
   const statsEl = document.getElementById('advMcStats');
   if (modelFallbackNote && statsEl) {
-    statsEl.insertAdjacentHTML('beforebegin', `<div id="advMcFallbackNote" style="grid-column:1/-1;font-size:12px;color:var(--text-muted);background:var(--bg-body);border:1px solid var(--border-color);border-left:3px solid var(--text-muted);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px"><i data-lucide="alert-triangle" class="lucide-sm"></i> ${modelFallbackNote}</div>`);
-    if (window.refreshIcons) window.refreshIcons();
+    statsEl.insertAdjacentHTML('beforebegin', `<div id="advMcFallbackNote" style="grid-column:1/-1;font-size:12px;color:#b8860b;background:rgba(230,138,0,.08);border:1px solid rgba(230,138,0,.3);border-radius:6px;padding:8px 12px;margin-bottom:10px">⚠️ ${modelFallbackNote}</div>`);
   } else {
     const old = document.getElementById('advMcFallbackNote'); if (old) old.remove();
   }
@@ -576,19 +582,19 @@ function renderAdvMCResults() {
   const ages=Array.from({length:years+1},(_,i)=>state.age+i);
   const gC='rgba(0,0,0,.05)',tC='rgba(0,0,0,.45)';
   chartAdvMC=new Chart(document.getElementById('chAdvMC'),{type:'line',data:{labels:ages,datasets:[
-    {label:'P10',data:p10,borderColor:'rgba(201,42,42,.22)',borderWidth:1,pointRadius:0,fill:false,tension:.35},
-    {label:'P25',data:p25,borderColor:'rgba(201,42,42,.32)',borderWidth:1,pointRadius:0,fill:{target:0,above:'rgba(201,42,42,.10)',below:'transparent'},tension:.35},
-    {label:'P50',data:p50,borderColor:'#9e1b32',borderWidth:2.5,pointRadius:0,fill:{target:1,above:'rgba(158,27,50,.09)',below:'transparent'},tension:.35},
-    {label:'P75',data:p75,borderColor:'rgba(14,122,68,.32)',borderWidth:1,pointRadius:0,fill:{target:2,above:'rgba(14,122,68,.10)',below:'transparent'},tension:.35},
-    {label:'P90',data:p90,borderColor:'rgba(14,122,68,.22)',borderWidth:1,pointRadius:0,fill:{target:3,above:'rgba(14,122,68,.07)',below:'transparent'},tension:.35},
-    {label:'Media',data:mArr,borderColor:'rgba(158,27,50,.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:.35},
-  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{font:{size:11}}},tooltip:{callbacks:{title:c=>'Età '+c[0].label,label:c=>' '+c.dataset.label+': '+fmt(c.raw)},backgroundColor:'#ffffff',borderColor:'#d9d9d9',borderWidth:1,titleColor:'#212121',bodyColor:'#595959',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:12},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
+    {label:'P10',data:p10,borderColor:'rgba(217,48,37,.22)',borderWidth:1,pointRadius:0,fill:false,tension:.35},
+    {label:'P25',data:p25,borderColor:'rgba(217,48,37,.32)',borderWidth:1,pointRadius:0,fill:{target:0,above:'rgba(217,48,37,.10)',below:'transparent'},tension:.35},
+    {label:'P50',data:p50,borderColor:'#1a73e8',borderWidth:2.5,pointRadius:0,fill:{target:1,above:'rgba(26,115,232,.09)',below:'transparent'},tension:.35},
+    {label:'P75',data:p75,borderColor:'rgba(30,142,62,.32)',borderWidth:1,pointRadius:0,fill:{target:2,above:'rgba(30,142,62,.10)',below:'transparent'},tension:.35},
+    {label:'P90',data:p90,borderColor:'rgba(30,142,62,.22)',borderWidth:1,pointRadius:0,fill:{target:3,above:'rgba(30,142,62,.07)',below:'transparent'},tension:.35},
+    {label:'Media',data:mArr,borderColor:'rgba(26,115,232,.5)',borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,tension:.35},
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{font:{size:11}}},tooltip:{callbacks:{title:c=>'Età '+c[0].label,label:c=>' '+c.dataset.label+': '+fmt(c.raw)},backgroundColor:'#fff',borderColor:'#dadce0',borderWidth:1,titleColor:'#202124',bodyColor:'#5f6368',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:12},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
 
   // GARCH vol chart
   if (model==='garch' && volHistory.length > 0) {
     document.getElementById('garchSection').style.display='block';
     if (chartGarch) { chartGarch.destroy(); chartGarch=null; }
-    chartGarch=new Chart(document.getElementById('chGarch'),{type:'line',data:{labels:volHistory.map((_,i)=>'Anno '+(i+1)),datasets:[{label:'Volatilità annualizzata (GARCH)',data:volHistory.map(v=>+(v*100).toFixed(2)),borderColor:'#9e1b32',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(158,27,50,.1)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{ticks:{color:tC,font:{size:11}}},y:{ticks:{color:tC,font:{size:11},callback:v=>v+'%'}}}}} );
+    chartGarch=new Chart(document.getElementById('chGarch'),{type:'line',data:{labels:volHistory.map((_,i)=>'Anno '+(i+1)),datasets:[{label:'Volatilità annualizzata (GARCH)',data:volHistory.map(v=>+(v*100).toFixed(2)),borderColor:'#9334e6',borderWidth:2,pointRadius:3,fill:true,backgroundColor:'rgba(147,52,230,.1)',tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true}},scales:{x:{ticks:{color:tC,font:{size:11}}},y:{ticks:{color:tC,font:{size:11},callback:v=>v+'%'}}}}} );
   } else document.getElementById('garchSection').style.display='none';
 
   // Regime distribution chart
@@ -598,7 +604,7 @@ function renderAdvMCResults() {
     const bears=regimeHistory.length-bulls;
     document.getElementById('regimeStats').innerHTML=`<div class="grid-3"><div class="mcard"><div class="ml">Anni in Bull</div><div class="mv" style="color:var(--green)">${bulls} (${(bulls/regimeHistory.length*100).toFixed(0)}%)</div></div><div class="mcard"><div class="ml">Anni in Bear</div><div class="mv" style="color:var(--red)">${bears} (${(bears/regimeHistory.length*100).toFixed(0)}%)</div></div><div class="mcard"><div class="ml">Transizioni Bear→Bull</div><div class="mv" style="color:var(--blue)">${regimeHistory.filter((s,i)=>i>0&&s==='bull'&&regimeHistory[i-1]==='bear').length}</div></div></div>`;
     if (chartRegime) { chartRegime.destroy(); chartRegime=null; }
-    chartRegime=new Chart(document.getElementById('chRegime'),{type:'bar',data:{labels:regimeHistory.map((_,i)=>'A'+(i+1)),datasets:[{label:'Regime',data:regimeHistory.map(s=>s==='bull'?1:-1),backgroundColor:regimeHistory.map(s=>s==='bull'?'rgba(14,122,68,.7)':'rgba(201,42,42,.7)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw===1?' Bull Market':' Bear Market'}}},scales:{x:{display:false},y:{ticks:{color:tC,callback:v=>v===1?'Bull':v===-1?'Bear':''},min:-1.5,max:1.5}}}});
+    chartRegime=new Chart(document.getElementById('chRegime'),{type:'bar',data:{labels:regimeHistory.map((_,i)=>'A'+(i+1)),datasets:[{label:'Regime',data:regimeHistory.map(s=>s==='bull'?1:-1),backgroundColor:regimeHistory.map(s=>s==='bull'?'rgba(30,142,62,.7)':'rgba(217,48,37,.7)'),borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw===1?' Bull Market':' Bear Market'}}},scales:{x:{display:false},y:{ticks:{color:tC,callback:v=>v===1?'Bull':v===-1?'Bear':''},min:-1.5,max:1.5}}}});
   } else document.getElementById('regimeSection').style.display='none';
 
   // Istogramma distribuzione dei capitali finali (legge dati già calcolati)
@@ -644,7 +650,7 @@ function renderAdvMCHistogram(results, P, model) {
   // Etichette dei bin (centro) e colore: rosso sotto il versato, verde sopra
   const centers = bins.map((_, i) => lo + binW * (i + 0.5));
   const labels = centers.map(c => fmt(c));
-  const colors = centers.map(c => c < invested ? 'rgba(201,42,42,.55)' : 'rgba(14,122,68,.55)');
+  const colors = centers.map(c => c < invested ? 'rgba(217,48,37,.55)' : 'rgba(30,142,62,.55)');
 
   const gC = 'rgba(0,0,0,.05)', tC = 'rgba(0,0,0,.45)';
   const p50 = P && P.p50 ? P.p50 : sorted[Math.floor(sorted.length * 0.5)];
@@ -666,8 +672,8 @@ function renderAdvMCHistogram(results, P, model) {
         ctx.save(); ctx.translate(px + 3, top + 4); ctx.fillText(text, 0, 8); ctx.restore();
         ctx.restore();
       };
-      draw(p50, '#9e1b32', 'Mediana');
-      draw(invested, '#595959', 'Versato');
+      draw(p50, '#1a73e8', 'Mediana');
+      draw(invested, '#5f6368', 'Versato');
     }
   };
 
@@ -681,7 +687,7 @@ function renderAdvMCHistogram(results, P, model) {
         tooltip: { callbacks: {
           title: c => 'Capitale finale ≈ ' + (c[0]?.label || ''),
           label: c => ' ' + c.raw + ' traiettorie su ' + sorted.length + ' (' + (c.raw / sorted.length * 100).toFixed(1) + '%)'
-        }, backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1, titleColor: '#212121', bodyColor: '#595959', padding: 10 }
+        }, backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1, titleColor: '#202124', bodyColor: '#5f6368', padding: 10 }
       },
       scales: {
         x: { ticks: { color: tC, font: { size: 9, family: 'DM Mono' }, maxTicksLimit: 8 }, grid: { display: false } },
@@ -711,7 +717,7 @@ function renderAdvMCComparison() {
   // Esegui tutti i modelli (N ridotto per velocità)
   const Ncomp = 500, years = state.years, ages = Array.from({length:years+1},(_,i)=>state.age+i);
   const models = ['gaussian','student','garch','regime','bootstrap','bootstrap5y'];
-  const modelColors = {gaussian:'#5c6b7a',student:'#9e1b32',garch:'#6f42c1',regime:'#0e7a44',bootstrap:'#b5651d',bootstrap5y:'#1f6feb'};
+  const modelColors = {gaussian:'#5f6368',student:'#1a73e8',garch:'#9334e6',regime:'#1e8e3e',bootstrap:'#e37400',bootstrap5y:'#c5221f'};
   const modelLabels = {gaussian:'Gaussiano',student:'t-Student',garch:'GARCH',regime:'Regime-Switch',bootstrap:'Bootstrap 1a',bootstrap5y:'Bootstrap 5a'};
   const p50s = {};
   const compRows = [];
@@ -793,6 +799,6 @@ function renderAdvMCComparison() {
   // Grafico confronto P50
   if (chartAdvComp) { chartAdvComp.destroy(); chartAdvComp=null; }
   const gC='rgba(0,0,0,.05)',tC='rgba(0,0,0,.45)';
-  chartAdvComp=new Chart(document.getElementById('chAdvMCComp'),{type:'line',data:{labels:ages,datasets:models.map(m=>({label:modelLabels[m],data:p50s[m],borderColor:modelColors[m],borderWidth:2.5,pointRadius:0,fill:false,tension:.35,borderDash:m==='gaussian'?[5,4]:m==='bootstrap'?[3,2]:[]}))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{font:{size:11}}},tooltip:{callbacks:{title:c=>'Età '+c[0].label,label:c=>' '+c.dataset.label+' P50: '+fmt(c.raw)},backgroundColor:'#ffffff',borderColor:'#d9d9d9',borderWidth:1,titleColor:'#212121',bodyColor:'#595959',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:12},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
+  chartAdvComp=new Chart(document.getElementById('chAdvMCComp'),{type:'line',data:{labels:ages,datasets:models.map(m=>({label:modelLabels[m],data:p50s[m],borderColor:modelColors[m],borderWidth:2.5,pointRadius:0,fill:false,tension:.35,borderDash:m==='gaussian'?[5,4]:m==='bootstrap'?[3,2]:[]}))},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true,labels:{font:{size:11}}},tooltip:{callbacks:{title:c=>'Età '+c[0].label,label:c=>' '+c.dataset.label+' P50: '+fmt(c.raw)},backgroundColor:'#fff',borderColor:'#dadce0',borderWidth:1,titleColor:'#202124',bodyColor:'#5f6368',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:12},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
 }
 
