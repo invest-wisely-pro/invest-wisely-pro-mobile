@@ -88,8 +88,8 @@ function renderFiscMinusList() {
       <input class="einput" type="number" min="0" step="100" value="${m.amount}" onchange="(function(){fiscState.minusvalenze.find(x=>x.id===${m.id}).amount=+this.value;renderFiscale()}).call(this)">
       <span class="elab">Anno</span>
       <input class="einput" type="number" min="2018" max="2030" value="${m.year}" onchange="(function(){const x=fiscState.minusvalenze.find(x=>x.id===${m.id});x.year=+this.value;x.scadenza=+this.value+4;renderFiscale()}).call(this)" style="width:70px">
-      <span style="font-size:10.5px;color:var(--text3);font-family:'DM Mono',monospace">scad. ${m.year+4}</span>
-      <button class="dbtn" onclick="delFiscMinus(${m.id})">✕</button>
+      <span class="tabular-nums" style="font-size:10.5px;color:var(--text3)">scad. ${m.year+4}</span>
+      <button class="dbtn" onclick="delFiscMinus(${m.id})"><i data-lucide="x" class="lucide-sm"></i></button>
     </div>`).join('');
 }
 
@@ -98,7 +98,8 @@ function importFiscFromSim() {
   fiscState.w = state.w;
   fiscState.years = state.years;
   fiscState.loaded = true;
-  document.getElementById('fiscImportStatus').innerHTML = `<strong style="color:var(--green)">✅ Importato:</strong> Capitale €${fmtN(state.w)}, PAC €${fmtN(state.pac)}/m, ${state.years} anni`;
+  document.getElementById('fiscImportStatus').innerHTML = `<strong style="color:var(--green)"><i data-lucide="check" class="lucide-sm"></i> Importato:</strong> Capitale €${fmtN(state.w)}, PAC €${fmtN(state.pac)}/m, ${state.years} anni`;
+  if (window.refreshIcons) window.refreshIcons();
   renderFiscale();
 }
 
@@ -138,14 +139,8 @@ function calcTaxOnSell(sellAmount, currentPrice, lots, method, regime, strumento
   // BTP e Titoli di Stato applicano aliquota ridotta 12.5%; tutto il resto aliqGain
   // 'portafoglio' = aliquota composita pesata sui pesi reali del portafoglio del Simulatore;
   // 'btp' = 12,5% agevolata; tutto il resto = aliquota gain piena (26%).
-  // 'portafoglio' = aliquota composita pesata sui pesi reali del portafoglio.
-  // Per il glide path la composizione (e quindi l'aliquota composita) cambia con
-  // l'età: usa l'età alla VENDITA (state.age + anno di vendita), non quella iniziale.
-  const _taxAge = (state.portfolio === 'glide')
-    ? (state.age + (currentYear || 0))
-    : state.age;
   const actualAliq = strumento === 'portafoglio'
-    ? (typeof blendedTaxRate === 'function' ? blendedTaxRate(_taxAge) * 100 : aliqGain)
+    ? (typeof blendedTaxRate === 'function' ? blendedTaxRate(state.age) * 100 : aliqGain)
     : strumento === 'etf_nonutf'
       ? (fiscState.irpef ?? 35)         // ETF non armonizzati: aliquota IRPEF marginale (non 26% sostitutivo)
       : (strumento === 'btp' ? aliqOb : aliqGain);
@@ -216,19 +211,7 @@ function renderFiscale() {
     fiscState.years = (state.years !== undefined && state.years > 0)      ? state.years : 20;
   }
   const { pac, w, years, regime, method, aliqGain, aliqOb, bollo, strumento, sellAmount, sellYear, minusvalenze } = fiscState;
-  // Rendimento annuo per la proiezione fiscale.
-  // Per il glide path il rendimento cambia ogni anno (de-risking): usa la MEDIA
-  // sull'orizzonte effettivo, calcolata con lo stesso motore del simulatore,
-  // così la scheda fiscalità resta coerente con la proiezione principale invece
-  // di assumere il rendimento (aggressivo) della sola età iniziale.
-  let annRate;
-  if (state.portfolio === 'glide' && typeof getRate === 'function') {
-    const H = Math.max(1, years|0);
-    let s = 0; for (let y = 1; y <= H; y++) s += getRate('glide', 'normal', y, state.age);
-    annRate = s / H;
-  } else {
-    annRate = (getPortParams(state.portfolio)?.normal) || 0.055;
-  }
+  const annRate = (getPortParams(state.portfolio)?.normal) || 0.055;
   const terRate = state.ter/100;
   const netRate = annRate - terRate;
 
@@ -240,9 +223,9 @@ function renderFiscale() {
   const labels = yearlyData.map(d=>'Anno '+d.year);
   const gC='rgba(0,0,0,.05)',tC='rgba(0,0,0,.45)';
   chartFisc=new Chart(document.getElementById('chFisc'),{type:'line',data:{labels,datasets:[
-    {label:'Valore di mercato',data:yearlyData.map(d=>d.currentValue),borderColor:'#1a73e8',borderWidth:2.5,pointRadius:0,fill:true,backgroundColor:'rgba(26,115,232,.08)',tension:.35},
-    {label:'Capitale investito',data:yearlyData.map(d=>d.totalInvested),borderColor:'#1e8e3e',borderWidth:2,pointRadius:0,fill:false,borderDash:[5,4],tension:.35},
-  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true},tooltip:{callbacks:{title:c=>c[0].label,label:c=>' '+c.dataset.label+': '+fmt(c.raw)},backgroundColor:'#fff',borderColor:'#dadce0',borderWidth:1,titleColor:'#202124',bodyColor:'#5f6368',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:15},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
+    {label:'Valore di mercato',data:yearlyData.map(d=>d.currentValue),borderColor:'#9e1b32',borderWidth:2.5,pointRadius:0,fill:true,backgroundColor:'rgba(158,27,50,.08)',tension:.35},
+    {label:'Capitale investito',data:yearlyData.map(d=>d.totalInvested),borderColor:'#0e7a44',borderWidth:2,pointRadius:0,fill:false,borderDash:[5,4],tension:.35},
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:true},tooltip:{callbacks:{title:c=>c[0].label,label:c=>' '+c.dataset.label+': '+fmt(c.raw)},backgroundColor:'#ffffff',borderColor:'#d9d9d9',borderWidth:1,titleColor:'#212121',bodyColor:'#595959',padding:10}},scales:{x:{ticks:{color:tC,font:{size:11,family:'DM Mono'},maxTicksLimit:15},grid:{color:gC}},y:{ticks:{color:tC,font:{size:11,family:'DM Mono'},callback:v=>fmt(v)},grid:{color:gC}}}}});
 
   // Summary lotti
   const finalData = yearlyData[yearlyData.length-1];
@@ -255,11 +238,12 @@ function renderFiscale() {
       <div class="mcard"><div class="ml">Plusvalenza lorda</div><div class="mv" style="color:var(--green)">${fmt((finalData?.currentValue||0)-(finalData?.totalInvested||0))}</div></div>
       <div class="mcard"><div class="ml">Costo medio ponderato</div><div class="mv" style="color:var(--text)">€${avgCostFinal.toFixed(2)}</div><div class="ms">per quota (norm. €100)</div></div>
     </div>
-    <div style="padding:12px 16px;background:${strDesc.compensabile?'var(--green-dim)':'var(--orange-dim)'};border:1px solid ${strDesc.compensabile?'rgba(30,142,62,.3)':'rgba(227,116,0,.3)'};border-radius:var(--radius-sm);font-size:12.5px;color:var(--text2);line-height:1.7">
+    <div style="padding:12px 16px;background:${strDesc.compensabile?'var(--green-dim)':'var(--orange-dim)'};border:1px solid ${strDesc.compensabile?'rgba(14,122,68,.3)':'rgba(89,89,89,.3)'};border-radius:var(--radius-sm);font-size:12.5px;color:var(--text2);line-height:1.7">
       <strong style="color:${strDesc.compensabile?'var(--green)':'var(--orange)'}">${strDesc.label} — ${strDesc.tipo}</strong> · Aliquota: <strong>${strDesc.aliq}</strong><br>
       ${strDesc.note}<br>
-      <strong>Compensazione minus:</strong> ${strDesc.compensabile?'✅ Sì (reddito diverso)':'❌ No in regime amm. (reddito di capitale)'} · <strong>Metodo:</strong> ${method==='avg'?'Costo Medio Ponderato':method==='lifo'?'LIFO':'FIFO'}
+      <strong>Compensazione minus:</strong> ${strDesc.compensabile?'<i data-lucide="check" class="lucide-sm"></i> Sì (reddito diverso)':'<i data-lucide="x" class="lucide-sm"></i> No in regime amm. (reddito di capitale)'} · <strong>Metodo:</strong> ${method==='avg'?'Costo Medio Ponderato':method==='lifo'?'LIFO':'FIFO'}
     </div>`;
+  if (window.refreshIcons) window.refreshIcons();
 
   // Simulazione vendita parziale
   const sellYearData = yearlyData[Math.min(sellYear, years)-1];
@@ -278,7 +262,8 @@ function renderFiscale() {
         <div class="mcard"><div class="ml">Aliquota effettiva</div><div class="mv" style="color:var(--text)">${taxResult.effectiveRate.toFixed(1)}%</div></div>
         ${taxResult.minusUsed>0?`<div class="mcard"><div class="ml">Minus utilizzate</div><div class="mv" style="color:var(--green)">−${fmtFull(taxResult.minusUsed)}</div><div class="ms">dallo zainetto</div></div>`:''}
       </div>
-      ${!taxResult.canUseMinus&&regime==='amministrato'&&strDesc.compensabile===false?`<div style="padding:10px 14px;background:var(--orange-dim);border:1px solid rgba(227,116,0,.3);border-radius:var(--radius-sm);font-size:12.5px;color:var(--orange)">⚠️ In regime amministrato con ${strDesc.label}, le minusvalenze pregresse <strong>non possono</strong> essere utilizzate in compensazione. Passare al regime dichiarativo per ottimizzare il carico fiscale.</div>`:''}`;
+      ${!taxResult.canUseMinus&&regime==='amministrato'&&strDesc.compensabile===false?`<div style="padding:10px 14px;background:var(--orange-dim);border:1px solid rgba(89,89,89,.3);border-radius:var(--radius-sm);font-size:12.5px;color:var(--orange)"><i data-lucide="alert-triangle" class="lucide-sm"></i> In regime amministrato con ${strDesc.label}, le minusvalenze pregresse <strong>non possono</strong> essere utilizzate in compensazione. Passare al regime dichiarativo per ottimizzare il carico fiscale.</div>`:''}`;
+    if (window.refreshIcons) window.refreshIcons();
   }
 
   // Confronto regimi — simulazione piano completo
@@ -293,8 +278,7 @@ function renderFiscale() {
     let bolloTot = 0;
     for (const yd of fD.yearlyData) bolloTot += yd.currentValue * (bollo/100);
     // Tasse capital gain
-    const _taxAgeC = (state.portfolio === 'glide') ? (state.age + years) : state.age;
-    const aliq = strumento==='portafoglio' ? (typeof blendedTaxRate==='function'?blendedTaxRate(_taxAgeC)*100:aliqGain) : strumento==='etf_nonutf' ? (fiscState.irpef ?? 35) : (strumento==='btp' ? aliqOb : aliqGain);
+    const aliq = strumento==='portafoglio' ? (typeof blendedTaxRate==='function'?blendedTaxRate(state.age)*100:aliqGain) : strumento==='etf_nonutf' ? (fiscState.irpef ?? 35) : (strumento==='btp' ? aliqOb : aliqGain);
     // Zainetto
     const validM = minusvalenze.filter(m=>m.scadenza>=(2025+years)&&m.amount>0);
     const totM = validM.reduce((s,m)=>s+m.amount,0);
@@ -317,12 +301,12 @@ function renderFiscale() {
   document.getElementById('fiscCompare').innerHTML = `
     <div class="tbl-outer" style="margin-bottom:14px"><table>
       <thead><tr><th style="text-align:left">Regime + Metodo</th><th>Valore lordo</th><th>Imposta CG</th><th>Bollo (cum.)</th><th>Netto finale</th><th>Risparmio vs peggiore</th></tr></thead>
-      <tbody>${scResults.map(s=>{const isBest=s.net===bestNet;const worst=Math.min(...scResults.map(x=>x.net));const saving=s.net-worst;return`<tr style="${isBest?'background:var(--green-dim)':''}"><td style="text-align:left;font-weight:${isBest?700:400}">${isBest?'⭐ ':''}${s.l}</td><td>${fmt(s.totalValue)}</td><td style="color:var(--red)">−${fmt(s.totalTax)}</td><td style="color:var(--orange)">−${fmt(s.bolloTot)}</td><td style="color:${isBest?'var(--green)':'var(--text)'};font-weight:${isBest?700:400}">${fmt(s.net)}</td><td class="${saving>0?'pos':'neutral'}">${saving>0?'+'+fmt(saving):'—'}</td></tr>`;}).join('')}</tbody>
+      <tbody>${scResults.map(s=>{const isBest=s.net===bestNet;const worst=Math.min(...scResults.map(x=>x.net));const saving=s.net-worst;return`<tr style="${isBest?'background:var(--green-dim)':''}"><td style="text-align:left;font-weight:${isBest?700:400}">${isBest?'<i data-lucide="star" class="lucide-sm"></i> ':''}${s.l}</td><td>${fmt(s.totalValue)}</td><td style="color:var(--red)">−${fmt(s.totalTax)}</td><td style="color:var(--orange)">−${fmt(s.bolloTot)}</td><td style="color:${isBest?'var(--green)':'var(--text)'};font-weight:${isBest?700:400}">${fmt(s.net)}</td><td class="${saving>0?'pos':'neutral'}">${saving>0?'+'+fmt(saving):'—'}</td></tr>`;}).join('')}</tbody>
     </table></div>`;
 
   // Chart confronto
   if (chartFiscComp) { chartFiscComp.destroy(); chartFiscComp=null; }
-  const colors=['#1a73e8','#9334e6','#1e8e3e','#00897b'];
+  const colors=['#9e1b32','#1f6feb','#0e7a44','#b5651d'];
   chartFiscComp=new Chart(document.getElementById('chFiscComp'),{type:'bar',data:{labels:scResults.map(s=>s.l),datasets:[{label:'Netto finale',data:scResults.map(s=>s.net),backgroundColor:colors.map((c,i)=>scResults[i].net===bestNet?c+'dd':c+'66'),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' Netto: '+fmt(c.raw)}}},scales:{x:{ticks:{color:tC,font:{size:11}}},y:{ticks:{color:tC,font:{size:11},callback:v=>fmt(v)},grid:{color:gC}}}}});
 
   // Bollo nel tempo
@@ -359,7 +343,7 @@ function renderFiscale() {
       </div>
       <div class="tbl-outer"><table>
         <thead><tr><th style="text-align:left">Anno maturazione</th><th>Importo</th><th>Scadenza</th><th>Stato</th><th>Risparmio fiscale potenziale (${aliqGain}%)</th></tr></thead>
-        <tbody>${minusvalenze.map(m=>{const valid=m.scadenza>=currentYearN;return`<tr><td style="text-align:left">${m.year}</td><td>${fmt(m.amount)}</td><td>${m.year+4}</td><td class="${valid?'pos':'neg'}">${valid?'✅ Valida':'❌ Scaduta'}</td><td class="${valid?'pos':'neutral'}">${valid?'+'+fmt(m.amount*(aliqGain/100)):'—'}</td></tr>`;}).join('')}</tbody>
+        <tbody>${minusvalenze.map(m=>{const valid=m.scadenza>=currentYearN;return`<tr><td style="text-align:left">${m.year}</td><td>${fmt(m.amount)}</td><td>${m.year+4}</td><td class="${valid?'pos':'neg'}">${valid?'<i data-lucide="check" class="lucide-sm"></i> Valida':'<i data-lucide="x" class="lucide-sm"></i> Scaduta'}</td><td class="${valid?'pos':'neutral'}">${valid?'+'+fmt(m.amount*(aliqGain/100)):'—'}</td></tr>`;}).join('')}</tbody>
       </table></div>`;
 }
 

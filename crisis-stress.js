@@ -20,8 +20,8 @@ const CRISIS_SCENARIOS = [
     id: 'stagflation7374',
     label: '1973–74 Stagflazione OPEC',
     shortLabel: '1973–74',
-    color: '#e37400',
-    bg: 'rgba(227,116,0,.10)',
+    color: '#9e1b32',
+    bg: 'rgba(158,27,50,.10)',
     startYr: 1972, startMo: 10,   // inizio finestra (2 mesi pre-crisi)
     peakYr:  1973, peakMo:  1,    // inizio drawdown formale
     troughYr:1974, troughMo:10,   // bottom storico
@@ -34,8 +34,8 @@ const CRISIS_SCENARIOS = [
     id: 'volcker8082',
     label: '1980\u201382 Volcker Shock',
     shortLabel: '1980\u201382',
-    color: '#c5221f',
-    bg: 'rgba(197,34,31,.10)',
+    color: '#1f6feb',
+    bg: 'rgba(31,111,235,.10)',
     startYr: 1980, startMo: 1,
     peakYr:  1980, peakMo:  11,
     troughYr:1982, troughMo: 7,
@@ -48,8 +48,8 @@ const CRISIS_SCENARIOS = [
     id: 'blackmonday87',
     label: '1987 Black Monday',
     shortLabel: '1987',
-    color: '#9334e6',
-    bg: 'rgba(147,52,230,.10)',
+    color: '#0e7a44',
+    bg: 'rgba(14,122,68,.10)',
     startYr: 1987, startMo:  8,
     peakYr:  1987, peakMo:  10,
     troughYr:1987, troughMo:11,
@@ -62,8 +62,8 @@ const CRISIS_SCENARIOS = [
     id: 'gulf90',
     label: '1990 Recessione del Golfo',
     shortLabel: '1990',
-    color: '#e8710a',
-    bg: 'rgba(232,113,10,.10)',
+    color: '#b5651d',
+    bg: 'rgba(181,101,29,.10)',
     startYr: 1990, startMo: 6,
     peakYr:  1990, peakMo:  7,
     troughYr:1990, troughMo: 10,
@@ -76,8 +76,8 @@ const CRISIS_SCENARIOS = [
     id: 'ltcm98',
     label: '1998 Crisi LTCM / Russia',
     shortLabel: '1998',
-    color: '#a142f4',
-    bg: 'rgba(161,66,244,.10)',
+    color: '#6f42c1',
+    bg: 'rgba(111,66,193,.10)',
     startYr: 1998, startMo: 7,
     peakYr:  1998, peakMo:  7,
     troughYr:1998, troughMo: 8,
@@ -90,8 +90,8 @@ const CRISIS_SCENARIOS = [
     id: 'dotcom0002',
     label: '2000–02 Bolla Dot-com',
     shortLabel: '2000–02',
-    color: '#d93025',
-    bg: 'rgba(217,48,37,.10)',
+    color: '#0b7285',
+    bg: 'rgba(11,114,133,.10)',
     startYr: 2000, startMo:  1,
     peakYr:  2000, peakMo:   3,
     troughYr:2002, troughMo: 10,
@@ -104,8 +104,8 @@ const CRISIS_SCENARIOS = [
     id: 'eurocrisis1112',
     label: '2011\u201312 Crisi Euro Sovrana',
     shortLabel: '2011\u201312',
-    color: '#1a73e8',
-    bg: 'rgba(26,115,232,.10)',
+    color: '#c2255c',
+    bg: 'rgba(194,37,92,.10)',
     startYr: 2011, startMo: 5,
     peakYr:  2011, peakMo:  7,
     troughYr:2011, troughMo: 9,
@@ -118,8 +118,8 @@ const CRISIS_SCENARIOS = [
     id: 'gfc0809',
     label: '2008–09 Crisi Finanziaria Globale',
     shortLabel: '2008–09',
-    color: '#b31412',
-    bg: 'rgba(179,20,18,.10)',
+    color: '#5c6b7a',
+    bg: 'rgba(92,107,122,.10)',
     startYr: 2007, startMo:  10,
     peakYr:  2008, peakMo:   9,
     troughYr:2009, troughMo:  3,
@@ -132,8 +132,8 @@ const CRISIS_SCENARIOS = [
     id: 'covid20',
     label: '2020 COVID-19 Crash',
     shortLabel: '2020',
-    color: '#1a73e8',
-    bg: 'rgba(26,115,232,.10)',
+    color: '#2b8a3e',
+    bg: 'rgba(43,138,62,.10)',
     startYr: 2020, startMo:  1,
     peakYr:  2020, peakMo:   2,
     troughYr:2020, troughMo:  3,
@@ -146,8 +146,8 @@ const CRISIS_SCENARIOS = [
     id: 'inflation22',
     label: '2022 Inflazione & Tassi',
     shortLabel: '2022',
-    color: '#00897b',
-    bg: 'rgba(0,137,123,.10)',
+    color: '#7a1224',
+    bg: 'rgba(122,18,36,.10)',
     startYr: 2021, startMo:  12,
     peakYr:  2022, peakMo:   1,
     troughYr:2022, troughMo: 10,
@@ -287,6 +287,7 @@ function initCrisisStress() {
 
   // Render selector crisi + contenuto
   container.innerHTML = buildCrisisUI();
+  if (window.refreshIcons) window.refreshIcons();
   bindCrisisEvents();
 }
 
@@ -299,7 +300,7 @@ function buildCrisisUI() {
 
   return `
   <div class="sec" style="margin-top:18px">
-    <div class="sec-label" data-info-id="info-crisis-stress" style="color:var(--red)">🔥 Stress Test Macro Storici — Path Mensile Ricostruito</div>
+    <div class="sec-label" data-info-id="info-crisis-stress" style="color:var(--red)"><i data-lucide="flame" class="lucide-sm"></i> Stress Test Macro Storici — Path Mensile Ricostruito</div>
     <p style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:14px">
       Simulazione del percorso mensile <strong>preciso</strong> del tuo portafoglio durante le principali crisi storiche,
       usando la serie mensile 1970–2024: totali annui e mesi-crisi chiave ancorati ai dati storici reali, distribuzione degli altri mesi ricostruita.
@@ -311,17 +312,17 @@ function buildCrisisUI() {
     <!-- Modalità di versamento -->
     <div style="font-size:11.5px;color:var(--text3);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">Modalità di versamento</div>
     <div class="btn-group" id="crisisModeBtns" style="flex-wrap:wrap;gap:6px;margin-bottom:16px">
-      <button class="gbtn a-red" data-mode="solo_cap">🏔️ Solo capitale</button>
-      <button class="gbtn" data-mode="cap_pac">💰 Capitale + PAC</button>
-      <button class="gbtn" data-mode="solo_pac">📅 Solo PAC</button>
+      <button class="gbtn a-red" data-mode="solo_cap"><i data-lucide="mountain" class="lucide-sm"></i> Solo capitale</button>
+      <button class="gbtn" data-mode="cap_pac"><i data-lucide="wallet" class="lucide-sm"></i> Capitale + PAC</button>
+      <button class="gbtn" data-mode="solo_pac"><i data-lucide="calendar" class="lucide-sm"></i> Solo PAC</button>
     </div>
 
     <!-- Stadio del piano (quando arriva la crisi) -->
     <div style="font-size:11.5px;color:var(--text3);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">A che punto del piano arriva la crisi</div>
     <div class="btn-group" id="crisisStageBtns" style="flex-wrap:wrap;gap:6px;margin-bottom:16px">
-      <button class="gbtn" data-stage="inizio">🌱 Inizio piano</button>
-      <button class="gbtn a-red" data-stage="meta">⏳ Metà piano</button>
-      <button class="gbtn" data-stage="fine">🎯 Fine piano</button>
+      <button class="gbtn" data-stage="inizio"><i data-lucide="sprout" class="lucide-sm"></i> Inizio piano</button>
+      <button class="gbtn a-red" data-stage="meta"><i data-lucide="hourglass" class="lucide-sm"></i> Metà piano</button>
+      <button class="gbtn" data-stage="fine"><i data-lucide="target" class="lucide-sm"></i> Fine piano</button>
     </div>
 
     <!-- Contesto crisi -->
@@ -332,13 +333,13 @@ function buildCrisisUI() {
 
     <!-- Grafico path mensile -->
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">
-      📈 Portafoglio normalizzato (base 100 = inizio crisi)
+      <i data-lucide="trending-up" class="lucide-sm"></i> Portafoglio normalizzato (base 100 = inizio crisi)
     </div>
     <div class="chart-wrap" style="height:300px;margin-bottom:16px"><canvas id="chCrisisPath"></canvas></div>
 
     <!-- Grafico drawdown mensile -->
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;letter-spacing:.04em;text-transform:uppercase">
-      📉 Drawdown mensile dal picco (%)
+      <i data-lucide="trending-down" class="lucide-sm"></i> Drawdown mensile dal picco (%)
     </div>
     <div class="chart-wrap" style="height:200px;margin-bottom:18px"><canvas id="chCrisisDD"></canvas></div>
 
@@ -349,7 +350,7 @@ function buildCrisisUI() {
     <div style="margin-top:4px">
       <button class="gbtn" id="btnAllCrises" onclick="renderAllCrisesCompare()"
         style="background:var(--bg2);border:1px solid var(--border2);font-weight:600;padding:9px 18px">
-        📊 Confronta tutte le crisi con questo portafoglio
+        <i data-lucide="bar-chart-3" class="lucide-sm"></i> Confronta tutte le crisi con questo portafoglio
       </button>
     </div>
 
@@ -429,7 +430,7 @@ function renderCrisis(crisisId) {
   // lo stress test storico li modellerebbe come un semplice mix az/obbl/oro,
   // ignorando leva e trend. Mostra un avviso invece di numeri fuorvianti.
   // Stessa cosa per il portafoglio custom che include Trend Following / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
   const isCustomNonBT = portKey === 'custom' &&
     (typeof customPortfolioIsNonBacktestable === 'function') &&
     customPortfolioIsNonBacktestable();
@@ -437,20 +438,14 @@ function renderCrisis(crisisId) {
     const lbl = typeof getPortLabel === 'function' ? getPortLabel(portKey) : portKey;
     const ctx0 = document.getElementById('crisisContext');
     if (ctx0) {
-      ctx0.style.background = 'rgba(230,138,0,.08)';
-      ctx0.style.borderColor = 'rgba(230,138,0,.35)';
-      const isGlidePath = portKey === 'glide';
-      ctx0.innerHTML = `<div style="font-size:13px;font-weight:700;color:#b8860b;margin-bottom:6px">Stress test non disponibile — ${lbl}</div>` +
+      ctx0.style.background = 'var(--bg-body)';
+      ctx0.style.borderColor = 'var(--border-color)';
+      ctx0.innerHTML = `<div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:6px">Stress test non disponibile — ${lbl}</div>` +
         (isCustomNonBT
           ? `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Il portafoglio custom include <strong>Trend Following / Managed Futures</strong> o <strong>Carry</strong>, ` +
             `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
             `Senza blocco questi asset verrebbero modellati erroneamente come obbligazionario, producendo risultati fuorvianti. ` +
             `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo</strong>.</div>`
-          : isGlidePath
-          ? `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Lo stress test storico non e applicabile al <strong>Glide Path</strong>, indipendentemente dagli asset che lo compongono. ` +
-            `Il modello simula un portafoglio a <strong>pesi fissi</strong> su una finestra storica mensile contigua: ` +
-            `non puo modellare il ribilanciamento dinamico tra Lato A e Lato B che caratterizza il lifecycle. ` +
-            `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo Avanzato</strong>, che modellano correttamente il cambio di composizione anno per anno.</div>`
           : `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Questa strategia usa leva (esposizione &gt;100%) e/o managed futures, ` +
             `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
             `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo</strong>, che modellano correttamente leva e diversificazione.</div>`);
@@ -489,8 +484,9 @@ function renderCrisis(crisisId) {
       <div style="font-size:13px;font-weight:700;color:${crisis.color};margin-bottom:6px">${crisis.label}</div>
       <div style="color:var(--text2)">${crisis.context}</div>
       <div style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,.5);border-radius:6px;font-size:11.5px;color:var(--text3)">
-        <strong>💡 Cosa imparare:</strong> ${crisis.lessons}
+        <strong><i data-lucide="lightbulb" class="lucide-sm"></i> Cosa imparare:</strong> ${crisis.lessons}
       </div>`;
+    if (window.refreshIcons) window.refreshIcons();
   }
 
   // ─── Macro pills ───
@@ -522,9 +518,10 @@ function renderCrisis(crisisId) {
   document.getElementById('crisisMetrics').innerHTML = metrics.map(m => `
     <div class="bt-stat-card" style="min-width:140px">
       <div class="lbl">${m.l}</div>
-      <div class="val" style="color:${m.c};font-size:13.5px">${m.v}</div>
+      <div class="val tabular-nums" style="color:${m.c};font-size:13.5px">${m.v}</div>
       ${m.sub ? `<div style="font-size:10.5px;color:var(--text3);margin-top:1px">${m.sub}</div>` : ''}
     </div>`).join('');
+  if (window.refreshIcons) window.refreshIcons();
 
   // ─── Grafico path mensile ───
   const labels = sim.path.map(p => p.label);
@@ -618,7 +615,7 @@ function renderCrisis(crisisId) {
       datasets: [{
         label: 'Drawdown dal picco (%)',
         data: ddVals,
-        backgroundColor: ddVals.map(d => d < -25 ? 'rgba(217,48,37,.8)' : d < -10 ? 'rgba(227,116,0,.7)' : d < -3 ? `${crisis.color}99` : 'rgba(30,142,62,.4)'),
+        backgroundColor: ddVals.map(d => d < -25 ? 'rgba(201,42,42,.8)' : d < -10 ? 'rgba(89,89,89,.7)' : d < -3 ? `${crisis.color}99` : 'rgba(14,122,68,.4)'),
         borderRadius: 2,
       }]
     },
@@ -644,7 +641,7 @@ function renderCrisis(crisisId) {
   const sortedByRet = [...sim.path].sort((a, b) => a.portRet - b.portRet).slice(0, 10);
   document.getElementById('crisisWorstMonths').innerHTML = `
     <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase">
-      📋 I 10 mesi peggiori in questo scenario
+      <i data-lucide="clipboard-list" class="lucide-sm"></i> I 10 mesi peggiori in questo scenario
     </div>
     <div class="tbl-outer"><table>
       <thead><tr>
@@ -658,16 +655,17 @@ function renderCrisis(crisisId) {
       </tr></thead>
       <tbody>${sortedByRet.map(p => `
         <tr>
-          <td style="font-family:'DM Mono',monospace;font-weight:600">${p.label}</td>
-          <td class="${p.portRet < 0 ? 'neg' : 'pos'}" style="font-family:'DM Mono',monospace;font-weight:700">${(p.portRet*100).toFixed(2)}%</td>
-          <td class="${p.eqRet < 0 ? 'neg' : 'pos'}" style="font-family:'DM Mono',monospace">${(p.eqRet*100).toFixed(2)}%</td>
-          <td class="${p.obRet < 0 ? 'neg' : 'pos'}" style="font-family:'DM Mono',monospace">${(p.obRet*100).toFixed(2)}%</td>
-          <td class="${p.goldRet < 0 ? 'neg' : 'pos'}" style="font-family:'DM Mono',monospace">${(p.goldRet*100).toFixed(2)}%</td>
-          <td style="font-family:'DM Mono',monospace">${p.cumValue.toFixed(1)}</td>
-          <td class="neg" style="font-family:'DM Mono',monospace">${p.drawdown.toFixed(2)}%</td>
+          <td class="tabular-nums" style="font-weight:600">${p.label}</td>
+          <td class="tabular-nums ${p.portRet < 0 ? 'neg' : 'pos'}" style="font-weight:700">${(p.portRet*100).toFixed(2)}%</td>
+          <td class="tabular-nums ${p.eqRet < 0 ? 'neg' : 'pos'}">${(p.eqRet*100).toFixed(2)}%</td>
+          <td class="tabular-nums ${p.obRet < 0 ? 'neg' : 'pos'}">${(p.obRet*100).toFixed(2)}%</td>
+          <td class="tabular-nums ${p.goldRet < 0 ? 'neg' : 'pos'}">${(p.goldRet*100).toFixed(2)}%</td>
+          <td class="tabular-nums">${p.cumValue.toFixed(1)}</td>
+          <td class="tabular-nums neg">${p.drawdown.toFixed(2)}%</td>
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 // ── Confronto tutte le crisi con il portafoglio corrente ─────
@@ -691,17 +689,17 @@ function renderAllCrisesCompare() {
     return `<tr>
       <td style="font-weight:700;color:${c.color};white-space:nowrap">${c.shortLabel}</td>
       <td style="font-size:11.5px;color:var(--text2);max-width:160px">${c.label.split(' ').slice(1).join(' ')}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:700;color:${ddColor}">${(sim.maxDD*100).toFixed(1)}%</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--red)">−€${Math.abs(sim.lossEur).toLocaleString('it-IT')}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--text2)">${(sim.worstMonthRet*100).toFixed(2)}%</td>
-      <td style="font-family:'DM Mono',monospace;color:${sim.recoveryMonth != null && sim.recoveryMonth < 24 ? 'var(--green)' : 'var(--orange)'}">${recStr}</td>
-      <td style="font-family:'DM Mono',monospace">${sim.finalValue.toFixed(1)}</td>
+      <td class="tabular-nums" style="font-weight:700;color:${ddColor}">${(sim.maxDD*100).toFixed(1)}%</td>
+      <td class="tabular-nums" style="color:var(--negative)">−€${Math.abs(sim.lossEur).toLocaleString('it-IT')}</td>
+      <td class="tabular-nums" style="color:var(--text2)">${(sim.worstMonthRet*100).toFixed(2)}%</td>
+      <td class="tabular-nums" style="color:${sim.recoveryMonth != null && sim.recoveryMonth < 24 ? 'var(--positive)' : 'var(--text-muted)'}">${recStr}</td>
+      <td class="tabular-nums">${sim.finalValue.toFixed(1)}</td>
     </tr>`;
   });
 
   document.getElementById('crisisCompareTable').innerHTML = `
     <div style="font-size:11.5px;color:var(--text2);margin-bottom:8px">
-      Portafoglio: <strong>${portLabel}</strong> · Capitale: <strong>€${capitalEur.toLocaleString('it-IT')}</strong>
+      Portafoglio: <strong>${portLabel}</strong> · Capitale: <strong class="tabular-nums">€${capitalEur.toLocaleString('it-IT')}</strong>
     </div>
     <div class="tbl-outer"><table>
       <thead><tr>
@@ -716,9 +714,10 @@ function renderAllCrisesCompare() {
       <tbody>${rows.join('')}</tbody>
     </table></div>
     <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.6">
-      ⚠️ Il Recovery è calcolato rispetto al livello di <em>inizio finestra</em> mostrata, non al picco assoluto pre-crisi.
+      <i data-lucide="alert-triangle" class="lucide-sm"></i> Il Recovery è calcolato rispetto al livello di <em>inizio finestra</em> mostrata, non al picco assoluto pre-crisi.
       La finestra include alcuni mesi pre-crisi per contesto. Nessun PAC aggiuntivo applicato.
     </div>`;
+  if (window.refreshIcons) window.refreshIcons();
 
   // ─── Grafico a linee sovrapposte (normalizzate) ───
   // Tutti i path normalizzati a 100 all'inizio finestra, x = mese relativo

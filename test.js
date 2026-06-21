@@ -32,10 +32,10 @@ const path = require('path');
 let PASS = 0, FAIL = 0, WARN = 0;
 const failures = [];
 function ok(cond, name, detail) {
-  if (cond) { PASS++; console.log('  \x1b[32m✓\x1b[0m ' + name); }
-  else { FAIL++; failures.push(name + (detail ? ' → ' + detail : '')); console.log('  \x1b[31m✗\x1b[0m ' + name + (detail ? '  \x1b[2m' + detail + '\x1b[0m' : '')); }
+  if (cond) { PASS++; console.log('  \x1b[32m[OK]\x1b[0m ' + name); }
+  else { FAIL++; failures.push(name + (detail ? ' → ' + detail : '')); console.log('  \x1b[31m[FAIL]\x1b[0m ' + name + (detail ? '  \x1b[2m' + detail + '\x1b[0m' : '')); }
 }
-function warn(name, detail) { WARN++; console.log('  \x1b[33m⚠\x1b[0m ' + name + (detail ? '  \x1b[2m' + detail + '\x1b[0m' : '')); }
+function warn(name, detail) { WARN++; console.log('  \x1b[33m[WARN]\x1b[0m ' + name + (detail ? '  \x1b[2m' + detail + '\x1b[0m' : '')); }
 function near(a, b, tol) { return Math.abs(a - b) <= tol; }
 // Per i test su simulazioni casuali: ritenta una volta in caso di esito negativo.
 // Il rumore di campionamento (es. curtosi della t-Student, mediane Monte Carlo)
@@ -158,19 +158,12 @@ function loadSimulator() {
     /const RECOVERY_YEARS = [\s\S]*?;/, /const BOND_RALLY_RATE = [\s\S]*?;/,
     /const RECOVERY_CATCHUP = [\s\S]*?;/, /const SEQ_CRASH_GAP = [\s\S]*?;/,
     /const CRASH_BETA = \{[\s\S]*?\};/,
-    /const PRESET_SLOTS = \{[\s\S]*?\n\};/,
   ].forEach(re => { const c = grab(SRC.main, re); if (c) eval(c.replace('const ', 'global.')); });
   eval(grab(SRC.main, /let state = \{[\s\S]*?\n\};/).replace('let ', 'global.'));
-  // Inizializza _glideCache stub per il contesto test (non c'e' DOM)
-  global._glideCache = { sig: null, byAge: {} };
   ['fmt','fmtN','fmtFull','getCrashYears',
    'getCrashYear','_sanitizeCrashYears','getCrashWeights','getLCWeight','getEquityWeight',
    'getGoldWeight','getCashWeight','expandCustomSlots','calcCustomParams','getRate','getRateEco','getEcoWindow',
-   'projectEco','getPacForYear','project','blendedTaxRate','calcNetNom','cagrSafe',
-   // Glide path: necessari per project() con portfolio='glide'
-   'strategyToSlots','getGlideAlpha','getGlideSlots','_glideSig','getGlideParams',
-   'getPortParams','getFxExposure','getFxAdjustment',
-  ].forEach(fn => loadFn(SRC.main, fn));
+   'projectEco','getPacForYear','project','blendedTaxRate','calcNetNom','cagrSafe'].forEach(fn => loadFn(SRC.main, fn));
 }
 function setState(o) {
   Object.assign(global.state, {
@@ -179,11 +172,7 @@ function setState(o) {
     seq:{on:false,mode:'single',timing:'mid',severity:'moderate',dynCorr:false},
     fxHedge:false, fxHedgeCost:0.005, fxVol:0.08, inflBottom:2, inflVol:1, ecoTiming:'early',
     customPortfolio:{slots:[]},
-    // Glide path: valori di default per i test (stessa struttura di state iniziale in main.js)
-    glide:{ sideA:{type:'preset',ref:'ec_glob_9060'}, sideB:{type:'preset',ref:'golden_butterfly'}, ageStart:30, ageEnd:65, k:2 },
   }, o);
-  // Invalida la cache del glide ad ogni cambio di state (come fa _afterGlideChange nel browser)
-  if (global._glideCache) global._glideCache.sig = null;
 }
 function suiteSimulator() {
   header('SUITE 2 — SIMULATORE');
@@ -425,11 +414,11 @@ console.log('\x1b[1m╚═══════════════════
 const suites = [suiteData, suiteSimulator, suiteBacktest, suiteMC, suiteDecumulo, suitePensione];
 for (const s of suites) {
   try { s(); }
-  catch (e) { FAIL++; failures.push(s.name + ' CRASH: ' + e.message); console.log('  \x1b[31m✗ CRASH in ' + s.name + ': ' + e.message + '\x1b[0m'); }
+  catch (e) { FAIL++; failures.push(s.name + ' CRASH: ' + e.message); console.log('  \x1b[31m[FAIL] CRASH in ' + s.name + ': ' + e.message + '\x1b[0m'); }
 }
 
 console.log('\n\x1b[1m════════════════════ RIEPILOGO ════════════════════\x1b[0m');
 console.log('  \x1b[32mPASS: ' + PASS + '\x1b[0m   \x1b[31mFAIL: ' + FAIL + '\x1b[0m   \x1b[33mWARN: ' + WARN + '\x1b[0m');
 if (FAIL > 0) { console.log('\n\x1b[31mTest falliti:\x1b[0m'); failures.forEach(f => console.log('  • ' + f)); }
-else console.log('\n\x1b[32m  ✓ Tutti i test superati — simulatore affidabile\x1b[0m');
+else console.log('\n\x1b[32m  [OK] Tutti i test superati — simulatore affidabile\x1b[0m');
 process.exit(FAIL > 0 ? 1 : 0);

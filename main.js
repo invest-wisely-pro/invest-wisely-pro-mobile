@@ -2,7 +2,7 @@
 if (window.Chart) {
   Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
   Chart.defaults.font.size = 12.5;
-  Chart.defaults.color = '#202124';
+  Chart.defaults.color = '#212121';
   Chart.defaults.borderColor = 'rgba(0,0,0,.08)';
   Chart.defaults.plugins.legend.labels.font = { size: 12.5, weight: '600', family: "'DM Sans', sans-serif" };
   Chart.defaults.plugins.legend.labels.boxWidth = 18;
@@ -65,17 +65,12 @@ const PORT = {
     eq: 0, ob: 1.0, gold: 0, cash: 0, realRet: .010, inflBeta: -0.35, fxExp: 0.05,
   },
   lifecycle: {
-    label: 'Lifecycle ♻', desc: 'Portafoglio che riduce automaticamente la quota azionaria con l\'età Parte ~80% azioni a 20 anni, arriva a ~20% a 70 anni.',
+    label: 'Lifecycle', desc: 'Portafoglio che riduce automaticamente la quota azionaria con l\'età Parte ~80% azioni a 20 anni, arriva a ~20% a 70 anni.',
     best: null, normal: null, worst: null, vol: null,
     eq: null, ob: null, gold: 0, cash: 0, realRet: .035, inflBeta: 0.1, fxExp: null, // variabile con età
   },
-  glide: {
-    label: 'Glide Path ⤵', desc: 'Transizione continua tra due strategie complete (da aggressiva a conservativa) lungo l\'orizzonte. Tutti i parametri (quota azionaria, leva, composizione, fiscalità, FX) sono interpolati per età.',
-    best: null, normal: null, worst: null, vol: null,
-    eq: null, ob: null, gold: null, cash: null, realRet: null, inflBeta: null, fxExp: null, // tutto variabile con età
-  },
   golden_butterfly: {
-    label: '🦋 Golden Butterfly',
+    label: 'Golden Butterfly',
     desc: 'Ideato da Tyler from Portfolio Charts (2012). Composizione: 20% Az. Large Cap, 20% Az. Small Cap Value, 20% Oro, 20% Ob. Lungo Termine, 20% Ob. Breve Termine. Ottimizzato per massimizzare la peggior performance storica su 30 anni (\'worst case\'). Volatilità molto bassa, ottimo Sharpe ratio storico (1970-2023: ~9.7%/a lordo — gonfiato dal bull market oro anni \'70 e dal bull bond 1980-2020, non ripetibili). Rendimento atteso forward-looking: ~5.2%/a.',
     best: .067, normal: .052, worst: .023, vol: .075,
     eq: .4, ob: .4, gold: .2, cash: 0, realRet: .032, inflBeta: 0.14, fxExp: 0.55,  // 40%eq*0.85 + 20%oro*1.0 + 40%ob*0.05 ≈ 0.56
@@ -88,7 +83,7 @@ const PORT = {
     }
   },
   permanent: {
-    label: '🏛️ Permanent Portfolio',
+    label: 'Permanent Portfolio',
     desc: 'Ideato da Harry Browne (1981). Composizione: 25% Azioni, 25% Oro, 25% Ob. Lungo Termine, 25% Liquidità. Progettato per funzionare in OGNI regime economico: prosperità (azioni), inflazione (oro), deflazione (obbligazioni), recessione (liquidità). Volatilità storica molto bassa (σ≈7%), rendimento nominale storico 1970-2023: ~8%/a lordo (beneficio del gold rush degli anni \'70 e del bull bond 1980-2020). Rendimento atteso forward-looking: ~4.4%/a. Beta inflazione calcolato ≈ +0.13: oro e liquidità a tasso variabile coprono parzialmente l\'impatto negativo delle obbligazioni lunghe in regime inflattivo.',
     best: .058, normal: .044, worst: .018, vol: .070,
     eq: .25, ob: .25, gold: .25, cash: .25, realRet: .024, inflBeta: 0.13, fxExp: 0.47, // 25%eq*0.85 + 25%oro*1.0 + 25%ob*0.05 + 25%cash*0
@@ -100,7 +95,7 @@ const PORT = {
     }
   },
   all_seasons: {
-    label: '🌤️ All Seasons (Dalio)',
+    label: 'All Seasons (Dalio)',
     desc: 'Versione retail dell\'All Weather di Ray Dalio (Bridgewater). Composizione: 30% Azioni, 40% Ob. Lungo Termine, 15% Ob. Medio Termine, 7.5% Oro, 7.5% Commodities. Progettato per distribuire il rischio su quattro regimi macro (crescita alta/bassa × inflazione alta/bassa). Storicamente: ~7.5%/a nominale, σ≈8%. Rendimento atteso forward-looking: ~5.0%/a. Nota: l\'allocazione del 40% in obbligazioni a lungo termine lo rende più vulnerabile all\'inflazione di quanto sembri (beta inflazione calcolato ≈ −0.03: la perdita sulle obbligazioni compensa quasi del tutto la protezione di oro e commodities).',
     best: .066, normal: .050, worst: .020, vol: .080,
     eq: .30, ob: .55, gold: .15, cash: 0,
@@ -114,7 +109,7 @@ const PORT = {
     }
   },
   larry: {
-    label: '📐 Larry Portfolio',
+    label: 'Larry Portfolio',
     desc: 'Ideato da Larry Swedroe. Alta concentrazione su fattori di rischio accademici (small cap value, emerging). Composizione: 15% US Small Cap Value, 7.5% Intl Small Cap Value, 7.5% Emerging Markets, 70% Ob. Breve/Medio Termine. L\'idea: concentrare il rischio solo sull\'azionario ad alto rendimento atteso (small cap value, emerging) ammortizzato da bond a bassa duration. Volatilità portafoglio calcolata ~7.5%/a. Rendimento atteso ~5.8%/a. Beta inflazione calcolato ≈ −0.02: il contributo del bond breve (tassi flottanti) è quasi neutralizzato dalla quota azionaria value.',
     best: .073, normal: .058, worst: .030, vol: .075,
     eq: .30, ob: .70, gold: 0, cash: 0,
@@ -127,7 +122,7 @@ const PORT = {
     }
   },
   global_market: {
-    label: '🗺️ Global Market Portfolio',
+    label: 'Global Market Portfolio',
     desc: 'Portafoglio che replica la capitalizzazione del mercato mondiale: ~55% azioni globali sviluppati, ~45% obbligazioni globali aggregate. È il portafoglio "neutro" per definizione — rappresenta la quota detenuta dall\'investitore medio mondiale. Rendimento storico ~6%/a, vol ~9%. Ottimo benchmark passivo.',
     best: .071, normal: .053, worst: .020, vol: .088,
     eq: .55, ob: .45, gold: 0, cash: 0,
@@ -138,7 +133,7 @@ const PORT = {
     }
   },
   ec_us_9060: {
-    label: '⚡ Efficient Core 90/60 USA',
+    label: 'Efficient Core 90/60 USA',
     desc: 'Strategia capital-efficient (efficient core 90/60 USA): 90% azioni large cap USA + 60% futures su Treasury USA, per un\'esposizione notional del 150% (leva 1,5x su un 60/40). L\'idea, fondata sulla teoria di Markowitz, è che il portafoglio a miglior Sharpe vada usato con leva invece di puntare al 100% azioni. La leva ha un costo di finanziamento (~tasso a breve) già dedotto dal rendimento atteso. Volatilità ~14%/a, tra un 60/40 e un 100% azioni. Disponibile come ETF UCITS. Il 10% di cassa funge da collaterale per i futures.',
     best: .098, normal: .071, worst: .021, vol: .139,
     eq: .90, ob: .60, gold: 0, cash: 0, leverage: 1.5,
@@ -150,7 +145,7 @@ const PORT = {
     }
   },
   ec_glob_9060: {
-    label: '⚡ Efficient Core 90/60 Globale',
+    label: 'Efficient Core 90/60 Globale',
     desc: 'Versione globale della strategia capital-efficient (efficient core 90/60 globale): 90% azioni globali sviluppati + 60% futures su titoli di stato globali (USA, UK, Germania, Giappone), esposizione notional 150%. Più diversificata della versione USA sia sul lato azionario sia obbligazionario. Costo di finanziamento della leva già dedotto. Volatilità ~14%/a. Disponibile come ETF UCITS. Adatta come "core" di un portafoglio per liberare spazio ad asset diversificanti senza ridurre l\'esposizione azionaria.',
     best: .099, normal: .073, worst: .021, vol: .142,
     eq: .90, ob: .60, gold: 0, cash: 0, leverage: 1.5,
@@ -162,7 +157,7 @@ const PORT = {
     }
   },
   return_stack: {
-    label: '🔀 Return Stacking (UCITS)',
+    label: 'Return Stacking (UCITS)',
     desc: 'Strategia "return stacking" replicabile con ETF UCITS: combina un efficient core globale (90/60 azioni-bond) con un ETF managed futures / trend following. Esposizione effettiva ~45% azioni + 30% obbligazioni + 50% trend = 125% notional. Il trend following è un "vero diversificatore" (correlazione ~−0,05 con azioni) che storicamente genera "crisis alpha" nelle crisi prolungate (2002, 2008, 2022). Sharpe atteso superiore grazie alla decorrelazione. Costi più alti (TER più elevato) e complessità maggiore — adatto a investitori esperti. Versione semplificata e didattica del concetto di portable alpha.',
     best: .085, normal: .065, worst: .027, vol: .101,
     eq: .45, ob: .30, gold: 0, cash: 0, trend: .50, leverage: 1.25,
@@ -174,7 +169,7 @@ const PORT = {
     }
   },
   custom: {
-    label: '🔧 Custom',
+    label: 'Custom',
     desc: 'Portafoglio personalizzato. Scegli le asset class e le percentuali nel pannello sottostante.',
     best: null, normal: null, worst: null, vol: null,
     eq: null, ob: null, gold: null, cash: null,
@@ -196,37 +191,37 @@ const ASSET_CLASSES = {
   //        Banche Centrali, letteratura accademica)
   // ══════════════════════════════════════════════════════════════
   eq_sviluppati: {
-    label: 'Azioni Mercati Sviluppati', emoji: '🌍', cat: 'eq', isEq: true,
+    label: 'Azioni Mercati Sviluppati', emoji: '<i data-lucide="globe" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.067, vol: 0.158, inflBeta: 0.30, ter: 0.2, fxExp: 0.85,
     histCAGR: 0.102, histPeriod: '1970-2024', src: 'DMS Yearbook 2024',
     desc: 'Paniere di azioni di paesi sviluppati con composizione geografica ampia (America del Nord, Europa, Pacifico). CAGR storico 10.2%/a. Rendimento atteso forward-looking ~6.7%/a, più conservativo per effetto della mean-reversion delle valutazioni (CAPE elevati nel 2024) e coerente con la media pesata dei componenti (~65-70% USA + Europa + Pacifico).',
   },
   eq_usa: {
-    label: 'Azioni USA Large Cap', emoji: '🇺🇸', cat: 'eq', isEq: true,
+    label: 'Azioni USA Large Cap', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.063, vol: 0.155, inflBeta: 0.28, ter: 0.07, fxExp: 1.0,
     histCAGR: 0.105, histPeriod: '1970-2024', src: 'Dati storici mercato azionario USA',
     desc: 'Grandi capitalizzazioni americane. CAGR storico 10.5%/a. Valutazioni elevate al 2024 (CAPE ~30-32) comprimono il rendimento atteso a ~7%/a. Massima liquidità e profondità di mercato a livello globale.',
   },
   eq_europa: {
-    label: 'Azioni Europa', emoji: '🇪🇺', cat: 'eq', isEq: true,
+    label: 'Azioni Europa', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.07, vol: 0.170, inflBeta: 0.25, ter: 0.15, fxExp: 0.1,
     histCAGR: 0.095, histPeriod: '1970-2024', src: 'DMS Yearbook 2024',
     desc: 'Mercati azionari europei (Germania, Francia, UK, Svizzera, Olanda, Italia ecc.). CAGR storico ~9.5%/a. Valutazioni storicamente più convenienti rispetto agli USA (CAPE ~14-16 in media), ma crescita degli utili inferiore nel lungo periodo.',
   },
   eq_em: {
-    label: 'Azioni Mercati Emergenti', emoji: '🌏', cat: 'eq', isEq: true,
+    label: 'Azioni Mercati Emergenti', emoji: '<i data-lucide="globe" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.078, vol: 0.225, inflBeta: 0.35, ter: 0.2, fxExp: 1.0,
     histCAGR: 0.098, histPeriod: '1988-2024', src: 'DMS Yearbook 2024',
     desc: 'Cina, India, Brasile, Taiwan, Corea del Sud e altri mercati in sviluppo. CAGR dal 1988: ~9.8%/a. Alta volatilità (σ≈22%) e rischio politico/valutario. Premio di crescita economica parzialmente eroso da perdite da valuta e governance societaria più debole.',
   },
   eq_small_value: {
-    label: 'Azioni Small Cap Value (fattore)', emoji: '📐', cat: 'eq', isEq: true,
+    label: 'Azioni Small Cap Value (fattore)', emoji: '<i data-lucide="ruler" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.085, vol: 0.205, inflBeta: 0.25, ter: 0.3, fxExp: 1.0,
     histCAGR: 0.135, histPeriod: '1970-2024', src: 'Fama-French Data Library',
     desc: 'Piccole capitalizzazioni a bassa valutazione (P/B basso). Premio documentato da Fama & French (1992, 1993). CAGR US Small Cap Value ~13.5%/a (1970-2024) — fortemente influenzato dagli anni \'70-\'80. Forward-looking più moderato (~8.5%/a) per mean-reversion dei premi di rischio.',
   },
   reits: {
-    label: 'Immobiliare Quotato (REITs)', emoji: '🏢', cat: 'eq', isEq: true,
+    label: 'Immobiliare Quotato (REITs)', emoji: '<i data-lucide="building" class="lucide-sm"></i>', cat: 'eq', isEq: true,
     mu: 0.065, vol: 0.175, inflBeta: 0.20, ter: 0.4, fxExp: 0.8,
     histCAGR: 0.112, histPeriod: '1972-2024', src: 'Dati storici mercato immobiliare quotato',
     desc: 'Fondi immobiliari quotati su borsa. CAGR 1972-2024: ~11.2%/a. Obbligo di distribuzione ≥90% degli utili → elevata cedola. Copertura parziale dell\'inflazione tramite canoni di affitto indicizzati. Correlazione con azioni ~0.60, parzialmente decorrelante.',
@@ -250,49 +245,49 @@ const ASSET_CLASSES = {
   // mu = forward-looking conservativo (premi storici tendono a
   //      comprimersi post-pubblicazione e per affollamento).
   fat_valore: {
-    label: 'Fattore Valore (Value)', emoji: '💎', cat: 'fat', isEq: true,
+    label: 'Fattore Valore (Value)', emoji: '<i data-lucide="gem" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.072, vol: 0.175, inflBeta: 0.35, ter: 0.3, fxExp: 0.85,
     histCAGR: 0.105, histPeriod: '1970-2024', src: 'Fama & French (1992, 1993)',
     desc: 'Azioni con basse valutazioni (P/B, P/E, EV/EBITDA bassi). CAGR storico long-only ~10.5%/a. Ha sottoperformato il mercato tra 2007 e 2020, recuperando dal 2021. Forward-looking ~7.2%/a. Alta correlazione con azioni cicliche e finanziarie — soffre in recessioni profonde. Correlazione con Momentum ρ≈−0.15: ottima complementarità.',
   },
   fat_momentum: {
-    label: 'Fattore Momentum (Prezzo)', emoji: '🚀', cat: 'fat', isEq: true,
+    label: 'Fattore Momentum (Prezzo)', emoji: '<i data-lucide="rocket" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.195, inflBeta: 0.05, ter: 0.3, fxExp: 0.85,
     histCAGR: 0.120, histPeriod: '1970-2024', src: 'Jegadeesh & Titman (1993), Carhart (1997)',
     desc: 'Strategia long sistematica sui vincitori degli ultimi 12-1 mesi. CAGR storico long-only ~12%/a (1970-2024). Rendimento elevato ma con crash risk: drawdown violenti nei mercati a U-turn (es. 2009: −60%). Forward-looking ~7.5%/a. Correlazione con Valore ρ≈−0.15 — principale beneficio del multi-fattore.',
   },
   fat_qualita: {
-    label: 'Fattore Qualità / Redditività', emoji: '⭐', cat: 'fat', isEq: true,
+    label: 'Fattore Qualità / Redditività', emoji: '<i data-lucide="star" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.150, inflBeta: 0.18, ter: 0.3, fxExp: 0.85,
     histCAGR: 0.095, histPeriod: '1990-2024', src: 'Novy-Marx (2013), Fama & French (2015)',
     desc: 'Aziende con alta redditività operativa, bassa leva finanziaria e stabilità degli utili (RMW: Robust Minus Weak). CAGR storico long-only ~9.5%/a (1990-2024). Carattere difensivo: sovra-performa in crisi, sotto-performa nei rally euforici. Parte del modello accademico a 5 fattori. Forward-looking ~7.5%/a.',
   },
   fat_low_vol: {
-    label: 'Fattore Bassa Volatilità (Difensivo)', emoji: '📉', cat: 'fat', isEq: true,
+    label: 'Fattore Bassa Volatilità (Difensivo)', emoji: '<i data-lucide="trending-down" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.070, vol: 0.120, inflBeta: 0.12, ter: 0.3, fxExp: 0.85,
     histCAGR: 0.085, histPeriod: '1970-2024', src: 'Frazzini & Pedersen (2014)',
     desc: 'Azioni con volatilità storica e beta di mercato bassi (BAB: Betting Against Beta). Anomalia CAPM: il rendimento aggiustato per il rischio supera quello del mercato. CAGR storico ~8.5%/a con σ ~12% (1970-2024). Concentrato in settori difensivi: utilities, consumer staples, healthcare. Forward-looking ~7.0%/a. Ottimo abbinamento con Momentum.',
   },
   fat_size: {
-    label: 'Fattore Dimensione (Small Cap)', emoji: '🔬', cat: 'fat', isEq: true,
+    label: 'Fattore Dimensione (Small Cap)', emoji: '<i data-lucide="microscope" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.190, inflBeta: 0.20, ter: 0.25, fxExp: 0.85,
     histCAGR: 0.095, histPeriod: '1970-2024', src: 'Banz (1981), Fama-French Data Library',
     desc: 'Premio di dimensione (SMB: Small Minus Big) — le piccole capitalizzazioni tendono a sovra-performare le grandi nel lungo periodo. CAGR storico ~9.5%/a (1970-2024). Il premio è più robusto nel segmento value. Parzialmente compresso post-pubblicazione accademica. Forward-looking ~7.5%/a. Correlazione con mercato ~0.80.',
   },
   fat_investment: {
-    label: 'Fattore Investimento (CMA)', emoji: '🏗️', cat: 'fat', isEq: true,
+    label: 'Fattore Investimento (CMA)', emoji: '<i data-lucide="construction" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.072, vol: 0.130, inflBeta: 0.10, ter: 0.35, fxExp: 0.85,
     histCAGR: 0.080, histPeriod: '1990-2024', src: 'Fama & French (2015)',
     desc: 'Aziende con crescita degli attivi bassa (Conservative Minus Aggressive — CMA). Le imprese che investono meno producono rendimenti più alti nel lungo periodo. Parte del modello a 5 fattori (Fama-French 2015). CAGR storico ~8%/a (1990-2024). Carattere difensivo, alta correlazione con Qualità (ρ≈0.40). Forward-looking ~7.2%/a.',
   },
   fat_dividendi: {
-    label: 'Fattore Dividendi / Dividend Growth', emoji: '💰', cat: 'fat', isEq: true,
+    label: 'Fattore Dividendi / Dividend Growth', emoji: '<i data-lucide="wallet" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.072, vol: 0.145, inflBeta: 0.22, ter: 0.3, fxExp: 0.85,
     histCAGR: 0.092, histPeriod: '1970-2024', src: 'Literatura accademica sui dividendi',
     desc: 'Aziende con dividend yield elevato e/o storia di crescita dei dividendi (Dividend Aristocrats). CAGR storico ~9.2%/a (1970-2024). Sovrapposizione parziale con Qualità e Valore. Flusso cedolare elevato riduce la volatilità percepita. Settori tipici: utility, finanziari, consumer staples. Forward-looking ~7.2%/a.',
   },
   fat_multifat: {
-    label: 'Multi-Fattore (Val+Mom+Qual+LowVol+CMA)', emoji: '🎯', cat: 'fat', isEq: true,
+    label: 'Multi-Fattore (Val+Mom+Qual+LowVol+CMA)', emoji: '<i data-lucide="target" class="lucide-sm"></i>', cat: 'fat', isEq: true,
     mu: 0.074, vol: 0.138, inflBeta: 0.20, ter: 0.4, fxExp: 0.85,
     histCAGR: 0.100, histPeriod: '1990-2024', src: 'Letteratura accademica multi-fattore',
     desc: 'Combinazione sistematica di Valore, Momentum, Qualità, Bassa Volatilità e Investimento con pesi uguali. CAGR storico ~10%/a (1990-2024). La diversificazione tra fattori decorrelati (Value-Momentum ρ≈−0.15) riduce la volatilità complessiva (σ≈13.8%). Migliore profilo rischio/rendimento dei singoli fattori nel lungo periodo.',
@@ -306,25 +301,25 @@ const ASSET_CLASSES = {
   // I fattori carry e trend hanno correlazioni molto diverse
   // dai fattori azionari — trattati separatamente nella matrice.
   fat_carry_bond: {
-    label: 'Carry Obbligazionario', emoji: '📊', cat: 'carry',
+    label: 'Carry Obbligazionario', emoji: '<i data-lucide="bar-chart-3" class="lucide-sm"></i>', cat: 'carry',
     mu: 0.045, vol: 0.085, inflBeta: 0.05, ter: 0.5, fxExp: 0.0,
     histCAGR: 0.062, histPeriod: '1990-2024', src: 'Koijen et al. (2018), letteratura carry',
     desc: 'Premio carry sul reddito fisso: posizione long su curve dei tassi ad alto carry e short su curve a basso carry tra paesi sviluppati. CAGR storico ~6.2%/a (1990-2024), σ ~8.5%. Bassa correlazione con azioni (ρ≈0.10) e con il trend following (ρ≈0.20). Soffre in crisi di risk-off globali. Forward-looking ~4.5%/a normalizzato.',
   },
   fat_carry_fx: {
-    label: 'Carry Valutario (FX Carry)', emoji: '💱', cat: 'carry',
+    label: 'Carry Valutario (FX Carry)', emoji: '<i data-lucide="arrow-left-right" class="lucide-sm"></i>', cat: 'carry',
     mu: 0.040, vol: 0.095, inflBeta: 0.08, ter: 0.5, fxExp: 0.0,
     histCAGR: 0.055, histPeriod: '1990-2024', src: 'Lustig, Roussanov & Verdelhan (2011)',
     desc: 'Premio carry valutario: long valute ad alto tasso di interesse, short valute a basso tasso. CAGR storico ~5.5%/a (1990-2024), σ ~9.5%. Storicamente uno dei premi più stabili nei mercati valutari. Soffre violentemente nei crash globali (es. 2008: −30%). Correlazione con azioni ρ≈0.15, con carry obbligazionario ρ≈0.35. Forward-looking ~4.0%/a.',
   },
   fat_carry_comm: {
-    label: 'Carry Commodities (Curve/Roll)', emoji: '🛢️', cat: 'carry',
+    label: 'Carry Commodities (Curve/Roll)', emoji: '<i data-lucide="fuel" class="lucide-sm"></i>', cat: 'carry',
     mu: 0.042, vol: 0.105, inflBeta: 0.45, ter: 0.55, fxExp: 0.0,
     histCAGR: 0.058, histPeriod: '1990-2024', src: 'Koijen et al. (2018); Quantpedia term-structure',
     desc: 'Premio carry sulle materie prime: cattura il roll yield della curva dei futures (long contratti deferred a forte backwardation, short front-month in contango). A differenza delle commodity long-only, tende a reggere o guadagnare nei risk-off azionari (decorrelazione strutturale). CAGR storico ~5.8%/a (1990-2024), σ ~10.5%, alta sensibilità all\'inflazione (inflBeta 0.45). Correlazione molto bassa con azioni (ρ≈0.10) e con le altre carry — è un diversificatore reale. ETF di riferimento: CRRY (leva), UEQC, CCRV. Forward-looking ~4.2%/a. Nota: il rendimento speculativo varia con la volatilità azionaria globale (alto quando la vol scende). Forward-looking normalizzato ~4.2%/a.',
   },
   fat_trend: {
-    label: 'Trend Following / Managed Futures', emoji: '🌊', cat: 'trend',
+    label: 'Trend Following / Managed Futures', emoji: '<i data-lucide="waves" class="lucide-sm"></i>', cat: 'trend',
     mu: 0.055, vol: 0.150, inflBeta: 0.30, ter: 0.8, fxExp: 0.0,
     histCAGR: 0.082, histPeriod: '1990-2024', src: 'Moskowitz, Ooi & Pedersen (2012)',
     desc: 'Momentum time-series sistematico su più asset class (azioni, bond, valute, commodity). CAGR storico ~8.2%/a (1990-2024), σ ~15%. Caratteristica chiave: correlazione con azioni ρ≈−0.05 — vero diversificatore. "Crisis alpha": tende a performare bene in crisi sostenute (2002, 2008, 2022). In periodi inflattivi va tipicamente long commodity e gold. Forward-looking ~5.5%/a al netto dei costi.',
@@ -338,25 +333,25 @@ const ASSET_CLASSES = {
   // Fonte: dati storici Federal Reserve (FRED) e mercato USA
   // ══════════════════════════════════════════════════════════════
   ob_usa_st: {
-    label: 'Gov. USA Breve (1-3a)', emoji: '🇺🇸', cat: 'ob_usa',
+    label: 'Gov. USA Breve (1-3a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_usa',
     mu: 0.043, vol: 0.027, inflBeta: 0.10, ter: 0.07, fxExp: 1.0,
     histCAGR: 0.048, histPeriod: '1970-2024', src: 'Federal Reserve (FRED)',
     desc: 'Titoli del Tesoro USA a scadenza 1-3 anni. Duration ~1.8. Volatilità storica ~2.7%. Rendimento legato al tasso di policy della Federal Reserve. Ottimo sostituto della liquidità in contesti di tassi elevati. Quasi nulla sensibilità ai tassi a lungo termine.',
   },
   ob_usa_it: {
-    label: 'Gov. USA Intermedio (3-7a)', emoji: '🇺🇸', cat: 'ob_usa',
+    label: 'Gov. USA Intermedio (3-7a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_usa',
     mu: 0.045, vol: 0.055, inflBeta: -0.15, ter: 0.07, fxExp: 1.0,
     histCAGR: 0.062, histPeriod: '1970-2024', src: 'Federal Reserve (FRED)',
     desc: 'Treasury USA 3-7 anni. Duration ~4.5. Volatilità ~5.5%. Punto di riferimento del mercato obbligazionario USA. Buona decorrelazione dall\'azionario in recessione (flight to quality). CAGR storico 6.2%/a gonfiato dal ciclo di calo dei tassi 1981-2021.',
   },
   ob_usa_lt: {
-    label: 'Gov. USA Lungo (7-10a)', emoji: '🇺🇸', cat: 'ob_usa',
+    label: 'Gov. USA Lungo (7-10a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_usa',
     mu: 0.047, vol: 0.085, inflBeta: -0.30, ter: 0.1, fxExp: 1.0,
     histCAGR: 0.068, histPeriod: '1970-2024', src: 'Federal Reserve (FRED)',
     desc: 'Treasury USA 7-10 anni. Duration ~7-8. Forte apprezzamento in recessioni/deflazione. Soffre in regimi inflattivi (perdite reali del 30-40% negli anni \'70). Correlazione con azioni ~−0.15 in era post-2000.',
   },
   ob_usa_ult: {
-    label: 'Gov. USA Ultra-Lungo (20-30a)', emoji: '🇺🇸', cat: 'ob_usa',
+    label: 'Gov. USA Ultra-Lungo (20-30a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_usa',
     mu: 0.048, vol: 0.145, inflBeta: -0.45, ter: 0.1, fxExp: 1.0,
     histCAGR: 0.074, histPeriod: '1970-2024', src: 'Federal Reserve (FRED)',
     desc: 'Titoli del Tesoro USA 20-30 anni. Duration ~17-19. Volatilità ~14.5%/a — paragonabile alle azioni. Sensibilità massima ai tassi: −17% circa per ogni +1% di rialzo. Usato come deflation hedge (All Seasons 40%, Permanent Portfolio 25%). Anno 2022: −30%.',
@@ -368,19 +363,19 @@ const ASSET_CLASSES = {
   //        area euro (periodo post-introduzione euro: 1999-2024)
   // ══════════════════════════════════════════════════════════════
   ob_eu_st: {
-    label: 'Gov. Euro Breve (1-3a)', emoji: '🇪🇺', cat: 'ob_eu',
+    label: 'Gov. Euro Breve (1-3a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_eu',
     mu: 0.032, vol: 0.024, inflBeta: 0.05, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.035, histPeriod: '1999-2024', src: 'Banca Centrale Europea',
     desc: 'Titoli di stato area euro a 1-3 anni (emittenti investment grade: Germania, Francia, Italia, Spagna ecc.). Volatilità minima (~2.4%). Rendimento tornato positivo dopo la fase ZIRP. Rischio spread paese in fasi di stress (2010-2012, 2022).',
   },
   ob_eu_it: {
-    label: 'Gov. Euro Intermedio (3-7a)', emoji: '🇪🇺', cat: 'ob_eu',
+    label: 'Gov. Euro Intermedio (3-7a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_eu',
     mu: 0.033, vol: 0.055, inflBeta: -0.15, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.043, histPeriod: '1999-2024', src: 'Banca Centrale Europea',
     desc: 'Governativi area euro 3-7 anni. Duration ~4. Principale riferimento per portafogli obbligazionari europei. Include spread paese: differenziale BTP/Bund storicamente 100-200 bps in media, oltre 500 bps in crisi 2012. CAGR storico comprende il ciclo di QE della BCE (2015-2022).',
   },
   ob_eu_lt: {
-    label: 'Gov. Euro Lungo (7-10a)', emoji: '🇪🇺', cat: 'ob_eu',
+    label: 'Gov. Euro Lungo (7-10a)', emoji: '<i data-lucide="flag" class="lucide-sm"></i>', cat: 'ob_eu',
     mu: 0.035, vol: 0.090, inflBeta: -0.30, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.051, histPeriod: '1999-2024', src: 'Banca Centrale Europea',
     desc: 'Governativi area euro 7-10 anni. Duration ~7.5. Forte sensibilità ai tassi BCE. Decorrelazione dall\'azionario in recessione. Correlazione positiva con azioni in stagflazione (perdita doppia — raro ma storicamente osservato negli anni \'70 e nel 2022).',
@@ -392,19 +387,19 @@ const ASSET_CLASSES = {
   //       con copertura valutaria in EUR (hedged)
   // ══════════════════════════════════════════════════════════════
   ob_glob_gov: {
-    label: 'Gov. Globale Intermedio (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
+    label: 'Gov. Globale Intermedio (hedged EUR)', emoji: '<i data-lucide="globe" class="lucide-sm"></i>', cat: 'ob_glob',
     mu: 0.042, vol: 0.048, inflBeta: -0.12, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.056, histPeriod: '1990-2024', src: 'Indici governativi globali aggregati',
     desc: 'Paniere di titoli di stato dei principali paesi sviluppati (USA ~40%, Europa ~30%, Giappone ~15%, UK ~5%, altri) con duration ~6 anni e copertura valutaria in EUR. Diversifica il rischio di singola curva dei tassi. Rendimento mediano tra USA (~4.1%) ed Euro (~3.1%).',
   },
   ob_glob_agg: {
-    label: 'Aggregato Obbligazionario Globale (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
+    label: 'Aggregato Obbligazionario Globale (hedged EUR)', emoji: '<i data-lucide="globe" class="lucide-sm"></i>', cat: 'ob_glob',
     mu: 0.047, vol: 0.055, inflBeta: -0.08, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.060, histPeriod: '1990-2024', src: 'Indice aggregato obbligazionario globale',
     desc: 'Universo obbligazionario globale aggregato: titoli di stato (~50%), corporate investment grade (~35%), cartolarizzati ABS/MBS (~15%), con copertura valutaria in EUR. Duration ~6.5 anni. Il riferimento per portafogli multi-asset a livello globale.',
   },
   ob_infl: {
-    label: 'Obblig. Indicizzate Inflazione', emoji: '🛡️', cat: 'ob_glob',
+    label: 'Obblig. Indicizzate Inflazione', emoji: '<i data-lucide="shield" class="lucide-sm"></i>', cat: 'ob_glob',
     mu: 0.042, vol: 0.060, inflBeta: 0.80, ter: 0.15, fxExp: 0.5,
     histCAGR: 0.050, histPeriod: '1997-2024', src: 'Mercati obbligazioni indicizzate',
     desc: 'Titoli di stato indicizzati all\'inflazione (BTPi italiani, Bund indicizzati, OATi francesi, TIPS USA). Il capitale cresce con l\'indice dei prezzi: protezione diretta dall\'inflazione. Rendimento reale garantito se tenuti a scadenza (~1.5-2% reale nel 2024). Volatilità simile alla duration nominale equivalente (~7 anni).',
@@ -414,19 +409,19 @@ const ASSET_CLASSES = {
   // REAL ASSETS — ORO, COMMODITIES, LIQUIDITA
   // ══════════════════════════════════════════════════════════════
   gold: {
-    label: 'Oro (metallo fisico / ETC)', emoji: '🥇', cat: 'real', isGold: true,
+    label: 'Oro (metallo fisico / ETC)', emoji: '<i data-lucide="medal" class="lucide-sm"></i>', cat: 'real', isGold: true,
     mu: 0.038, vol: 0.150, inflBeta: 0.50, ter: 0.2, fxExp: 1.0,
     histCAGR: 0.078, histPeriod: '1970-2024', src: 'Prezzo spot oro (mercato internazionale)',
     desc: 'Prezzo spot oro in USD, convertito in EUR. CAGR 1970-2024: 7.8%/a — fortemente gonfiato dalla fine del gold standard 1971 e dal rialzo degli anni \'70-\'80. Forward-looking ~3.8%/a (inflazione + premio di scarsità). Nessun dividendo o cedola — rendimento da solo apprezzamento. Forte decorrelazione con azioni in crisi.',
   },
   commodities: {
-    label: 'Commodities Diversificate', emoji: '⚡', cat: 'real',
+    label: 'Commodities Diversificate', emoji: '<i data-lucide="zap" class="lucide-sm"></i>', cat: 'real',
     mu: 0.032, vol: 0.185, inflBeta: 0.65, ter: 0.3, fxExp: 1.0,
     histCAGR: 0.052, histPeriod: '1970-2024', src: 'Indici commodity diversificati (dati aggregati)',
     desc: 'Paniere diversificato di materie prime: energia ~55%, metalli industriali ~20%, agricoltura ~25%. CAGR storico ~5.2%/a influenzato dagli shock petroliferi degli anni \'70. Rendimento reale di lungo periodo vicino a zero per i costi di roll sui futures. Ottima copertura inflazione a breve termine (β≈0.65).',
   },
   cash: {
-    label: 'Liquidità / Mercato Monetario', emoji: '💵', cat: 'cash', isCash: true,
+    label: 'Liquidità / Mercato Monetario', emoji: '<i data-lucide="banknote" class="lucide-sm"></i>', cat: 'cash', isCash: true,
     mu: 0.025, vol: 0.020, inflBeta: 0.15, ter: 0.05, fxExp: 0.0,
     histCAGR: 0.048, histPeriod: '1970-2024', src: 'Dati storici tassi breve termine (Fed/BCE)',
     desc: 'BOT, T-Bills, fondi monetari, conti deposito. Rendimento = tasso di policy della banca centrale. Volatilità ~2% (include rischio di reinvestimento/variazione tassi: il rendimento atteso cambia ad ogni rinnovo). Rendimento reale spesso negativo in periodi inflattivi. CAGR storico 4.8%/a gonfiato dall\'era dei tassi alti anni \'80. Forward-looking normalizzato ~2.5%/a.',
@@ -644,11 +639,10 @@ const CORR_PAIR_STRESS = (cat1, cat2) => {
 const ECO_SCENARIOS = {
   normal_growth: {
     label: 'Crescita Normale',
-    emoji: '📈',
     desc: 'Economia in espansione moderata, inflazione sotto controllo (2-3%), tassi stabili. Simile agli anni 1990-2000 e 2012-2020. Il contesto migliore per portafogli bilanciati.',
-    color: '#1e8e3e',
-    bg: 'rgba(30,142,62,.08)',
-    border: 'rgba(30,142,62,.4)',
+    color: '#0e7a44',
+    bg: 'rgba(14,122,68,.08)',
+    border: 'rgba(14,122,68,.4)',
     // Moltiplicatori sui rendimenti base del portafoglio
     eqMult: 1.0, obMult: 1.0, goldMult: 0.7,
     inflMean: 2.0, inflSigma: 0.8,
@@ -657,11 +651,10 @@ const ECO_SCENARIOS = {
   },
   stagflation: {
     label: 'Stagflazione',
-    emoji: '🔥',
     desc: 'Alta inflazione + bassa crescita. Scenario anni \'70 (inflazione 7-12%). Le azioni perdono in termini reali, le obbligazioni nominali crollano, l\'oro e le materie prime performano. Devastante per 60/40, ottimo per Permanent Portfolio.',
-    color: '#e37400',
-    bg: 'rgba(227,116,0,.08)',
-    border: 'rgba(227,116,0,.4)',
+    color: '#595959',
+    bg: 'rgba(89,89,89,.08)',
+    border: 'rgba(89,89,89,.4)',
     eqMult: 0.6, obMult: 0.3, goldMult: 2.2,
     inflMean: 7.0, inflSigma: 2.0,
     volMult: 1.4, cashRet: 0.05,
@@ -669,11 +662,10 @@ const ECO_SCENARIOS = {
   },
   recession: {
     label: 'Recessione / Crisi',
-    emoji: '📉',
     desc: 'Contrazione economica severa (tipo 2008-2009 o 2001). Azioni -30/-50%, obbligazioni governative salgono (flight to quality), oro positivo. Inflazione bassa o negativa. Test per la tenuta dei portafogli.',
-    color: '#d93025',
-    bg: 'rgba(217,48,37,.08)',
-    border: 'rgba(217,48,37,.4)',
+    color: '#c92a2a',
+    bg: 'rgba(201,42,42,.08)',
+    border: 'rgba(201,42,42,.4)',
     eqMult: 0.3, obMult: 1.4, goldMult: 1.3,
     inflMean: 0.5, inflSigma: 1.0,
     volMult: 2.0, cashRet: 0.015,
@@ -681,9 +673,8 @@ const ECO_SCENARIOS = {
   },
   deflation: {
     label: 'Deflazione / Japanification',
-    emoji: '🧊',
     desc: 'Inflazione negativa, tassi zero o negativi, crescita stagnante. Scenario Giappone 1990-2020. Le obbligazioni sono le star, le azioni vanno laterali per decenni, l\'oro è inerte, la liquidità perde valore in termini reali.',
-    color: '#0097a7',
+    color: '#8a8a8a',
     bg: 'rgba(0,151,167,.08)',
     border: 'rgba(0,151,167,.4)',
     eqMult: 0.5, obMult: 1.2, goldMult: 0.5,
@@ -693,11 +684,10 @@ const ECO_SCENARIOS = {
   },
   bull_market: {
     label: 'Bull Market Prolungato',
-    emoji: '🚀',
     desc: 'Forte crescita azionaria sostenuta (tipo 1982-1999 o 2009-2021). Azioni +12-15%/a, obbligazioni stabili, oro piatto. Il sogno di ogni investitore azionario.',
-    color: '#9334e6',
-    bg: 'rgba(147,52,230,.08)',
-    border: 'rgba(147,52,230,.4)',
+    color: '#7a1224',
+    bg: 'rgba(89,89,89,.08)',
+    border: 'rgba(89,89,89,.4)',
     eqMult: 1.5, obMult: 0.9, goldMult: 0.6,
     inflMean: 2.5, inflSigma: 0.7,
     volMult: 0.8, cashRet: 0.03,
@@ -705,11 +695,10 @@ const ECO_SCENARIOS = {
   },
   high_rates: {
     label: 'Rialzo Tassi',
-    emoji: '📊',
     desc: 'Banche centrali alzano i tassi rapidamente (tipo 2022-2023). Le obbligazioni a lungo termine crollano, le azioni growth soffrono, le obbligazioni brevi e la liquidità rendono di più. Il contesto peggiore per il 60/40 tradizionale.',
-    color: '#00897b',
-    bg: 'rgba(0,137,123,.08)',
-    border: 'rgba(0,137,123,.4)',
+    color: '#4a4a4a',
+    bg: 'rgba(89,89,89,.08)',
+    border: 'rgba(89,89,89,.4)',
     eqMult: 0.75, obMult: 0.4, goldMult: 0.8,
     inflMean: 4.5, inflSigma: 1.5,
     volMult: 1.3, cashRet: 0.04,
@@ -754,14 +743,6 @@ let state = {
   fxVol: 0.085,          // volatilità storica EUR/USD ~8.5%/a (1999-2024)
   fxHedgeCost: 0.003,    // costo annuo della copertura valutaria ~0.3%
   capeAdj: true,         // se true: baseline + scostamento da CAPE/yield live (metodo delta coerente)
-  // Glide path tra due strategie complete (vedi getGlideSlots). sideA = strategia
-  // di partenza (età ageStart, tipicamente aggressiva), sideB = arrivo (ageEnd).
-  // k = esponente di curvatura (1=lineare, 2=convesso/de-risking accelerato).
-  glide: {
-    sideA: { type: 'preset', ref: 'ec_glob_9060' },
-    sideB: { type: 'preset', ref: 'golden_butterfly' },
-    ageStart: 30, ageEnd: 65, k: 2,
-  },
 };
 let stateB = { portfolio: 'eq50', ter: .20, pac: -1 };
 let decState = { portfolio: 'eq60', strategy: 'inflation', startPortfolio: 500000, withdrawal: 20000, years: 30, inflation: 2.0, ter: .20, ecoScenario: null, ecoTiming: 'early', seq: { on: false, severity: 'moderate', timing: 'early', mode: 'single' } };
@@ -784,158 +765,31 @@ function fmtFull(v) {
   return (v < 0 ? '−' : '') + '€' + Math.round(Math.abs(v)).toLocaleString('it-IT');
 }
 function fmtN(v) { return Math.round(v).toLocaleString('it-IT'); }
+
+// Rimuove i tag HTML (es. <i data-lucide="...">) dai valori destinati a export
+// non-DOM (XLSX, CSV, PDF, canvas), dove il markup apparirebbe come testo grezzo.
+function stripTags(v) {
+  if (v == null) return '';
+  return String(v).replace(/<[^>]*>/g, '').replace(/\s{2,}/g, ' ').trim();
+}
 function pct(v, dec = 1) { return (v * 100).toFixed(dec) + '%'; }
 
 function getLCWeight(age) { return Math.max(.20, Math.min(.80, .80 - Math.max(0, (age - 20)) / 50 * .60)); }
 
-// ══════════════════════════════════════════════════════════════
-// GLIDE PATH — transizione continua tra DUE strategie complete
-// ══════════════════════════════════════════════════════════════
-// Generalizza il lifecycle (che interpola solo la quota azionaria) a:
-// "interpola SIMULTANEAMENTE tutte le proprietà di due composizioni complete".
-// Idea architetturale: ogni strategia (preset O custom) si riduce a un array di
-// slot { ac, pct }. Il glide costruisce, per ogni età, slot interpolati
-// α·A + (1−α)·B e li passa al MOTORE ESISTENTE (calcCustomParams /
-// expandCustomSlots / getCrashWeights). Così quota azionaria, leva, finCost,
-// composizione, crash-beta, TER, fiscalità ed esposizione FX vengono interpolati
-// tutti insieme e in modo coerente, senza duplicare alcuna logica: i composite
-// a leva (es. ec_us_core) portano nativamente finCost+leva, che decadono in modo
-// proporzionale al ridursi del loro peso (de-levering gradempte verso la meta).
-
-// ── Tabella canonica preset → slot atomici ──────────────────────────────────
-// Fonte di verità condivisa fra il builder custom (resetCustomPreset) e il glide.
-// Ogni preset è espresso come slot di ASSET_CLASSES reali, calibrati per
-// riprodurre i pesi dichiarati nel PORT (eq/ob/gold/cash/fxExp). I preset a leva
-// usano gli ASSET_CLASSES compositi (ec_*_core), che portano finCost e notional.
-const PRESET_SLOTS = {
-  eq100:           [{ac:'eq_sviluppati',pct:100}],
-  eq80:            [{ac:'eq_sviluppati',pct:80},{ac:'ob_glob_agg',pct:20}],
-  eq60:            [{ac:'eq_sviluppati',pct:60},{ac:'ob_glob_agg',pct:40}],
-  eq50:            [{ac:'eq_sviluppati',pct:50},{ac:'ob_glob_agg',pct:50}],
-  eq40:            [{ac:'eq_sviluppati',pct:40},{ac:'ob_glob_agg',pct:60}],
-  eq20:            [{ac:'eq_sviluppati',pct:20},{ac:'ob_glob_agg',pct:80}],
-  ob100:           [{ac:'ob_glob_agg',pct:100}],
-  golden_butterfly:[{ac:'eq_usa',pct:20},{ac:'eq_small_value',pct:20},{ac:'gold',pct:20},{ac:'ob_usa_ult',pct:20},{ac:'ob_usa_st',pct:20}],
-  permanent:       [{ac:'eq_sviluppati',pct:25},{ac:'ob_usa_ult',pct:25},{ac:'gold',pct:25},{ac:'cash',pct:25}],
-  all_seasons:     [{ac:'eq_sviluppati',pct:30},{ac:'ob_usa_ult',pct:40},{ac:'ob_usa_it',pct:15},{ac:'gold',pct:7.5},{ac:'commodities',pct:7.5}],
-  larry:           [{ac:'eq_small_value',pct:15},{ac:'eq_europa',pct:7.5},{ac:'eq_em',pct:7.5},{ac:'ob_usa_it',pct:70}],
-  global_market:   [{ac:'eq_sviluppati',pct:55},{ac:'ob_glob_agg',pct:45}],
-  ec_us_9060:      [{ac:'ec_us_core',pct:100}],
-  ec_glob_9060:    [{ac:'ec_glob_core',pct:100}],
-  return_stack:    [{ac:'ec_glob_core',pct:50},{ac:'fat_trend',pct:50}],
-};
-
-// Riduce un "lato" del glide (preset O custom) a slot normalizzati.
-// side = { type:'preset', ref:'golden_butterfly' } | { type:'custom', slots:[...] }
-function strategyToSlots(side) {
-  if (!side) return [];
-  let raw;
-  if (side.type === 'custom') {
-    raw = side.slots || [];
-  } else {
-    raw = PRESET_SLOTS[side.ref] || [];
-  }
-  // Normalizza a somma 100 e fonde slot con stesso ac (robustezza)
-  const agg = {};
-  let tot = 0;
-  for (const s of raw) {
-    const pct = +s.pct || 0;
-    if (!s.ac || !ASSET_CLASSES[s.ac] || pct <= 0) continue;
-    agg[s.ac] = (agg[s.ac] || 0) + pct; tot += pct;
-  }
-  if (tot <= 0) return [];
-  return Object.entries(agg).map(([ac, pct]) => ({ ac, pct: pct / tot * 100 }));
-}
-
-// α(età): frazione del lato A (strategia di partenza) all'età data.
-// Forma parametrica con esponente di curvatura k:
-//   α = clamp((age − ageEnd)/(ageStart − ageEnd), 0, 1) ^ k
-// • α = 1 a ageStart (100% strategia A, tipicamente aggressiva)
-// • α = 0 a ageEnd   (100% strategia B, tipicamente conservativa)
-// k = 1  → glide path LINEARE (come getLCWeight)
-// k > 1  → CONVESSO: resta aggressivo a lungo, poi de-rischia più rapidamente
-//          vicino alla meta. È la forma coerente con il rischio di sequenza che
-//          il motore già modella (il capitale esposto è massimo, e il tempo di
-//          recupero minimo, proprio negli ultimi anni). Default k = 2.
-// k < 1  → CONCAVO: de-rischia presto (rising-equity glidepath di Pfau-Kitces
-//          se A e B sono invertiti). Tutta la letteratura è coperta da un param.
-function getGlideAlpha(age, ageStart, ageEnd, k) {
-  if (ageStart === ageEnd) return age <= ageStart ? 1 : 0;
-  const lo = Math.min(ageStart, ageEnd), hi = Math.max(ageStart, ageEnd);
-  let t = (age - ageEnd) / (ageStart - ageEnd); // 1 @ ageStart, 0 @ ageEnd
-  t = Math.max(0, Math.min(1, t));
-  const kk = (k == null || k <= 0) ? 1 : k;
-  return Math.pow(t, kk);
-}
-
-// Slot interpolati α·A + (1−α)·B all'età data. Unione delle asset class
-// presenti in A o B; peso = blend lineare dei due pesi (zero se assente).
-function getGlideSlots(age, glideCfg) {
-  const g = glideCfg || state.glide;
-  if (!g) return state.customPortfolio?.slots || [];
-  const a = getGlideAlpha(age, g.ageStart, g.ageEnd, g.k);
-  const slotsA = strategyToSlots(g.sideA);
-  const slotsB = strategyToSlots(g.sideB);
-  const wA = {}, wB = {};
-  for (const s of slotsA) wA[s.ac] = s.pct;
-  for (const s of slotsB) wB[s.ac] = s.pct;
-  const keys = new Set([...Object.keys(wA), ...Object.keys(wB)]);
-  const out = [];
-  for (const ac of keys) {
-    const pct = a * (wA[ac] || 0) + (1 - a) * (wB[ac] || 0);
-    if (pct > 1e-9) out.push({ ac, pct });
-  }
-  return out;
-}
-
-// Parametri del portafoglio glide all'età = quelli del custom sugli slot blendati.
-// Memoizzato per età (la composizione è deterministica dato glideCfg+age): MC e
-// backtest richiamano project() migliaia di volte. La cache si invalida quando
-// cambia la "firma" del glide (lati, ageStart/End, k) o gli interruttori FX.
-let _glideCache = { sig: null, byAge: {} };
-function _glideSig() {
-  const g = state.glide;
-  if (!g) return 'none';
-  // Fingerprint dei mu delle asset class ricalibrate da CAPE/live-data: senza
-  // questo, togglare CAPE-adj (che muta ASSET_CLASSES[k].mu) non invaliderebbe
-  // la cache del glide e i rendimenti resterebbero identici (bug). Include anche
-  // capeAdj esplicito come ulteriore segnale.
-  let acFp = '';
-  if (typeof ASSET_CLASSES !== 'undefined') {
-    const _k = ['eq_usa','eq_sviluppati','eq_europa','ob_glob_agg','ob_glob_gov','ob_usa_ult'];
-    for (const k of _k) { const ac = ASSET_CLASSES[k]; if (ac) acFp += (ac.mu != null ? ac.mu.toFixed(5) : 'x') + ','; }
-  }
-  return JSON.stringify({ a: g.sideA, b: g.sideB, s: g.ageStart, e: g.ageEnd, k: g.k,
-                          fh: state.fxHedge, fv: state.fxVol, fc: state.fxHedgeCost,
-                          ca: state.capeAdj !== false, ac: acFp });
-}
-function getGlideParams(age) {
-  const sig = _glideSig();
-  if (_glideCache.sig !== sig) _glideCache = { sig, byAge: {} };
-  const key = Math.round(age);
-  if (_glideCache.byAge[key]) return _glideCache.byAge[key];
-  const p = calcCustomParams(getGlideSlots(key));
-  _glideCache.byAge[key] = p;
-  return p;
-}
-
 function getEquityWeight(port, age) {
   if (port === 'lifecycle') return getLCWeight(age);
-  if (port === 'glide') return getGlideParams(age).eq;
   if (port === 'custom') return calcCustomParams().eq;
   const m = { ob100: 0, eq100: 1, eq80: .8, eq60: .6, eq50: .5, eq40: .4, eq20: .2, golden_butterfly: .4, permanent: .25, all_seasons: .30, larry: .30, global_market: .55, ec_us_9060: .90, ec_glob_9060: .90, return_stack: .45 };
   return m[port] ?? 0.6;
 }
 
-function getGoldWeight(port, age) {
-  if (port === 'glide') return getGlideParams(age).goldW;
+function getGoldWeight(port) {
   if (port === 'custom') return calcCustomParams().goldW;
   const m = { golden_butterfly: .2, permanent: .25, all_seasons: .15 };
   return m[port] ?? 0;
 }
 
-function getCashWeight(port, age) {
-  if (port === 'glide') return getGlideParams(age).cashW;
+function getCashWeight(port) {
   if (port === 'custom') return calcCustomParams().cashW;
   const m = { permanent: .25 };
   return m[port] ?? 0;
@@ -1000,16 +854,16 @@ function planIRR(data, targetIdx) {
 function getCrashWeights(port, age) {
   let eq, trendW = 0, carryW = 0, commodW = 0, goldW = 0, cashW = 0, commCarryW = 0;
   let obExplicitCustom;
-  if (port === 'custom' || port === 'glide') {
-    const cp = port === 'glide' ? getGlideParams(age) : calcCustomParams();
+  if (port === 'custom') {
+    const cp = calcCustomParams();
     eq = cp.eq; trendW = cp.trendW || 0; carryW = cp.carryW || 0;
     commodW = cp.commodW || 0; goldW = cp.goldW || 0; cashW = cp.cashW || 0;
     commCarryW = cp.commCarryW || 0;
     obExplicitCustom = cp.ob; // bond notional espanso (include la gamba a leva dei composite)
   } else {
     eq = getEquityWeight(port, age);
-    goldW = getGoldWeight(port, age);
-    cashW = getCashWeight(port, age);
+    goldW = getGoldWeight(port);
+    cashW = getCashWeight(port);
     // return_stack ha una quota trend (managed futures) esplicita
     trendW = PORT[port]?.trend || 0;
   }
@@ -1017,20 +871,15 @@ function getCrashWeights(port, age) {
   // stacking) usa il peso obbligazionario ESPLICITO (es. 0.60 notional), non il
   // residuo 1−eq che collasserebbe la leva. La somma può superare 1: corretto,
   // il crash agisce sulle esposizioni notional.
-  const obExplicit = (port === 'custom' || port === 'glide') ? obExplicitCustom : PORT[port]?.ob;
+  const obExplicit = (port !== 'custom') ? PORT[port]?.ob : obExplicitCustom;
   const defensive = (obExplicit ?? Math.max(0, 1 - eq - trendW - carryW - commodW - commCarryW - goldW - cashW)) + goldW + cashW;
   return { eq, trendW, carryW, commodW, commCarryW, defensive };
 }
 
 // ── Calcola parametri blended del portafoglio custom ──────────
-// slotsOverride (opzionale): array di slot { ac, pct } da usare al posto di
-// state.customPortfolio.slots. Serve al glide path, che costruisce slot
-// interpolati per età senza toccare lo stato. Se omesso → comportamento
-// identico a prima (legge lo stato), quindi tutte le chiamate esistenti
-// restano invariate.
-function calcCustomParams(slotsOverride) {
+function calcCustomParams() {
   // ── 1. Filtra slot validi e normalizza i pesi ─────────────────
-  const { slots, total, finCostTotal } = expandCustomSlots(slotsOverride ?? state.customPortfolio?.slots);
+  const { slots, total, finCostTotal } = expandCustomSlots(state.customPortfolio?.slots);
 
   // ── 2. Rendimento atteso ponderato e beta inflazione ──────────
   let mu = 0, inflBeta = 0, eqW = 0, obW = 0, goldW = 0, cashW = 0, terW = 0, fxExpW = 0, otherFullW = 0;
@@ -1075,7 +924,7 @@ function calcCustomParams(slotsOverride) {
   // σ²_p = Σᵢ Σⱼ wᵢ wⱼ σᵢ σⱼ ρᵢⱼ
   // Calcoliamo DUE versioni:
   //   sigma       = volatilità in regime normale (correlaz. storiche medie)
-  //   sigmaStress = volatilità in regime di crisi (correlaz. ↑ verso 1)
+  //   sigmaStress = volatilità in regime di crisi (correlaz. <i data-lucide="arrow-up" class="lucide-sm"></i> verso 1)
   // Quest'ultima dà una stima realistica della tail risk: in crisi
   // la diversificazione si riduce drasticamente.
   let variance = 0, varianceStress = 0;
@@ -1123,7 +972,7 @@ function calcCustomParams(slotsOverride) {
   const worstFx = Math.max(muNet - 0.38 * sigmaFx, -0.08);
 
   return {
-    label: '🔧 Custom',
+    label: 'Custom',
     desc:  'Portafoglio personalizzato.',
     normal: muNet, best: bestFx, worst: worstFx,
     vol:  sigmaFx,
@@ -1174,8 +1023,6 @@ function getRate(key, scenario, year, startAge) {
 
   if (key === 'custom') { const cp = calcCustomParams(); return cp[scenario] ?? cp.normal; }
 
-  if (key === 'glide') { const cp = getGlideParams(startAge + year); return cp[scenario] ?? cp.normal; }
-
   const p = PORT[key];
   if (!p) return 0.055;
 
@@ -1200,9 +1047,7 @@ function getRate(key, scenario, year, startAge) {
 // e si aggiunge il delta. In regime normale delta=0 quindi identico a getRate().
 function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const ecoSel = ECO_SCENARIOS[ecoKey];
-  const p = (portKey === 'custom') ? calcCustomParams()
-          : (portKey === 'glide') ? getGlideParams(startAge + year)
-          : PORT[portKey];
+  const p = portKey === 'custom' ? calcCustomParams() : PORT[portKey];
   if (!p || !ecoSel) return 0.05;
   // Rispetta la finestra temporale (early/mid/late) se fornita, altrimenti usa la durata
   const inRegime = ecoWin
@@ -1211,7 +1056,7 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const eco = inRegime ? ecoSel : NORMAL_ECO;
 
   // FX cost coerente con getRate()
-  const fxExpPort = (portKey === 'custom' || portKey === 'glide')
+  const fxExpPort = portKey === 'custom'
     ? (p.fxExposure ?? p.fxExp ?? 0)
     : (PORT[portKey]?.fxExp ?? 0);
   const fxCostEco = (!!state.fxHedge && fxExpPort > 0) ? fxExpPort * state.fxHedgeCost : 0;
@@ -1230,20 +1075,18 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
 
   // Portafogli predefiniti e custom
   // muNormal e la fonte di verita: coincide con getRate() in regime normale.
-  const muNormal = (portKey === 'custom' || portKey === 'glide')
+  const muNormal = portKey === 'custom'
     ? (p.normal ?? p.normalR ?? 0.055)
     : (PORT[portKey]?.normal ?? 0.055);
 
   // Pesi nominali del portafoglio (possono sommare >1 per portafogli a leva)
   const eqW   = Math.max(0, p.eq   ?? getEquityWeight(portKey, startAge + year));
-  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey, startAge + year));
-  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey, startAge + year));
+  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey));
+  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey));
   const obW   = Math.max(0, p.ob   ?? Math.max(0, 1 - eqW - goldW - cashW));
   // Trend following (return stacking): diversificatore. Reagisce ai regimi in
   // modo simile all'oro (crisis alpha nelle crisi prolungate); usa goldMult.
-  // Per custom/glide il peso trend è p.trendW (sottocategoria crash); per i
-  // preset a trend esplicito (return_stack) è p.trend.
-  const trendW = Math.max(0, p.trend ?? p.trendW ?? 0);
+  const trendW = Math.max(0, p.trend ?? 0);
   // Normalizza i pesi a 1 per calcolare i contributi relativi al delta di regime.
   // Per portafogli a leva (wSum > 1) questo rispecchia la sensibilita relativa
   // di ciascuna asset class al ciclo economico, senza amplificare il delta.
@@ -1278,7 +1121,6 @@ function getPortfolioVol(portKey, age) {
     return _addFxVol(baseVol, eq * 0.85);
   }
   if (portKey === 'custom') return calcCustomParams().vol; // già include FX vol
-  if (portKey === 'glide')  return getGlideParams(age).vol; // già include FX vol
   const p = PORT[portKey];
   return _addFxVol(p?.vol ?? 0.10, p?.fxExp ?? 0);
 }
@@ -1319,8 +1161,8 @@ function hasAnyActivePac() {
 function blendedTaxRate(age) {
   // Clamp equity a [0,1] per il calcolo dell'aliquota blended
   // (la leva implicita nei portafogli efficient core non aumenta l'aliquota fiscale)
-  if (state.portfolio === 'custom' || state.portfolio === 'glide') {
-    const cp = state.portfolio === 'glide' ? getGlideParams(age) : calcCustomParams();
+  if (state.portfolio === 'custom') {
+    const cp = calcCustomParams();
     const eqW    = Math.max(0, Math.min(1, cp.eq   ?? 0));
     const obW    = Math.max(0, cp.ob    ?? 0);
     const goldW  = Math.max(0, cp.goldW ?? 0);
@@ -1538,11 +1380,11 @@ function project(scenario, withSeq, terOverride = null, portOverride = null) {
     const aRN = aRG > 0 ? aRG * (1 - txRate) : aRG;
     const evts = [];
     const pAP = y === 1 ? state.pac * 12 : getPacForYear(y - 1) * 12;
-    if (annPac !== pAP) { if (annPac === 0) evts.push('⏸ PAC sospeso'); else if (annPac < pAP) evts.push(`↓ PAC: €${fmtN(annPac / 12)}/m`); else evts.push(`↑ PAC: €${fmtN(annPac / 12)}/m`); }
-    if (crashInfo && withSeq && seq.on) evts.push(crashInfo.rate < 0 ? `⚡ Crash#${crashYears.indexOf(y)+1} (${(crashInfo.rate * 100).toFixed(1)}%)` : `🛡️ FtQ (+${(crashInfo.rate * 100).toFixed(1)}%)`);
-    else if (isRebound) evts.push('📈 Rally');
-    if (pic > 0) evts.push('▲ PIC ' + fmt(pic));
-    if (exp > 0) evts.push('▼ ' + fmt(exp));
+    if (annPac !== pAP) { if (annPac === 0) evts.push('<i data-lucide="pause" class="lucide-sm"></i> PAC sospeso'); else if (annPac < pAP) evts.push(`↓ PAC: €${fmtN(annPac / 12)}/m`); else evts.push(`<i data-lucide="arrow-up" class="lucide-sm"></i> PAC: €${fmtN(annPac / 12)}/m`); }
+    if (crashInfo && withSeq && seq.on) evts.push(crashInfo.rate < 0 ? `<i data-lucide="zap" class="lucide-sm"></i> Crash#${crashYears.indexOf(y)+1} (${(crashInfo.rate * 100).toFixed(1)}%)` : `<i data-lucide="shield" class="lucide-sm"></i> FtQ (+${(crashInfo.rate * 100).toFixed(1)}%)`);
+    else if (isRebound) evts.push('<i data-lucide="trending-up" class="lucide-sm"></i> Rally');
+    if (pic > 0) evts.push('<i data-lucide="arrow-up-circle" class="lucide-sm"></i> PIC ' + fmt(pic));
+    if (exp > 0) evts.push('<i data-lucide="arrow-down-circle" class="lucide-sm"></i> ' + fmt(exp));
     data.push({ year: y, age: age + y, value: Math.round(w2), invested: Math.round(inv), returns: Math.round(w2 - inv), annRetNet: Math.round(aRN), annPac, event: evts.join(' · '), isCrash: !!crashInfo, isRebound });
   }
   return data;
@@ -1677,7 +1519,7 @@ function runMontecarlo() {
         // Gaussiano log-normale corretto: per ottenere CAGR medio = μ_geometrico
         // occorre campionare dalla media ARITMETICA = μ + σ²/2 (correzione di Itō).
         // Senza correzione: E[CAGR] = μ − σ²/2, che abbassa il P50 sotto la linea Base.
-        // Con correzione: E[CAGR] = (μ + σ²/2) − σ²/2 = μ → P50 ≈ linea Base. ✅
+        // Con correzione: E[CAGR] = (μ + σ²/2) − σ²/2 = μ → P50 ≈ linea Base. <i data-lucide="check" class="lucide-sm"></i>
         const mu  = getRate(portfolio, 'normal', y, age);
         // Se dynCorr è attivo, usa volatilità stress in periodi vicini a crash
         const nearCrash = crashYearsList.some(cy => Math.abs(y - cy) <= 2);
@@ -1753,11 +1595,11 @@ function buildChart(best, normal, worst, seqNorm, ages, opt, crashAge, crossAge,
     // ds indices after base lines:
     // b+0 = P10, b+1 = P25, b+2 = P50mc, b+3 = P75, b+4 = P90
     const b = baseDsCount;
-    fanBands.push({ label:'P10',  data:mcFan.p10, borderColor:'rgba(26,115,232,.15)', borderWidth:1, pointRadius:0, fill:false, tension:.35 });
-    fanBands.push({ label:'P25',  data:mcFan.p25, borderColor:'rgba(26,115,232,.25)', borderWidth:1, pointRadius:0, fill:{target:b,   above:'rgba(26,115,232,.07)', below:'transparent'}, tension:.35 });
-    fanBands.push({ label:'P50mc',data:mcFan.p50, borderColor:'rgba(26,115,232,.45)', borderWidth:2, borderDash:[4,3], pointRadius:0, fill:{target:b+1, above:'rgba(26,115,232,.10)', below:'transparent'}, tension:.35 });
-    fanBands.push({ label:'P75',  data:mcFan.p75, borderColor:'rgba(26,115,232,.25)', borderWidth:1, pointRadius:0, fill:{target:b+2, above:'rgba(26,115,232,.10)', below:'transparent'}, tension:.35 });
-    fanBands.push({ label:'P90',  data:mcFan.p90, borderColor:'rgba(26,115,232,.15)', borderWidth:1, pointRadius:0, fill:{target:b+3, above:'rgba(26,115,232,.06)', below:'transparent'}, tension:.35 });
+    fanBands.push({ label:'P10',  data:mcFan.p10, borderColor:'rgba(158,27,50,.15)', borderWidth:1, pointRadius:0, fill:false, tension:.35 });
+    fanBands.push({ label:'P25',  data:mcFan.p25, borderColor:'rgba(158,27,50,.25)', borderWidth:1, pointRadius:0, fill:{target:b,   above:'rgba(158,27,50,.07)', below:'transparent'}, tension:.35 });
+    fanBands.push({ label:'P50mc',data:mcFan.p50, borderColor:'rgba(158,27,50,.45)', borderWidth:2, borderDash:[4,3], pointRadius:0, fill:{target:b+1, above:'rgba(158,27,50,.10)', below:'transparent'}, tension:.35 });
+    fanBands.push({ label:'P75',  data:mcFan.p75, borderColor:'rgba(158,27,50,.25)', borderWidth:1, pointRadius:0, fill:{target:b+2, above:'rgba(158,27,50,.10)', below:'transparent'}, tension:.35 });
+    fanBands.push({ label:'P90',  data:mcFan.p90, borderColor:'rgba(158,27,50,.15)', borderWidth:1, pointRadius:0, fill:{target:b+3, above:'rgba(158,27,50,.06)', below:'transparent'}, tension:.35 });
   }
 
   // Curva "Reale" = Base deflazionata per HICP live (o inflBottom se non disponibile)
@@ -1771,14 +1613,14 @@ function buildChart(best, normal, worst, seqNorm, ages, opt, crashAge, crossAge,
 
   const ds = [
     { label:'Ott.', data:best, borderColor:'#36d490', borderWidth:2, pointRadius:0, fill:false, tension:.35 },
-    { label:'Base', data:normal, borderColor:'#1a73e8', borderWidth:3, pointRadius:0, fill:false, tension:.35 },
-    { label:'Pess.', data:worst, borderColor:'#e37400', borderWidth:2, pointRadius:0, fill:false, tension:.35 },
-    ...(seqNorm ? [{ label:'Seq.', data:seqNorm, borderColor:'#9334e6', borderWidth:2.2, borderDash:[7,4], pointRadius:0, fill:false, tension:.35 }] : []),
+    { label:'Base', data:normal, borderColor:'#9e1b32', borderWidth:3, pointRadius:0, fill:false, tension:.35 },
+    { label:'Pess.', data:worst, borderColor:'#595959', borderWidth:2, pointRadius:0, fill:false, tension:.35 },
+    ...(seqNorm ? [{ label:'Seq.', data:seqNorm, borderColor:'#3b3bd6', borderWidth:2.4, borderDash:[8,4], pointRadius:0, fill:false, tension:.35 }] : []),
     ...fanBands,
     { label:`Reale (${inflSource})`, data:realBase, borderColor:'rgba(0,0,0,.28)', borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false, tension:.35 },
     { label:'PIC', data:ptPic, borderColor:'transparent', backgroundColor:'#36d490', pointRadius:6, showLine:false },
-    { label:'Exp', data:ptExp, borderColor:'transparent', backgroundColor:'#d93025', pointRadius:6, showLine:false },
-    { label:'PacChg', data:ptPac, borderColor:'transparent', backgroundColor:'rgba(26,115,232,.9)', pointRadius:7, pointStyle:'rectRot', showLine:false },
+    { label:'Exp', data:ptExp, borderColor:'transparent', backgroundColor:'#c92a2a', pointRadius:6, showLine:false },
+    { label:'PacChg', data:ptPac, borderColor:'transparent', backgroundColor:'rgba(158,27,50,.9)', pointRadius:7, pointStyle:'rectRot', showLine:false },
   ];
 
   const gC = 'rgba(0,0,0,.05)', tC = 'rgba(0,0,0,.45)';
@@ -1795,8 +1637,8 @@ function buildChart(best, normal, worst, seqNorm, ages, opt, crashAge, crossAge,
             title: c => 'Età ' + c[0].label,
             label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw),
           },
-          backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1,
-          titleColor: '#202124', bodyColor: '#5f6368', padding: 10,
+          backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1,
+          titleColor: '#212121', bodyColor: '#595959', padding: 10,
           titleFont: { family: 'DM Mono', size: 13, weight: 'bold' },
           bodyFont: { family: 'DM Mono', size: 12 },
         }
@@ -1814,22 +1656,22 @@ function buildChart(best, normal, worst, seqNorm, ages, opt, crashAge, crossAge,
           ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.moveTo(x.left, yp); ctx.lineTo(x.right, yp); ctx.stroke();
           ctx.setLineDash([]); ctx.font = '10.5px DM Mono,monospace'; ctx.fillStyle = 'rgba(0,0,0,.35)';
-          ctx.fillText('💎 optionality ' + fmt(opt), x.left + 6, yp - 4); ctx.restore();
+          ctx.fillText('<i data-lucide="gem" class="lucide-sm"></i> optionality ' + fmt(opt), x.left + 6, yp - 4); ctx.restore();
         }
         if (crossAge !== null) {
           const xi = ages.indexOf(crossAge);
           if (xi >= 0) {
             const xp = x.getPixelForValue(crossAge);
-            ctx.save(); ctx.setLineDash([5, 3]); ctx.strokeStyle = 'rgba(147,52,230,.6)'; ctx.lineWidth = 1.5;
+            ctx.save(); ctx.setLineDash([5, 3]); ctx.strokeStyle = 'rgba(89,89,89,.6)'; ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.moveTo(xp, y.top); ctx.lineTo(xp, y.bottom); ctx.stroke();
-            ctx.setLineDash([]); ctx.font = '10px DM Mono,monospace'; ctx.fillStyle = 'rgba(147,52,230,.9)';
-            ctx.fillText('⬤ crossover', xp + 4, y.top + 14); ctx.restore();
+            ctx.setLineDash([]); ctx.font = '10px DM Mono,monospace'; ctx.fillStyle = 'rgba(158,27,50,.9)';
+            ctx.fillText('crossover', xp + 4, y.top + 14); ctx.restore();
           }
         }
         if (crashAge) {
           const xp = x.getPixelForValue(crashAge);
           if (xp) {
-            ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(147,52,230,.4)'; ctx.lineWidth = 1.5;
+            ctx.save(); ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(89,89,89,.4)'; ctx.lineWidth = 1.5;
             ctx.beginPath(); ctx.moveTo(xp, y.top); ctx.lineTo(xp, y.bottom); ctx.stroke();
             ctx.setLineDash([]); ctx.restore();
           }
@@ -1856,10 +1698,10 @@ function renderInflation(vN, vW, vBt, inv, years, dN) {
 
   // Scenari inflazione: bassa/centrale/alta + stocastici
   const inflScenarios = [
-    { l: 'Bassa inflazione', rate: Math.max(0, inflBase - inflSig * 2), c: '#1e8e3e', bg: '#e8f5e9' },
-    { l: 'Centrale (' + state.inflBottom.toFixed(1) + '%)', rate: inflBase, c: '#1a73e8', bg: '#e8f0fe' },
-    { l: 'Alta inflazione', rate: inflBase + inflSig * 2, c: '#e37400', bg: '#fff3e0' },
-    { l: 'Stocastica (σ=' + state.inflVol.toFixed(1) + '%)', rate: inflBase + inflSig, c: '#9334e6', bg: '#f3e8ff' },
+    { l: 'Bassa inflazione', rate: Math.max(0, inflBase - inflSig * 2), c: '#0e7a44', bg: '#e8f5e9' },
+    { l: 'Centrale (' + state.inflBottom.toFixed(1) + '%)', rate: inflBase, c: '#9e1b32', bg: 'var(--blue-dim)' },
+    { l: 'Alta inflazione', rate: inflBase + inflSig * 2, c: '#595959', bg: 'var(--bg-body)' },
+    { l: 'Stocastica (σ=' + state.inflVol.toFixed(1) + '%)', rate: inflBase + inflSig, c: '#7a1224', bg: '#f3e8ff' },
   ];
 
   document.getElementById('inflScenarios').innerHTML = inflScenarios.map(s => {
@@ -1870,9 +1712,9 @@ function renderInflation(vN, vW, vBt, inv, years, dN) {
       <div style="font-size:12px;color:var(--text3)">Inflaz.: <strong>${(s.rate * 100).toFixed(1)}%/a</strong></div>
       <div style="font-size:11px;color:var(--text3)">Fattore: ÷${df.toFixed(2)}</div>
       <div style="font-size:10px;color:var(--text3);margin:4px 0">Netto Nominale Base</div>
-      <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text2)">${fmt(nN)}</div>
+      <div class="tabular-nums" style="font-size:13px;font-weight:600;color:var(--text2)">${fmt(nN)}</div>
       <div style="font-size:10px;color:#bbb;margin:2px 0">→ in potere d'acquisto oggi</div>
-      <div style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${s.c}">${fmt(rN)}</div>
+      <div class="tabular-nums" style="font-size:20px;font-weight:700;color:${s.c}">${fmt(rN)}</div>
       <div style="font-size:10.5px;color:var(--text3);margin-top:4px">Erosione: <strong style="color:var(--red)">${fmt(nN - rN)}</strong></div>
     </div>`;
   }).join('');
@@ -1894,12 +1736,12 @@ function renderInflation(vN, vW, vBt, inv, years, dN) {
 
   document.getElementById('inflCorrTable').innerHTML = `
     <div style="background:#fff;border:1px solid #ffe0b2;border-radius:var(--radius-sm);padding:14px;margin-bottom:10px">
-      <div style="font-size:11px;font-weight:700;color:#e65100;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">
+      <div class="tabular-nums" style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px">
         Correlazione Asset–Inflazione · ${getPortLabel(state.portfolio)}
       </div>
       <div style="display:flex;align-items:center;gap:12px;padding:10px;background:#fff3e0;border-radius:var(--radius-sm);margin-bottom:10px">
-        <div style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace;color:${portInflBeta > 0.2 ? '#1e8e3e' : portInflBeta > 0 ? '#e37400' : '#d93025'}">${portInflBeta > 0 ? '+' : ''}${portInflBeta.toFixed(2)}</div>
-        <div><div style="font-size:12px;font-weight:700;color:#e65100">Beta Inflazione del Portafoglio</div><div style="font-size:11.5px;color:#795548">${betaDesc}</div></div>
+        <div class="tabular-nums" style="font-size:24px;font-weight:700;color:${portInflBeta > 0.2 ? 'var(--positive)' : portInflBeta > 0 ? 'var(--text-muted)' : 'var(--negative)'}">${portInflBeta > 0 ? '+' : ''}${portInflBeta.toFixed(2)}</div>
+        <div><div style="font-size:12px;font-weight:700;color:var(--text-muted)">Beta Inflazione del Portafoglio</div><div style="font-size:11.5px;color:#795548">${betaDesc}</div></div>
       </div>
       ${assets.map(a => `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #ffe0b2;gap:10px">
         <div style="font-weight:600;color:${a.color};min-width:130px;font-size:12.5px">${a.name}</div>
@@ -1920,10 +1762,10 @@ function renderInflation(vN, vW, vBt, inv, years, dN) {
   const df = dF_base;
   document.getElementById('inflDetails').innerHTML = `
     <div style="background:#fff;border:1px solid #ffe0b2;border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
-      <div style="font-size:11px;color:#e65100;font-weight:700;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:10px">Rendita Sostenibile in Potere d'Acquisto Reale</div>
-      ${[{ r: .03, l: '3%', c: '#1a73e8' }, { r: .035, l: '3.5%', c: '#1e8e3e' }, { r: .04, l: '4%', c: '#1e8e3e' }].map(s => {
+      <div class="tabular-nums" style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;margin-bottom:10px">Rendita Sostenibile in Potere d'Acquisto Reale</div>
+      ${[{ r: .03, l: '3%', c: '#9e1b32' }, { r: .035, l: '3.5%', c: '#595959' }, { r: .04, l: '4%', c: '#0e7a44' }].map(s => {
     const gA = vN * s.r, nA = gA * (1 - eT), nR = nA / df;
-    return `<div class="infl-swr-row"><span style="font-weight:600;color:#e65100;width:40px">SWR ${s.l}</span><span style="color:#795548">Net nom. <strong>${fmt(nA)}</strong>/a</span><span>→</span><span><strong style="color:${s.c};font-size:14px">${fmt(nR)}</strong>/a reali (${fmt(nR / 12)}/m)</span></div>`;
+    return `<div class="infl-swr-row"><span style="font-weight:600;color:var(--text-muted);width:40px">SWR ${s.l}</span><span style="color:#795548">Net nom. <strong>${fmt(nA)}</strong>/a</span><span>→</span><span><strong style="color:${s.c};font-size:14px">${fmt(nR)}</strong>/a reali (${fmt(nR / 12)}/m)</span></div>`;
   }).join('')}
       <div style="font-size:11px;color:#bbb;margin-top:8px">Scontato ÷${df.toFixed(2)} = potere d'acquisto in euro di oggi.</div>
     </div>`;
@@ -1965,7 +1807,7 @@ function render() {
     { l: `Pessimistico — età ${endAge}`, v: fmt(vW[years]), s: 'opt: ' + (oW || '>' + endAge), c: 'var(--orange)' },
     { l: `Base — età ${endAge}`, v: fmt(vN[years]), s: 'opt: ' + (oN || '>' + endAge), c: 'var(--blue)' },
     { l: `Ottimistico — età ${endAge}`, v: fmt(vB[years]), s: 'opt: ' + (oB || '>' + endAge), c: 'var(--green)' },
-    ...(dS ? [{ l: `+Seq.Risk — età ${endAge}`, v: fmt(vS[years]), s: (vS[years] > vN[years] ? '+' : '') + fmt(vS[years] - vN[years]), c: 'var(--purple)' }] : []),
+    ...(dS ? [{ l: `+Seq.Risk — età ${endAge}`, v: fmt(vS[years]), s: (vS[years] > vN[years] ? '+' : '') + fmt(vS[years] - vN[years]), c: 'var(--seq-risk)' }] : []),
     { l: 'Totale versato', v: fmt(dN[years].invested), s: pac > 0 ? fmt(pac * 12) + '/anno' : 'solo PIC', c: 'var(--text)' },
     { l: 'Plusvalenza Lorda Nom.', v: fmt(dN[years].returns), s: dN[years].invested > 0 ? '×' + (dN[years].value / dN[years].invested).toFixed(2) + ' molt.' : '', c: dN[years].returns >= 0 ? 'var(--green)' : 'var(--red)' },
   ];
@@ -1983,7 +1825,7 @@ function render() {
     lb.innerText = 'Nascondi'; lb.style.background = 'var(--bg)'; lb.style.color = 'var(--blue)'; ld.style.display = 'block';
     const lC = (t, g, n, col) => { const gain = Math.max(0, g - tI), tax = gain * txF; return `<div class="liq-card"><div class="liq-card-title">${t}</div><div class="liq-row"><span style="color:var(--text2)">Lordo Nominale</span><strong>${fmt(g)}</strong></div><div class="liq-row"><span style="color:var(--text2)">Capitale versato</span><span>${fmt(tI)}</span></div><div class="liq-row" style="color:var(--red)"><span>Tasse CG (${(txF * 100).toFixed(1)}%)</span><span>−${fmt(tax)}</span></div><div class="liq-row" style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:0"><strong style="color:${col}">Netto Nominale</strong><strong style="color:${col};font-size:15px">${fmt(n)}</strong></div></div>`; };
     ld.innerHTML = `<div class="grid-3" style="gap:14px">${lC('Pessimistico', vW[years], nP, 'var(--orange)')}${lC('Scenario Base', vN[years], nB, 'var(--blue)')}${lC('Ottimistico', vB[years], nO, 'var(--green)')}</div><div style="font-size:11.5px;color:var(--text3);margin-top:12px">Aliquota ponderata finale: <strong>${(txF * 100).toFixed(1)}%</strong> (solo sulla plusvalenza).</div>`;
-  } else { lb.innerText = '💰 Simula Vendita Totale (Netto)'; lb.style.background = 'var(--blue-dim)'; lb.style.color = 'var(--blue)'; ld.style.display = 'none'; }
+  } else { lb.innerHTML = '<i data-lucide="wallet" class="lucide-sm"></i> Simula Vendita Totale (Netto)'; lb.style.background = 'var(--blue-dim)'; lb.style.color = 'var(--blue)'; ld.style.display = 'none'; if (window.refreshIcons) window.refreshIcons(); }
 
   // Frazione media di plusvalenza sul valore finale (approx. per prelievi parziali proporzionali)
   const gainFrac = tI > 0 && vN[years] > tI ? Math.min(1, (vN[years] - tI) / vN[years]) : 0;
@@ -2032,7 +1874,7 @@ function render() {
     const rCls = d.returns > 0 ? 'pos' : d.returns < 0 ? 'neg' : 'neutral';
     const aC = rA > rPac ? 'pos' : rA > 0 ? 'neutral' : 'neg';
     const vsP = d.year > 0 ? fmt(rA - rPac) : '—', vsCls = d.year > 0 && (rA - rPac) >= 0 ? 'pos' : 'neg';
-    const pN = (d.year > 0 && rPac !== state.pac * 12) ? `<span style="font-size:10px;color:var(--blue);font-family:'DM Mono',monospace;background:var(--blue-dim);padding:1px 5px;border-radius:3px;margin-left:4px">${rPac === 0 ? '⏸' : fmt(rPac / 12) + '/m'}</span>` : '';
+    const pN = (d.year > 0 && rPac !== state.pac * 12) ? `<span class="tabular-nums" style="font-size:10px;color:var(--blue);background:var(--blue-dim);padding:1px 5px;border-radius:3px;margin-left:4px">${rPac === 0 ? '<i data-lucide="pause" class="lucide-sm"></i>' : fmt(rPac / 12) + '/m'}</span>` : '';
     return `<tr class="${rc.join(' ')}"><td><strong>${d.age}</strong></td><td>+${d.year}a${pN}</td><td>${fmt(d.invested)}</td><td class="${rCls}">${d.year > 0 ? fmt(d.returns) : '—'}</td><td><strong>${fmt(d.value)}</strong></td><td class="${aC}">${d.year > 0 ? fmt(rA) : '—'}</td><td class="${vsCls}">${vsP}</td><td style="font-size:11.5px;color:var(--text3);white-space:nowrap">${d.event || ''}</td></tr>`;
   }).join('');
 }
@@ -2052,17 +1894,18 @@ function renderEcoScenarios() {
     `<strong>€${fmtN(state.pac)}/m</strong> PAC · ` +
     `<strong>${state.years} anni</strong> · ` +
     `<strong>${pName}</strong>` +
-    (seqOn ? ` · <span style="color:var(--purple)">⚠ Sequence Risk attivo</span>` : '');
+    (seqOn ? ` · <span style="color:var(--seq-risk)"><i data-lucide="alert-triangle" class="lucide-sm"></i> Sequence Risk attivo</span>` : '');
 
   // Build scenario cards
   document.getElementById('ecoScenarioGrid').innerHTML = Object.entries(ECO_SCENARIOS).map(([k, s]) => `
     <div class="eco-card ${state.activeEcoScenario === k ? 'active' : ''}" 
          style="background:${s.bg};border-color:${state.activeEcoScenario === k ? s.color : 'transparent'}"
          onclick="selectEcoScenario('${k}')">
-      <div class="eco-card-title" style="color:${s.color}">${s.emoji} ${s.label}</div>
+      <div class="eco-card-title" style="color:${s.color}">${s.label}</div>
       <div class="eco-card-desc">${s.desc.substring(0, 80)}…</div>
-      <div style="margin-top:6px;font-size:10.5px;font-family:'DM Mono',monospace;color:${s.color};font-weight:600">⏱ ${s.duration >= 99 ? 'baseline' : '~' + s.duration + ' anni'}</div>
+      <div class="tabular-nums" style="margin-top:6px;font-size:10.5px;color:${s.color};font-weight:600"><i data-lucide="timer" class="lucide-sm"></i> ${s.duration >= 99 ? 'baseline' : '~' + s.duration + ' anni'}</div>
     </div>`).join('');
+    if (window.refreshIcons) window.refreshIcons();
 
   const eco = ECO_SCENARIOS[state.activeEcoScenario];
   // Coerenza con il Simulatore: rispetta il toggle Sequence Risk per la baseline
@@ -2076,16 +1919,15 @@ function renderEcoScenarios() {
   document.getElementById('ecoSelectedDesc').style.display = 'block';
   const dur = ECO_SCENARIOS[state.activeEcoScenario].duration ?? 99;
   const win = getEcoWindow(state.activeEcoScenario, state.years, state.ecoTiming);
-  const timingLabel = { early: '🌅 Inizio', mid: '🌤 Metà', late: '🌆 Fine' }[state.ecoTiming] || '';
+  const timingLabel = { early: 'Inizio', mid: 'Metà', late: 'Fine' }[state.ecoTiming] || '';
   const winLabel = dur >= 99 ? 'permanente' : `anni ${win.s}–${win.e} su ${state.years}`;
   const durLabel = dur >= 99 ? 'permanente (baseline)' : `~${dur} anni (poi ritorno a Crescita Normale)`;
   document.getElementById('ecoSelectedDesc').innerHTML = `
     <div style="display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap">
-      <div style="font-size:28px">${eco.emoji}</div>
       <div style="flex:1">
         <div style="font-size:15px;font-weight:700;color:${eco.color};margin-bottom:6px">${eco.label}</div>
         <div style="font-size:12.5px;color:var(--text2);line-height:1.7;margin-bottom:10px">${eco.desc}</div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;font-family:'DM Mono',monospace">
+        <div class="tabular-nums" style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;">
           <span><b>Durata regime:</b> ${durLabel}</span>
           <span style="color:var(--purple);font-weight:600">${timingLabel} · regime attivo: ${winLabel}</span>
           <span>Az. ×${eco.eqMult}</span>
@@ -2102,6 +1944,7 @@ function renderEcoScenarios() {
         <div class="mcard"><div class="ml">Differenza</div><div class="mv" style="color:${vEco[state.years] > vBase[state.years] ? 'var(--green)' : 'var(--red)'};font-size:16px">${vEco[state.years] > vBase[state.years] ? '+' : ''}${fmt(vEco[state.years] - vBase[state.years])}</div><div class="ms">${((vEco[state.years] / vBase[state.years] - 1) * 100).toFixed(1)}%</div></div>
       </div>
     </div>`;
+    if (window.refreshIcons) window.refreshIcons();
 
   if (chartEco) { chartEco.destroy(); chartEco = null; }
   const gC = 'rgba(0,0,0,.05)', tC = 'rgba(0,0,0,.45)';
@@ -2110,7 +1953,7 @@ function renderEcoScenarios() {
     data: {
       labels: ages,
       datasets: [
-        { label: 'Base', data: vBase, borderColor: '#1a73e8', borderWidth: 2.5, pointRadius: 0, fill: false, tension: .35 },
+        { label: 'Base', data: vBase, borderColor: '#9e1b32', borderWidth: 2.5, pointRadius: 0, fill: false, tension: .35 },
         { label: eco.label, data: vEco, borderColor: eco.color, borderWidth: 3, pointRadius: 0, fill: false, tension: .35 },
         { label: 'Reale (deflatato)', data: vReal, borderColor: eco.color, borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, fill: false, tension: .35 },
       ]
@@ -2119,7 +1962,7 @@ function renderEcoScenarios() {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: true, labels: { font: { family: 'DM Mono', size: 11 }, boxWidth: 16 } },
-        tooltip: { callbacks: { title: c => 'Età ' + c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1, titleColor: '#202124', bodyColor: '#5f6368', padding: 10 }
+        tooltip: { callbacks: { title: c => 'Età ' + c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1, titleColor: '#212121', bodyColor: '#595959', padding: 10 }
       },
       scales: {
         x: { ticks: { color: tC, font: { size: 11, family: 'DM Mono' }, maxTicksLimit: 12 }, grid: { color: gC } },
@@ -2134,7 +1977,7 @@ function renderEcoScenarios() {
           ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.moveTo(x.left, yp); ctx.lineTo(x.right, yp); ctx.stroke();
           ctx.setLineDash([]); ctx.font = '10px DM Mono,monospace'; ctx.fillStyle = 'rgba(0,0,0,.3)';
-          ctx.fillText('💎 optionality', x.left + 6, yp - 4); ctx.restore();
+          ctx.fillText('<i data-lucide="gem" class="lucide-sm"></i> optionality', x.left + 6, yp - 4); ctx.restore();
         }
         // Linee verticali inizio/fine regime (usa win.e per rispettare il timing scelto)
         const ecoC = ECO_SCENARIOS[state.activeEcoScenario];
@@ -2164,8 +2007,8 @@ function renderEcoScenarios() {
     const vE = dE[state.years].value, vR = dE[state.years].real;
     const delta = vE - vBase[state.years], pct = ((vE / vBase[state.years] - 1) * 100).toFixed(1);
     const durTxt = s.duration >= 99 ? 'baseline' : `${Math.min(s.duration, state.years)}/${state.years} a`;
-    return `<tr><td style="text-align:left"><span style="font-size:13px">${s.emoji}</span> ${s.label}</td>
-      <td style="font-family:'DM Mono',monospace;color:${s.color};font-weight:600">${durTxt}</td>
+    return `<tr><td style="text-align:left">${s.label}</td>
+      <td class="tabular-nums" style="color:${s.color};font-weight:600">${durTxt}</td>
       <td style="font-weight:600;color:${s.color}">${fmt(vE)}</td>
       <td class="${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${fmt(delta)}</td>
       <td class="${delta >= 0 ? 'pos' : 'neg'}">${delta >= 0 ? '+' : ''}${pct}%</td>
@@ -2185,6 +2028,7 @@ function renderEcoScenarios() {
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+    if (window.refreshIcons) window.refreshIcons();
 
   // Tabella anno per anno
   const stp = Math.max(1, Math.floor(state.years / 12));
@@ -2200,6 +2044,7 @@ function renderEcoScenarios() {
       <td style="color:${d.inflYear > 4 ? 'var(--red)' : d.inflYear < 0 ? 'var(--blue)' : 'var(--text2)'}">${d.inflYear.toFixed(1)}%</td>
       <td style="color:var(--teal)">${fmt(d.real)}</td>
     </tr>`;
+    if (window.refreshIcons) window.refreshIcons();
   }).join('');
 }
 
@@ -2438,7 +2283,7 @@ function renderMultiRegime() {
   const topRegimes = Object.entries(res.globalFreq)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3)
-    .map(([k, pct]) => `${ECO_SCENARIOS[k].emoji} ${ECO_SCENARIOS[k].label} ${pct.toFixed(0)}%`)
+    .map(([k, pct]) => `${ECO_SCENARIOS[k].label} ${pct.toFixed(0)}%`)
     .join(' · ');
 
   document.getElementById('mrKpi').innerHTML = `
@@ -2464,7 +2309,7 @@ function renderMultiRegime() {
         <div class="ms">crescita normale senza regime</div>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:4px">
+    <div class="tabular-nums" style="font-size:12px;color:var(--text3);margin-bottom:4px">
       Regimi più frequenti nella simulazione: <strong style="color:var(--text2)">${topRegimes}</strong>
     </div>`;
 
@@ -2488,7 +2333,7 @@ function renderMultiRegime() {
         // Media
         { label: 'Media', data: res.mean, borderColor: '#9c27b0', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, fill: false, tension: .35 },
         // Baseline deterministica
-        { label: 'Base (crescita normale)', data: vBase, borderColor: '#1a73e8', borderWidth: 2, pointRadius: 0, fill: false, tension: .35, borderDash: [6, 3] },
+        { label: 'Base (crescita normale)', data: vBase, borderColor: '#9e1b32', borderWidth: 2, pointRadius: 0, fill: false, tension: .35, borderDash: [6, 3] },
       ]
     },
     options: {
@@ -2521,8 +2366,8 @@ function renderMultiRegime() {
             }
           },
           filter: item => !['P10', 'P25', 'P75'].includes(item.dataset.label),
-          backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1,
-          titleColor: '#202124', bodyColor: '#5f6368', padding: 10,
+          backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1,
+          titleColor: '#212121', bodyColor: '#595959', padding: 10,
         }
       },
       scales: {
@@ -2538,7 +2383,7 @@ function renderMultiRegime() {
           ctx.save(); ctx.setLineDash([6, 4]); ctx.strokeStyle = 'rgba(0,0,0,.15)'; ctx.lineWidth = 1.5;
           ctx.beginPath(); ctx.moveTo(x.left, yp); ctx.lineTo(x.right, yp); ctx.stroke();
           ctx.setLineDash([]); ctx.font = '10px DM Mono,monospace'; ctx.fillStyle = 'rgba(0,0,0,.3)';
-          ctx.fillText('💎 optionality', x.left + 6, yp - 4); ctx.restore();
+          ctx.fillText('<i data-lucide="gem" class="lucide-sm"></i> optionality', x.left + 6, yp - 4); ctx.restore();
         }
       }
     }]
@@ -2556,14 +2401,14 @@ function renderMultiRegime() {
 
   // Frequenza regime per anno (per tooltip preciso) — calcolata inline
   document.getElementById('mrHeatmap').innerHTML = `
-    <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:4px">
+    <div class="tabular-nums" style="font-size:11px;color:var(--text3);margin-bottom:4px">
       Regime dominante per anno (tra i 1000 percorsi simulati):
     </div>
     <div style="display:flex;gap:1px;border-radius:4px;overflow:hidden">${heatCells}</div>
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
-      ${ECO_KEYS.map(k => `<div style="display:flex;align-items:center;gap:4px;font-size:11px;font-family:'DM Mono',monospace">
+      ${ECO_KEYS.map(k => `<div class="tabular-nums" style="display:flex;align-items:center;gap:4px;font-size:11px;">
         <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${ECO_SCENARIOS[k].color}"></span>
-        ${ECO_SCENARIOS[k].emoji} ${ECO_SCENARIOS[k].label} — ${res.globalFreq[k].toFixed(1)}% del tempo
+        ${ECO_SCENARIOS[k].label} — ${res.globalFreq[k].toFixed(1)}% del tempo
       </div>`).join('')}
     </div>`;
 
@@ -2658,16 +2503,16 @@ function renderManualSeqList() {
     const eco = ECO_SCENARIOS[f.key];
     return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;margin-bottom:4px;
                 background:${eco.bg};border:1px solid ${eco.color}44;border-radius:var(--radius-sm)">
-      <span style="font-size:16px">${eco.emoji}</span>
       <span style="flex:1;font-size:13px;font-weight:600;color:${eco.color}">${eco.label}</span>
       <input type="number" min="1" max="40" value="${f.years}"
              style="width:52px;font-family:'DM Mono',monospace;font-size:12px;border:1px solid var(--border2);
                     border-radius:4px;padding:3px 6px;background:var(--bg);color:var(--text);text-align:right"
              onchange="multiRegimeState.manualSeq[${i}].years=Math.max(1,+this.value);renderManualSeqList()">
       <span style="font-size:11.5px;color:var(--text3)">anni</span>
-      <button class="dbtn" onclick="multiRegimeState.manualSeq.splice(${i},1);renderManualSeqList()" title="Rimuovi">✕</button>
+      <button class="dbtn" onclick="multiRegimeState.manualSeq.splice(${i},1);renderManualSeqList()" title="Rimuovi"><i data-lucide="x" class="lucide-sm"></i></button>
     </div>`;
   }).join('');
+  if (window.refreshIcons) window.refreshIcons();
 
   // Totale anni e avviso se supera il piano
   const planY = state.years;
@@ -2676,7 +2521,7 @@ function renderManualSeqList() {
         Totale: <strong>${totalY} anni</strong> su ${planY} del piano.
         ${totalY < planY ? `L\'ultimo regime si estende per i restanti ${planY - totalY} anni.` : totalY > planY ? 'La sequenza supera il piano — gli anni extra saranno ignorati.' : ''}
       </div>`
-    : `<div style="font-size:11.5px;margin-top:6px;color:var(--green)">✓ Sequenza: ${totalY} anni = piano completo.</div>`;
+    : `<div style="font-size:11.5px;margin-top:6px;color:var(--green)"><i data-lucide="check" class="lucide-sm"></i> Sequenza: ${totalY} anni = piano completo.</div>`;
   container.insertAdjacentHTML('beforeend', warnHtml);
 }
 
@@ -2732,20 +2577,20 @@ function renderAB() {
   ];
   const syncEl = document.getElementById('abSyncDetails');
   if (syncEl) syncEl.innerHTML = sharedItems.join(' · ') + (picCount + expCount > 0
-    ? `<span style="margin-left:8px;color:var(--orange);font-size:11px">⚠ PIC e spese identici per entrambi i portafogli</span>` : '');
+    ? `<span style="margin-left:8px;color:var(--orange);font-size:11px"><i data-lucide="alert-triangle" class="lucide-sm"></i> PIC e spese identici per entrambi i portafogli</span>` : '');
 
   document.getElementById('ab-a-info').innerHTML = `<div style="display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px"><div><strong>${pA?.label ?? state.portfolio}</strong></div><div>TER: <strong>${state.ter.toFixed(2)}%</strong></div><div>PAC: <strong>${fmt(state.pac)}/m</strong></div>${pA && pA.normal ? `<div>Rend. base: <strong>${((pA.normal - state.ter / 100) * 100).toFixed(2)}%</strong>/a</div>` : ''}</div><div style="margin-top:8px;font-size:12px;color:var(--text2)">Valore finale base: <strong style="color:var(--blue)">${fmt(dAn[years].value)}</strong></div>`;
   if (chartAB) { chartAB.destroy(); chartAB = null; }
   const ds = [
-    { label: 'A Ott.', data: dA.map(d => d.value), borderColor: 'rgba(26,115,232,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
-    { label: 'A Base', data: dAn.map(d => d.value), borderColor: '#1a73e8', borderWidth: 3, pointRadius: 0, fill: false, tension: .35 },
-    { label: 'A Pess.', data: dAw.map(d => d.value), borderColor: 'rgba(26,115,232,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
-    { label: 'B Ott.', data: dBb.map(d => d.value), borderColor: 'rgba(147,52,230,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
-    { label: 'B Base', data: dBn.map(d => d.value), borderColor: '#9334e6', borderWidth: 3, pointRadius: 0, fill: false, tension: .35 },
-    { label: 'B Pess.', data: dBw.map(d => d.value), borderColor: 'rgba(147,52,230,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
+    { label: 'A Ott.', data: dA.map(d => d.value), borderColor: 'rgba(158,27,50,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
+    { label: 'A Base', data: dAn.map(d => d.value), borderColor: '#9e1b32', borderWidth: 3, pointRadius: 0, fill: false, tension: .35 },
+    { label: 'A Pess.', data: dAw.map(d => d.value), borderColor: 'rgba(158,27,50,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
+    { label: 'B Ott.', data: dBb.map(d => d.value), borderColor: 'rgba(31,111,235,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
+    { label: 'B Base', data: dBn.map(d => d.value), borderColor: '#1f6feb', borderWidth: 3, pointRadius: 0, fill: false, tension: .35 },
+    { label: 'B Pess.', data: dBw.map(d => d.value), borderColor: 'rgba(31,111,235,.4)', borderWidth: 1, pointRadius: 0, fill: false, tension: .35, borderDash: [4, 3] },
   ];
   const gC = 'rgba(0,0,0,.05)', tC = 'rgba(0,0,0,.45)';
-  chartAB = new Chart(document.getElementById('chAB'), { type: 'line', data: { labels: ages, datasets: ds }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { filter: i => ['A Base', 'B Base'].includes(i.dataset.label), callbacks: { title: c => 'Età ' + c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1, titleColor: '#202124', bodyColor: '#5f6368', padding: 10 } }, scales: { x: { ticks: { color: tC, font: { size: 11, family: 'DM Mono' }, maxTicksLimit: 12 }, grid: { color: gC } }, y: { ticks: { color: tC, font: { size: 11, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: gC } } } } });
+  chartAB = new Chart(document.getElementById('chAB'), { type: 'line', data: { labels: ages, datasets: ds }, options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { filter: i => ['A Base', 'B Base'].includes(i.dataset.label), callbacks: { title: c => 'Età ' + c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1, titleColor: '#212121', bodyColor: '#595959', padding: 10 } }, scales: { x: { ticks: { color: tC, font: { size: 11, family: 'DM Mono' }, maxTicksLimit: 12 }, grid: { color: gC } }, y: { ticks: { color: tC, font: { size: 11, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: gC } } } } });
   const invA = dAn[years].invested, invB = dBn[years].invested;
   const txFA = blendedTaxRate(endAge);
   // FIX #M1: usa blendedTaxRate() per portafoglio B (include oro e cash a taxEq=26%)
@@ -2766,7 +2611,7 @@ function renderAB() {
   ];
   document.getElementById('ab-metrics').innerHTML = `<div class="tbl-outer"><table><thead><tr><th style="text-align:left">Metrica</th><th style="color:var(--blue)">A — ${pA?.label ?? state.portfolio}</th><th style="color:var(--purple)">B — ${PORT[stateB.portfolio]?.label ?? stateB.portfolio}</th><th>Δ (B−A)</th></tr></thead><tbody>${mRows.map(r => `<tr><td style="text-align:left">${r[0]}</td><td style="color:var(--blue);font-weight:600">${r[1]}</td><td style="color:var(--purple);font-weight:600">${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></div>`;
   const gainA = Math.max(0, dAn[years].value - invA), gainB = Math.max(0, dBn[years].value - invB);
-  document.getElementById('ab-fiscal').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="liq-card" style="border:1px solid rgba(26,115,232,.3)"><div class="liq-card-title" style="color:var(--blue)">A — ${pA?.label ?? state.portfolio}</div><div class="liq-row"><span style="color:var(--text2)">Lordo</span><strong>${fmt(dAn[years].value)}</strong></div><div class="liq-row" style="color:var(--red)"><span>Tasse CG (${(txFA * 100).toFixed(1)}%)</span><span>−${fmt(gainA * txFA)}</span></div><div class="liq-row" style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:0"><strong style="color:var(--blue)">Netto</strong><strong style="color:var(--blue);font-size:15px">${fmt(nA)}</strong></div></div><div class="liq-card" style="border:1px solid rgba(147,52,230,.3)"><div class="liq-card-title" style="color:var(--purple)">B — ${PORT[stateB.portfolio]?.label ?? stateB.portfolio}</div><div class="liq-row"><span style="color:var(--text2)">Lordo</span><strong>${fmt(dBn[years].value)}</strong></div><div class="liq-row" style="color:var(--red)"><span>Tasse CG (${(txFB * 100).toFixed(1)}%)</span><span>−${fmt(gainB * txFB)}</span></div><div class="liq-row" style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:0"><strong style="color:var(--purple)">Netto</strong><strong style="color:var(--purple);font-size:15px">${fmt(nB)}</strong></div></div></div><div style="margin-top:10px;padding:10px 14px;background:${deltaN >= 0 ? 'var(--green-dim)' : 'var(--red-dim)'};border-radius:var(--radius-sm);font-size:13px;color:${deltaN >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">Portafoglio B porta ${deltaN >= 0 ? '+' + fmt(deltaN) + ' netti IN PIÙ rispetto ad A' : fmt(Math.abs(deltaN)) + ' netti IN MENO rispetto ad A'} in scenario base.</div>`;
+  document.getElementById('ab-fiscal').innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="liq-card" style="border:1px solid rgba(158,27,50,.3)"><div class="liq-card-title" style="color:var(--blue)">A — ${pA?.label ?? state.portfolio}</div><div class="liq-row"><span style="color:var(--text2)">Lordo</span><strong>${fmt(dAn[years].value)}</strong></div><div class="liq-row" style="color:var(--red)"><span>Tasse CG (${(txFA * 100).toFixed(1)}%)</span><span>−${fmt(gainA * txFA)}</span></div><div class="liq-row" style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:0"><strong style="color:var(--blue)">Netto</strong><strong style="color:var(--blue);font-size:15px">${fmt(nA)}</strong></div></div><div class="liq-card" style="border:1px solid rgba(89,89,89,.3)"><div class="liq-card-title" style="color:var(--purple)">B — ${PORT[stateB.portfolio]?.label ?? stateB.portfolio}</div><div class="liq-row"><span style="color:var(--text2)">Lordo</span><strong>${fmt(dBn[years].value)}</strong></div><div class="liq-row" style="color:var(--red)"><span>Tasse CG (${(txFB * 100).toFixed(1)}%)</span><span>−${fmt(gainB * txFB)}</span></div><div class="liq-row" style="border-top:1px solid var(--border);padding-top:8px;margin-bottom:0"><strong style="color:var(--purple)">Netto</strong><strong style="color:var(--purple);font-size:15px">${fmt(nB)}</strong></div></div></div><div style="margin-top:10px;padding:10px 14px;background:${deltaN >= 0 ? 'var(--green-dim)' : 'var(--red-dim)'};border-radius:var(--radius-sm);font-size:13px;color:${deltaN >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:600">Portafoglio B porta ${deltaN >= 0 ? '+' + fmt(deltaN) + ' netti IN PIÙ rispetto ad A' : fmt(Math.abs(deltaN)) + ' netti IN MENO rispetto ad A'} in scenario base.</div>`;
   const step = Math.max(1, Math.floor(years / 12));
   const rowsAB = []; for (let i = 0; i <= years; i += step) rowsAB.push(i);
   document.getElementById('ab-table').innerHTML = rowsAB.map(i => {
@@ -2781,7 +2626,7 @@ document.getElementById('abAllocBtns').onclick = e => { const b = e.target.close
 // TAB MC SUCCESS
 // ══════════════════════════════════════════════════════════════
 function runSuccessMC() {
-  const btn = event.target; btn.disabled = true; btn.textContent = '⏳ Calcolo...';
+  const btn = event.target; btn.disabled = true; btn.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Calcolo...'; if (window.refreshIcons) window.refreshIcons();
   setTimeout(() => {
     const { w, age, years, portfolio, ter, pics, exps } = state;
     const { withdrawal, years: wY, inflation: wI } = mcState;
@@ -2826,8 +2671,8 @@ function runSuccessMC() {
     finalVals.sort((a, b) => a - b);
     const sr = successes / N * 100;
     const avgRuinYear = ruinYears.length > 0 ? (ruinYears.reduce((a, b) => a + b, 0) / ruinYears.length).toFixed(1) : null;
-    const col = sr >= 90 ? 'var(--green)' : sr >= 80 ? 'var(--orange)' : sr >= 70 ? '#e65100' : 'var(--red)';
-    const label = sr >= 90 ? 'Piano molto solido ✅' : sr >= 80 ? 'Piano accettabile ⚠️' : sr >= 70 ? 'Piano a rischio 🔶' : 'Piano critico — revisione necessaria ❌';
+    const col = sr >= 90 ? 'var(--green)' : sr >= 80 ? 'var(--orange)' : sr >= 70 ? 'var(--text-muted)' : 'var(--red)';
+    const label = sr >= 90 ? 'Piano molto solido <i data-lucide="check" class="lucide-sm"></i>' : sr >= 80 ? 'Piano accettabile <i data-lucide="alert-triangle" class="lucide-sm"></i>' : sr >= 70 ? 'Piano a rischio <i data-lucide="alert-triangle" class="lucide-sm"></i>' : 'Piano critico — revisione necessaria <i data-lucide="x" class="lucide-sm"></i>';
     const desc = sr >= 90 ? `Il portafoglio rimane positivo in ${successes}/1.000 scenari. Robusto (soglia professionale: >90%).` : sr >= 80 ? `Fallisce in ${N - successes}/1.000 scenari. Accettabile ma con margine ridotto.` : `Fallisce in ${N - successes}/1.000 scenari. Considera di ridurre il prelievo o aumentare il patrimonio.`;
     lastMCSuccessResult = { sr, successes, N, label, desc, avgRuinYear, p10: finalVals[Math.floor(N * .10)], p50: finalVals[Math.floor(N * .50)], p90: finalVals[Math.floor(N * .90)], withdrawal, wY, wI, years, portfolio, ter };
     document.getElementById('mc-success-result').innerHTML = `
@@ -2849,7 +2694,7 @@ function runSuccessMC() {
           <div class="mc-box"><div class="mc-lbl">90° percentile</div><div class="mc-val" style="color:var(--green)">${fmt(finalVals[Math.floor(N * .90)])}</div></div>
         </div>
       </div>`;
-    btn.disabled = false; btn.textContent = '🎯 Calcola Probabilità';
+    btn.disabled = false; btn.innerHTML = '<i data-lucide="target" class="lucide-sm"></i> Calcola Probabilità'; if (window.refreshIcons) window.refreshIcons();
   }, 80);
 }
 
@@ -2909,7 +2754,7 @@ function simulateDecumulo(sc) {
     let crashNote = '';
     if (decCrashMap[y] !== undefined) {
       grossRate = decCrashMap[y];
-      crashNote = '⚠ crash di sequenza';
+      crashNote = '<i data-lucide="alert-triangle" class="lucide-sm"></i> crash di sequenza';
     }
     const netRate = grossRate - terRate;
     // Mid-point: interessi maturano sulla media tra inizio e fine anno
@@ -2933,8 +2778,8 @@ function simulateDecumulo(sc) {
     totalCostBasis = Math.max(0, totalCostBasis * (1 - sellFrac));
 
     let note = crashNote, nextWd = wd;
-    if (inEcoRegime && y === ecoWin.s) note = (note ? note + ' · ' : '') + ECO_SCENARIOS[ecoScenario].emoji + ' regime attivo';
-    if (ecoWin && y === ecoWin.e + 1) note = '↩ ritorno normale';
+    if (inEcoRegime && y === ecoWin.s) note = (note ? note + ' · ' : '') + 'regime attivo';
+    if (ecoWin && y === ecoWin.e + 1) note = '<i data-lucide="corner-down-left" class="lucide-sm"></i> ritorno normale';
     if (strat === 'fixed') { nextWd = wd; }
     else if (strat === 'inflation') { nextWd = wd * (1 + inflRate); if (!note && infl > 0 && y > 1) note = `+${infl.toFixed(1)}% inflaz.`; }
     else if (strat === 'gk') {
@@ -2971,48 +2816,19 @@ function runDecumuloHistorical() {
   // custom con trend/carry non hanno serie storica coerente in HIST_MONTHLY (solo
   // azioni/obbligazioni/oro). Simularli falserebbe rischio e decorrelazione.
   const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
-  // Per "Mia allocazione" il decumulo usa state.customPortfolio.slots: passa QUEGLI
-  // slot esplicitamente, altrimenti la funzione ispezionerebbe il contesto del
-  // Simulatore (che può essere su glide) invece dell'allocazione realmente usata.
-  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function'
-    && customPortfolioIsNonBacktestable(state.customPortfolio?.slots || []);
-  // Glide nel decumulo: la composizione è CONGELATA al Lato B (de-risking finale,
-  // perché decAge ≥ ageEnd). È quindi un'allocazione fissa: backtestabile sul piano
-  // storico SE il Lato B non contiene leva/trend/carry e il glide è già concluso a
-  // pensionamento. Altrimenti serve il modello dinamico (Monte Carlo).
-  let glideNonBT = false;
-  if (port === 'glide') {
-    const decAge0 = state.age + state.years;
-    const g = state.glide;
-    const inTransition = g && decAge0 < g.ageEnd;
-    const sideBslots = (g && typeof strategyToSlots === 'function') ? strategyToSlots(g.sideB) : [];
-    const sideBleveraged = typeof customPortfolioIsNonBacktestable === 'function'
-      ? customPortfolioIsNonBacktestable(sideBslots) : true;
-    glideNonBT = sideBleveraged || inTransition;
-  }
-  if (DEC_HIST_SKIP[port] || customNonBT || glideNonBT) {
+  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
+  if (DEC_HIST_SKIP[port] || customNonBT) {
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(port) : port;
-    const isGlide = port === 'glide';
-    const g = state.glide;
-    const decAge0 = state.age + state.years;
-    const msg = isGlide
-      ? ((g && decAge0 < g.ageEnd)
-          ? `Backtest storico non disponibile: il tuo pensionamento (età ${decAge0}) cade prima della fine del Glide Path (età ${g.ageEnd}), quindi la composizione è ancora in transizione tra Lato A e Lato B. Il backtester usa pesi fissi e non puo modellare il ribilanciamento dinamico. Usa il Monte Carlo Avanzato.`
-          : `Backtest storico non disponibile: il Lato B del Glide Path include leva (Efficient Core), Trend Following o Carry, asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato.`)
-      : customNonBT
-        ? `Backtest storico non disponibile per "${lbl}": il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva), asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`
-        : `Backtest storico non disponibile per "${lbl}": questa strategia usa leva o managed futures, privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`;
-    const err = new Error(msg);
+    const err = new Error(`Backtest storico non disponibile per "${lbl}": i portafogli con leva (efficient core, return stacking) o con trend following / carry non hanno una serie storica coerente nel dataset 1970-2024 (azioni/obbligazioni/oro). Usa il Monte Carlo Avanzato con un modello parametrico.`);
     err.decHistBlocked = true;
-    err.isGlide = isGlide;
     throw err;
   }
 
-  // Pesi del portafoglio (per glide: composizione del Lato B all'età di pensionamento)
+  // Pesi del portafoglio
   const decAge = state.age + state.years;
   const eqW = getEquityWeight(port, decAge);
-  const goldW = getGoldWeight(port, decAge);
-  const cashW = getCashWeight(port, decAge);
+  const goldW = getGoldWeight(port);
+  const cashW = getCashWeight(port);
   const obW = Math.max(0, 1 - eqW - goldW - cashW);
 
   // Anni di partenza disponibili (servono Y anni di dati dopo)
@@ -3112,7 +2928,7 @@ function maxDrawdownArr(arr) {
 // Render UI risultati decumulo storico
 function runDecHistorical() {
   const btn = document.getElementById('decHistBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Calcolo...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Calcolo...'; } if (window.refreshIcons) window.refreshIcons();
   setTimeout(() => {
     try {
       const r = runDecumuloHistorical();
@@ -3157,14 +2973,14 @@ function runDecHistorical() {
 
         ${failedList.length > 0 ? `
           <div class="info-box" style="background:var(--red-dim);border-color:var(--red);color:var(--red);margin-bottom:12px">
-            <strong>❌ Anni di partenza che hanno ESAURITO il capitale:</strong><br>
+            <strong><i data-lucide="x" class="lucide-sm"></i> Anni di partenza che hanno ESAURITO il capitale:</strong><br>
             ${failedList.join(' · ')}
           </div>` : `
           <div class="info-box" style="background:var(--green-dim);border-color:var(--green);color:var(--green);margin-bottom:12px">
-            <strong>✅ Tutti gli ${r.nTotal} anni di partenza hanno completato il piano senza esaurire il capitale</strong>
+            <strong><i data-lucide="check" class="lucide-sm"></i> Tutti gli ${r.nTotal} anni di partenza hanno completato il piano senza esaurire il capitale</strong>
           </div>`}
 
-        <div class="sec-label" style="margin-top:14px">📌 Esiti per anni notevoli (eventi storici)</div>
+        <div class="sec-label" style="margin-top:14px"><i data-lucide="pin" class="lucide-sm"></i> Esiti per anni notevoli (eventi storici)</div>
         <div class="tbl-outer">
           <table>
             <thead><tr>
@@ -3177,16 +2993,16 @@ function runDecHistorical() {
             <tbody>
               ${famousResults.map(x => {
                 const events = {
-                  1970: '🛢️ Pre oil shock',
-                  1973: '🔥 Stagflazione & oil shock',
-                  1980: '📈 Volcker disinflazione',
-                  1987: '💥 Black Monday',
-                  1990: '🇯🇵 Giappone burst',
-                  2000: '💻 Dot-com bust',
-                  2008: '🏦 Crisi finanziaria',
+                  1970: '<i data-lucide="fuel" class="lucide-sm"></i> Pre oil shock',
+                  1973: '<i data-lucide="flame" class="lucide-sm"></i> Stagflazione & oil shock',
+                  1980: '<i data-lucide="trending-up" class="lucide-sm"></i> Volcker disinflazione',
+                  1987: '<i data-lucide="zap" class="lucide-sm"></i> Black Monday',
+                  1990: '<i data-lucide="flag" class="lucide-sm"></i> Giappone burst',
+                  2000: '<i data-lucide="laptop" class="lucide-sm"></i> Dot-com bust',
+                  2008: '<i data-lucide="building-2" class="lucide-sm"></i> Crisi finanziaria',
                 };
                 const evtName = events[x.startYear] || '';
-                const status = x.survived ? `<span class="pos">✅ Successo</span>` : `<span class="neg">❌ Fallito anno ${x.exhaustYear}</span>`;
+                const status = x.survived ? `<span class="pos"><i data-lucide="check" class="lucide-sm"></i> Successo</span>` : `<span class="neg"><i data-lucide="x" class="lucide-sm"></i> Fallito anno ${x.exhaustYear}</span>`;
                 return `<tr>
                   <td>${x.startYear}</td>
                   <td>${evtName}</td>
@@ -3203,19 +3019,10 @@ function runDecHistorical() {
         </div>`;
       document.getElementById('decHistResults').innerHTML = html;
     } catch (e) {
-      if (e.decHistBlocked) {
-        const icon = e.isGlide ? '⤵' : '⚡';
-        document.getElementById('decHistResults').innerHTML =
-          `<div style="background:rgba(230,138,0,.07);border:1px solid rgba(230,138,0,.30);border-radius:6px;padding:16px 20px;line-height:1.7">` +
-          `<div style="font-size:13px;font-weight:700;color:#b8860b;margin-bottom:6px">${icon} Backtest storico non disponibile</div>` +
-          `<div style="font-size:12.5px;color:var(--text2)">${e.message}</div>` +
-          `</div>`;
-      } else {
-        document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
-        console.error(e);
-      }
+      document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
+      console.error(e);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '📅 Esegui Backtest Storico'; }
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="calendar" class="lucide-sm"></i> Esegui Backtest Storico'; } if (window.refreshIcons) window.refreshIcons();
     }
   }, 80);
 }
@@ -3257,16 +3064,16 @@ function renderDecumulo() {
   chartDec = new Chart(document.getElementById('chDec'), {
     type: 'line', data: { labels, datasets: [
       { label: 'Ottimistico', data: dBest.map(d => d.end), borderColor: '#36d490', borderWidth: 2, pointRadius: 0, fill: false, tension: .35 },
-      { label: 'Base', data: dBase.map(d => d.end), borderColor: '#1a73e8', borderWidth: 3, pointRadius: 0, fill: 'origin', backgroundColor: 'rgba(26,115,232,.06)', tension: .35 },
-      { label: 'Pessimistico', data: dWorst.map(d => d.end), borderColor: '#e37400', borderWidth: 2, pointRadius: 0, fill: false, tension: .35 },
+      { label: 'Base', data: dBase.map(d => d.end), borderColor: '#9e1b32', borderWidth: 3, pointRadius: 0, fill: 'origin', backgroundColor: 'rgba(158,27,50,.06)', tension: .35 },
+      { label: 'Pessimistico', data: dWorst.map(d => d.end), borderColor: '#595959', borderWidth: 2, pointRadius: 0, fill: false, tension: .35 },
     ] },
-    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: c => c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#fff', borderColor: '#dadce0', borderWidth: 1, titleColor: '#202124', bodyColor: '#5f6368', padding: 10 } }, scales: { x: { ticks: { color: 'rgba(0,0,0,.45)', font: { size: 11, family: 'DM Mono' }, maxTicksLimit: 12 }, grid: { color: 'rgba(0,0,0,.05)' } }, y: { ticks: { color: 'rgba(0,0,0,.45)', font: { size: 11, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(0,0,0,.05)' } } } },
-    plugins: [{ id: 'zero', afterDraw(c) { const { ctx, scales: { x, y } } = c; if (y.getPixelForValue) { const yp = y.getPixelForValue(0); if (yp > y.top && yp < y.bottom) { ctx.save(); ctx.strokeStyle = 'rgba(217,48,37,.6)'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]); ctx.beginPath(); ctx.moveTo(x.left, yp); ctx.lineTo(x.right, yp); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); } } } }]
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { display: false }, tooltip: { callbacks: { title: c => c[0].label, label: c => ' ' + c.dataset.label + ': ' + fmt(c.raw) }, backgroundColor: '#ffffff', borderColor: '#d9d9d9', borderWidth: 1, titleColor: '#212121', bodyColor: '#595959', padding: 10 } }, scales: { x: { ticks: { color: 'rgba(0,0,0,.45)', font: { size: 11, family: 'DM Mono' }, maxTicksLimit: 12 }, grid: { color: 'rgba(0,0,0,.05)' } }, y: { ticks: { color: 'rgba(0,0,0,.45)', font: { size: 11, family: 'DM Mono' }, callback: v => fmt(v) }, grid: { color: 'rgba(0,0,0,.05)' } } } },
+    plugins: [{ id: 'zero', afterDraw(c) { const { ctx, scales: { x, y } } = c; if (y.getPixelForValue) { const yp = y.getPixelForValue(0); if (yp > y.top && yp < y.bottom) { ctx.save(); ctx.strokeStyle = 'rgba(201,42,42,.6)'; ctx.lineWidth = 2; ctx.setLineDash([6, 3]); ctx.beginPath(); ctx.moveTo(x.left, yp); ctx.lineTo(x.right, yp); ctx.stroke(); ctx.setLineDash([]); ctx.restore(); } } } }]
   });
   document.getElementById('dec-table').innerHTML = dBase.map(d => {
     const rateCls = d.rate > .06 ? 'neg' : d.rate > .04 ? 'neutral' : 'pos';
     const endCls = d.end <= 0 ? 'neg' : d.end < decState.startPortfolio * .5 ? 'neutral' : 'pos';
-    const ecoStyle = d.eco ? 'background:rgba(147,52,230,.05);border-left:2px solid rgba(147,52,230,.4)' : '';
+    const ecoStyle = d.eco ? 'background:rgba(89,89,89,.05);border-left:2px solid rgba(89,89,89,.4)' : '';
     const taxStr = d.tax > 0 ? `<span style="color:var(--orange);font-size:11px">−${fmt(d.tax)}</span>` : '—';
     const netStr = d.withdrawalNet != null ? `<strong style="color:var(--teal)">${fmt(d.withdrawalNet)}</strong>` : fmt(d.withdrawal);
     return `<tr style="${ecoStyle}"><td style="text-align:left"><strong>${d.year}</strong></td><td>${fmt(d.start)}</td><td class="${d.ret >= 0 ? 'pos' : 'neg'}">${fmt(d.ret)}</td><td style="color:var(--red)">${fmt(d.withdrawal)}</td><td>${taxStr}</td><td>${netStr}</td><td class="${endCls}"><strong>${fmt(d.end)}</strong></td><td class="${rateCls}">${(d.rate * 100).toFixed(2)}%</td><td style="font-size:11.5px;color:var(--text3)">${d.note || ''}</td></tr>`;
@@ -3346,24 +3153,24 @@ function buildValuationDashboard(portKey) {
 
   const chips = [];
   if (d.cape_sp500) chips.push(`
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'DM Mono',monospace;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="CAPE S&P500 attuale — percentile ${capePct}° sulla distribuzione storica 1881-2024">
+    <span class="tabular-nums" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="CAPE S&P500 attuale — percentile ${capePct}° sulla distribuzione storica 1881-2024">
       CAPE ${d.cape_sp500.toFixed(1)} · <strong style="color:${capePctColor}">${capePct}° pct</strong>
     </span>`);
   if (d.yield_eur_10y) chips.push(`
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'DM Mono',monospace;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Yield sovrano EUR 10a (BCE). Proxy rendimento bond forward.">
+    <span class="tabular-nums" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Yield sovrano EUR 10a (BCE). Proxy rendimento bond forward.">
       Yield EUR ${(d.yield_eur_10y*100).toFixed(2)}%
     </span>`);
   chips.push(`
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'DM Mono',monospace;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Rendimento nominale forward atteso per questo portafoglio. Metodo Earnings Yield Delta: il rendimento reale atteso ≈ 1/CAPE; lo scostamento dell'earnings yield corrente dalla media storica (CAPE~20) viene applicato al rendimento storico, poi miscelato 55% live / 45% baseline.">
+    <span class="tabular-nums" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Rendimento nominale forward atteso per questo portafoglio. Metodo Earnings Yield Delta: il rendimento reale atteso ≈ 1/CAPE; lo scostamento dell'earnings yield corrente dalla media storica (CAPE~20) viene applicato al rendimento storico, poi miscelato 55% live / 45% baseline.">
       Fwd nom. <strong>${(fwdPort*100).toFixed(1)}%</strong>/a <span style="color:${deltaColor}">(${deltaStr} vs storico)</span>
     </span>`);
   chips.push(`
-    <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-family:'DM Mono',monospace;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Rendimento reale atteso = forward nominale − HICP Eurozona corrente.">
+    <span class="tabular-nums" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--bg);border:1px solid var(--border2);border-radius:5px;padding:3px 8px" title="Rendimento reale atteso = forward nominale − HICP Eurozona corrente.">
       Fwd reale <strong style="color:${realFwdColor}">${(realFwd*100).toFixed(1)}%</strong>/a
     </span>`);
 
-  return `<div style="margin-top:10px;padding:10px;background:rgba(26,115,232,.04);border:1px solid rgba(26,115,232,.15);border-radius:8px">
-    <div style="font-size:10.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">⚡ Valutazioni Live · ${new Date(d.fetchedAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</div>
+  return `<div style="margin-top:10px;padding:10px;background:rgba(158,27,50,.04);border:1px solid rgba(158,27,50,.15);border-radius:8px">
+    <div style="font-size:10.5px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px"><i data-lucide="zap" class="lucide-sm"></i> Valutazioni Live · ${new Date(d.fetchedAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})}</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">${chips.join('')}</div>
   </div>`;
 }
@@ -3373,26 +3180,22 @@ function buildValuationDashboard(portKey) {
 // ══════════════════════════════════════════════════════════════
 function updatePortDetailBox() {
   const isCustom = state.portfolio === 'custom';
-  const isGlide  = state.portfolio === 'glide';
   const p = isCustom ? calcCustomParams() : PORT[state.portfolio];
   const builder = document.getElementById('customBuilder');
-  const glideB  = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', isCustom);
-  if (glideB)  glideB.classList.toggle('visible', isGlide);
   if (isCustom) { renderCustomBuilder(); return; }
-  if (isGlide)  { renderGlideBuilder(); return; }
   if (!p) { document.getElementById('portDetailBox').innerHTML = ''; return; }
   const bd = (state.portfolio !== 'custom' && PORT[state.portfolio]?.breakdown)
-    ? Object.entries(PORT[state.portfolio].breakdown).map(([k,v])=>`<span style="background:var(--bg);border:1px solid var(--border2);padding:2px 8px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace"><strong>${v}</strong> ${k}</span>`).join(' '):'';
+    ? Object.entries(PORT[state.portfolio].breakdown).map(([k,v])=>`<span class="tabular-nums" style="background:var(--bg);border:1px solid var(--border2);padding:2px 8px;border-radius:4px;font-size:11.5px;"><strong>${v}</strong> ${k}</span>`).join(' '):'';
   // FX badge per portafogli predefiniti
   const fxExp = getFxExposure(state.portfolio, state.age);
   const fxHedged = !!state.fxHedge;
   const fxBadge = fxExp > 0.01
-    ? `<span style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-family:'DM Mono',monospace;font-weight:600;color:var(--purple);background:var(--purple-dim);border:1px solid rgba(147,52,230,.3);padding:2px 8px;border-radius:4px" onclick="toggleFxHedge()" title="Esposizione cambio EUR/USD. Click per attivare/disattivare copertura valutaria (hedging)">💱 FX ${(fxExp*100).toFixed(0)}% ${fxHedged?'<span style=\'color:var(--green)\'>hedged ✓</span>':'unhedged'}</span>`
+    ? `<span class="tabular-nums" style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--purple);background:var(--purple-dim);border:1px solid rgba(89,89,89,.3);padding:2px 8px;border-radius:4px" onclick="toggleFxHedge()" title="Esposizione cambio EUR/USD. Click per attivare/disattivare copertura valutaria (hedging)"><i data-lucide="arrow-left-right" class="lucide-sm"></i> FX ${(fxExp*100).toFixed(0)}% ${fxHedged?'<span style=\'color:var(--green)\'>hedged <i data-lucide="check" class="lucide-sm"></i></span>':'unhedged'}</span>`
     : '';
   const fxCostNote = fxHedged && fxExp > 0.01
-    ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Copertura valutaria attiva: costo stimato −${(fxExp * state.fxHedgeCost * 100).toFixed(2)}%/a sul rendimento netto.</div>`
-    : (fxExp > 0.01 ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Esposizione cambio EUR/USD non coperta: vol. aggiuntiva ~${(fxExp * state.fxVol * 100).toFixed(1)}%/a. Clicca 💱 per attivare hedging.</div>` : '');
+    ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)"><i data-lucide="alert-triangle" class="lucide-sm"></i> Copertura valutaria attiva: costo stimato −${(fxExp * state.fxHedgeCost * 100).toFixed(2)}%/a sul rendimento netto.</div>`
+    : (fxExp > 0.01 ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)"><i data-lucide="alert-triangle" class="lucide-sm"></i> Esposizione cambio EUR/USD non coperta: vol. aggiuntiva ~${(fxExp * state.fxVol * 100).toFixed(1)}%/a. Clicca <i data-lucide="arrow-left-right" class="lucide-sm"></i> per attivare hedging.</div>` : '');
   document.getElementById('portDetailBox').innerHTML = `
     <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:${bd?'8px':'4px'}">${p.desc||''}</div>
     ${bd?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px">${bd}</div>`:''}
@@ -3442,39 +3245,40 @@ function renderCustomBuilder() {
       <span class="custom-param-chip" style="color:var(--red)" title="Volatilità in regime di crisi (correlazioni → 1)">σ-crisi: <strong>${(cp.volStress*100).toFixed(1)}%</strong></span>
       <span class="custom-param-chip" style="color:${cp.inflBeta>0.2?'var(--green)':cp.inflBeta>0?'var(--orange)':'var(--red)'}">β-infl: <strong>${cp.inflBeta>0?'+':''}${cp.inflBeta.toFixed(2)}</strong></span>
       <span class="custom-param-chip" style="color:var(--orange)" title="TER medio ponderato sugli ETF selezionati — applicato automaticamente alla simulazione">TER applicato: <strong>${cp.ter.toFixed(2)}%</strong></span>
-      <span class="custom-param-chip" style="color:var(--purple);cursor:pointer" onclick="toggleFxHedge()" title="Esposizione cambio EUR/USD e altre valute. Click per attivare/disattivare la copertura">💱 FX: <strong>${(cp.fxExposure*100).toFixed(0)}% ${cp.fxHedged?'(hedged)':'(unhedged)'}</strong></span>
+      <span class="custom-param-chip" style="color:var(--purple);cursor:pointer" onclick="toggleFxHedge()" title="Esposizione cambio EUR/USD e altre valute. Click per attivare/disattivare la copertura"><i data-lucide="arrow-left-right" class="lucide-sm"></i> FX: <strong>${(cp.fxExposure*100).toFixed(0)}% ${cp.fxHedged?'(hedged)':'(unhedged)'}</strong></span>
       <span class="custom-param-chip">Az: <strong>${(cp.eq*100).toFixed(0)}%</strong></span>
       <span class="custom-param-chip">Ob: <strong>${(cp.ob*100).toFixed(0)}%</strong></span>
       ${cp.goldW>0?`<span class="custom-param-chip">Oro: <strong>${(cp.goldW*100).toFixed(0)}%</strong></span>`:''}
       ${cp.cashW>0?`<span class="custom-param-chip">Cash: <strong>${(cp.cashW*100).toFixed(0)}%</strong></span>`:''}
       ${cp.otherFullW>0?`<span class="custom-param-chip" title="Trend following, carry, commodities, REIT, fattori — tassati al 26%">Alt: <strong>${(cp.otherFullW*100).toFixed(0)}%</strong></span>`:''}
     </div>`;
+  if (window.refreshIcons) window.refreshIcons();
   el.innerHTML = `
-    <div class="sec-label" style="margin-bottom:12px">🔧 Builder Portafoglio Custom</div>
+    <div class="sec-label" style="margin-bottom:12px"><i data-lucide="wrench" class="lucide-sm"></i> Builder Portafoglio Custom</div>
     <div id="customSlots">${slots.map((sl,i)=>`
       <div class="custom-slot">
         <select class="custom-select" onchange="updCustomAc(${i},this.value)">
           <option value="">— Seleziona asset class —</option>
-          ${Object.entries(ASSET_CLASSES).map(([k,v])=>`<option value="${k}"${sl.ac===k?' selected':''}>${v.emoji} ${v.label}</option>`).join('')}
+          ${buildAcOptions(sl.ac)}
         </select>
         <input class="custom-pct-input" type="number" min="0" max="100" step="5" value="${sl.pct}" placeholder="%" onchange="updCustomPct(${i},+this.value)">
-        <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">%</span>
-        <button class="dbtn" onclick="delCustomSlot(${i})">✕</button>
+        <span class="tabular-nums" style="font-size:11px;color:var(--text3);">%</span>
+        <button class="dbtn" onclick="delCustomSlot(${i})" title="Rimuovi asset class"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
       </div>`).join('')}</div>
     <div class="custom-total ${totalOk&&notionalOk?'ok':!totalOk?'err':'warn'}">
       Totale nominale: ${total.toFixed(1)}%
-      ${totalOk?'✅':total<100?'⚠️ mancano '+(100-total).toFixed(1)+'%':'❌ eccedenza '+(total-100).toFixed(1)+'%'}
-      ${hasLeverage ? `&nbsp;|&nbsp; Esposizione notional: <strong>${notionalTotal.toFixed(1)}%</strong> ${notionalOk?'':'<span style="color:var(--red)">⚠️ leva '+(notionalTotal/100).toFixed(2)+'×</span>'}` : ''}
+      ${totalOk?'<i data-lucide="check" class="lucide-sm"></i>':total<100?'<i data-lucide="alert-triangle" class="lucide-sm"></i> mancano '+(100-total).toFixed(1)+'%':'<i data-lucide="x" class="lucide-sm"></i> eccedenza '+(total-100).toFixed(1)+'%'}
+      ${hasLeverage ? `&nbsp;|&nbsp; Esposizione notional: <strong>${notionalTotal.toFixed(1)}%</strong> ${notionalOk?'':'<span style="color:var(--red)"><i data-lucide="alert-triangle" class="lucide-sm"></i> leva '+(notionalTotal/100).toFixed(2)+'×</span>'}` : ''}
     </div>
-    ${hasLeverage && !notionalOk ? `<div style="font-size:11.5px;color:var(--orange);background:var(--orange-dim);border:1px solid rgba(227,116,0,.3);border-radius:var(--radius-sm);padding:7px 12px;margin-bottom:8px;line-height:1.6">
-      ⚡ <strong>Portafoglio a leva:</strong> la quota nominale ${total.toFixed(0)}% include Efficient Core che opera con esposizione notional ${notionalTotal.toFixed(1)}% (leva ${(notionalTotal/100).toFixed(2)}×). Il simulatore modella correttamente questa leva. Il <strong>backtest storico</strong> e il <strong>Monte Carlo block bootstrap</strong> non sono disponibili — usa il <strong>Monte Carlo GARCH</strong> o il <strong>Simulatore</strong>.
+    ${hasLeverage && !notionalOk ? `<div style="font-size:11.5px;color:var(--orange);background:var(--orange-dim);border:1px solid rgba(89,89,89,.3);border-radius:var(--radius-sm);padding:7px 12px;margin-bottom:8px;line-height:1.6">
+      <i data-lucide="zap" class="lucide-sm"></i> <strong>Portafoglio a leva:</strong> la quota nominale ${total.toFixed(0)}% include Efficient Core che opera con esposizione notional ${notionalTotal.toFixed(1)}% (leva ${(notionalTotal/100).toFixed(2)}×). Il simulatore modella correttamente questa leva. Il <strong>backtest storico</strong> e il <strong>Monte Carlo block bootstrap</strong> non sono disponibili — usa il <strong>Monte Carlo GARCH</strong> o il <strong>Simulatore</strong>.
     </div>` : ''}
-    ${hasAltStrategy && !hasLeverage ? `<div style="font-size:11.5px;color:var(--orange);background:var(--orange-dim);border:1px solid rgba(227,116,0,.3);border-radius:var(--radius-sm);padding:7px 12px;margin-bottom:8px;line-height:1.6">
-      🌊 <strong>Strategia su futures (trend/carry):</strong> il portafoglio include trend following / managed futures o carry (incluso il Carry Commodities), strumenti che operano tramite contratti futures. Il simulatore li modella con parametri calibrati (rendimento, volatilità, comportamento nelle crisi). Il <strong>backtest storico</strong> e il <strong>Monte Carlo block bootstrap</strong> non sono disponibili — non esiste una serie storica mensile reale per queste strategie. Usa il <strong>Monte Carlo GARCH</strong> o il <strong>Simulatore</strong>.
+    ${hasAltStrategy && !hasLeverage ? `<div style="font-size:11.5px;color:var(--orange);background:var(--orange-dim);border:1px solid rgba(89,89,89,.3);border-radius:var(--radius-sm);padding:7px 12px;margin-bottom:8px;line-height:1.6">
+      <i data-lucide="waves" class="lucide-sm"></i> <strong>Strategia su futures (trend/carry):</strong> il portafoglio include trend following / managed futures o carry (incluso il Carry Commodities), strumenti che operano tramite contratti futures. Il simulatore li modella con parametri calibrati (rendimento, volatilità, comportamento nelle crisi). Il <strong>backtest storico</strong> e il <strong>Monte Carlo block bootstrap</strong> non sono disponibili — non esiste una serie storica mensile reale per queste strategie. Usa il <strong>Monte Carlo GARCH</strong> o il <strong>Simulatore</strong>.
     </div>` : ''}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
       <button class="addbtn" style="flex:1;min-width:140px" onclick="addCustomSlot()">+ Aggiungi asset class</button>
-      <button class="gbtn a-blue" onclick="normalizeCustom()">⚖️ Normalizza a 100%</button>
+      <button class="gbtn a-blue" onclick="normalizeCustom()">Normalizza a 100%</button>
       <button class="gbtn" onclick="resetCustomPreset('eq60')" title="60% Az. Globali + 40% Aggregato">60/40</button>
       <button class="gbtn" onclick="resetCustomPreset('all_seasons')" title="All Seasons di Dalio">All Seasons</button>
       <button class="gbtn" onclick="resetCustomPreset('permanent')" title="Permanent Portfolio di Browne">Permanent</button>
@@ -3488,266 +3292,14 @@ function renderCustomBuilder() {
     <div class="info-box" style="font-size:11.5px">
       <strong>Dati:</strong> mu = rendimento nominale forward-looking (10-20a), σ = volatilità storica 1970-2024. Fonti: DMS Yearbook 2024, dati Federal Reserve (FRED), Banche Centrali, letteratura accademica (Fama-French, Jegadeesh-Titman, Carhart). La volatilità usa una matrice di correlazione semplificata tra categorie (es. ρ(az,bond)≈−0.05, ρ(az,oro)≈0.05) — risultato più realistico della semplice media ponderata.
     </div>`;
+  if (window.refreshIcons) window.refreshIcons();
 }
-
-// ══════════════════════════════════════════════════════════════
-// GLIDE PATH BUILDER (UI)
-// ══════════════════════════════════════════════════════════════
-// Preset selezionabili come estremi del glide (etichette brevi per il menu).
-const GLIDE_PRESET_OPTIONS = [
-  ['eq100','100% Azioni'], ['eq80','80/20'], ['eq60','60/40'], ['eq50','50/50'],
-  ['eq40','40/60'], ['eq20','20/80'], ['ob100','100% Obblig.'],
-  ['golden_butterfly','🦋 Golden Butterfly'], ['permanent','🏛️ Permanent'],
-  ['all_seasons','🌤️ All Seasons'], ['larry','📐 Larry'], ['global_market','🗺️ Global Market'],
-  ['ec_us_9060','⚡ Eff.Core 90/60 US'], ['ec_glob_9060','⚡ Eff.Core 90/60 Glob'],
-  ['return_stack','🔀 Return Stacking'],
-];
-
-// Genera il path SVG della curva α(età) e la quota azionaria effettiva lungo il glide.
-function _glideCurveSVG() {
-  const g = state.glide; if (!g) return '';
-  // Dimensioni generose: più alta per separare le due curve e leggere i valori.
-  // padT alzato a 22 (era 14): quando il valore iniziale coincide col tetto della
-  // scala sinistra (caso frequente: l'azionario di partenza è spesso il massimo
-  // del range), l'etichetta in grassetto sopra il punto aveva pochissimo respiro.
-  const W = 460, H = 168, padL = 42, padR = 46, padT = 22, padB = 26;
-  const plotW = W - padL - padR;
-  const plotH = H - padT - padB;
-  const aMin = Math.min(g.ageStart, g.ageEnd), aMax = Math.max(g.ageStart, g.ageEnd);
-  const span = Math.max(1, aMax - aMin);
-  const xOf = age => padL + (age - aMin) / span * plotW;
-
-  const ages   = []; for (let a = aMin; a <= aMax; a++) ages.push(a);
-  const params = ages.map(a => getGlideParams(a));
-  const eqs    = params.map(p => Math.max(0, p.eq     ?? 0));
-  const mus    = params.map(p => Math.max(0, p.normal ?? 0));
-
-  // Scala sinistra: Az% (0 → eqScale arrotondato al 10% superiore)
-  const eqMax   = Math.max(0.01, ...eqs);
-  const eqScale = Math.ceil(eqMax * 10) / 10;
-  const yOfEq   = eq => padT + (1 - eq / eqScale) * plotH;
-
-  // Scala destra: μ% (0 → muScale arrotondato al 2% superiore)
-  const muMax   = Math.max(0.01, ...mus);
-  const muScale = Math.ceil(muMax * 50) / 50;
-  const yOfMu   = mu => padT + (1 - mu / muScale) * plotH;
-
-  const ptEq = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfEq(eqs[i]).toFixed(1)}`).join(' ');
-  const ptMu = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfMu(mus[i]).toFixed(1)}`).join(' ');
-
-  // Area riempita sotto la curva azionaria (fill semitrasparente)
-  const fillPts = `${xOf(aMin).toFixed(1)},${(padT + plotH).toFixed(1)} ` + ptEq + ` ${xOf(aMax).toFixed(1)},${(padT + plotH).toFixed(1)}`;
-
-  // Griglia orizzontale 3 livelli con label asse sinistro
-  const gridLines = [0, 0.5, 1].map(f => {
-    const y   = padT + (1 - f) * plotH;
-    const lbl = Math.round(f * eqScale * 100) + '%';
-    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(padL+plotW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border2)" stroke-width="1"/>` +
-           `<text x="${(padL-4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--text3)" font-family="DM Mono" text-anchor="end">${lbl}</text>`;
-  }).join('');
-
-  // Label asse destro μ% — viola, NON verde: il verde è già "Lato B" altrove
-  // nel builder (header, radio, pallino di arrivo). Usarlo anche per μ creava
-  // due significati diversi sovrapposti sullo stesso colore.
-  const muLabels = [0, 0.5, 1].map(f => {
-    const mu = f * muScale;
-    const y  = padT + (1 - f) * plotH;
-    return `<text x="${(padL+plotW+4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.85">${(mu*100).toFixed(1)}%</text>`;
-  }).join('');
-
-  // Tick età asse X
-  const xTicks = [aMin, Math.round((aMin+aMax)/2), aMax]
-    .map(a => `<text x="${xOf(a).toFixed(1)}" y="${H-5}" font-size="8.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">${a}a</text>`)
-    .join('');
-
-  // Marcatore "oggi": se l'età attuale impostata nel Simulatore cade dentro al
-  // range del glide e non coincide con l'inizio, la mostriamo come riferimento —
-  // il glide può partire da un'età diversa da quella corrente (proiezione storica
-  // o ipotesi futura), ed è utile capire subito "dove sono io" sulla curva.
-  let todayMarker = '';
-  const todayAge = Math.round(state.age);
-  if (todayAge > aMin && todayAge < aMax) {
-    const xT = xOf(todayAge);
-    todayMarker = `<line x1="${xT.toFixed(1)}" y1="${padT.toFixed(1)}" x2="${xT.toFixed(1)}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>` +
-      `<text x="${xT.toFixed(1)}" y="${(padT-7).toFixed(1)}" font-size="7.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">oggi ${todayAge}a</text>`;
-  }
-
-  // ── Callout valori di inizio e fine direttamente sulle curve ────────────────
-  // Curva azionaria: valore iniziale (punto blu) + valore finale (punto verde)
-  const eqStart = eqs[0], eqEnd = eqs[eqs.length - 1];
-  const muStart = mus[0], muEnd = mus[mus.length - 1];
-
-  const xS = xOf(aMin), xE = xOf(aMax);
-  const yEqS = yOfEq(eqStart), yEqE = yOfEq(eqEnd);
-  const yMuS = yOfMu(muStart), yMuE = yOfMu(muEnd);
-
-  // Punto intermedio: senza un riferimento a metà percorso la "Curvatura k" —
-  // il parametro che lo slider qui sotto fa effettivamente variare — non è
-  // leggibile sul grafico, solo nei due estremi (che k non altera). Un piccolo
-  // marker discreto rende visibile quanto la curva si scosta dalla linea retta.
-  const aMid = Math.round((aMin + aMax) / 2);
-  const eqMid = eqs[aMid - aMin];
-  const xMid = xOf(aMid), yEqMid = yOfEq(eqMid);
-  const midMarker = aMid > aMin && aMid < aMax
-    ? `<circle cx="${xMid.toFixed(1)}" cy="${yEqMid.toFixed(1)}" r="2.5" fill="var(--blue)" opacity="0.55"/>` +
-      `<text x="${xMid.toFixed(1)}" y="${(yEqMid-7).toFixed(1)}" font-size="8" font-weight="600" fill="var(--blue)" font-family="DM Mono" text-anchor="middle" opacity="0.75">${Math.round(eqMid*100)}%</text>`
-    : '';
-
-  // Label valore Az% inizio (sopra il punto, asse sin.)
-  const lblEqStart = `<text x="${(xS+6).toFixed(1)}" y="${(yEqS-6).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="start">${Math.round(eqStart*100)}%</text>`;
-  // Label valore Az% fine (a sinistra del punto, per non uscire dal box)
-  const lblEqEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yEqE-7).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="end">${Math.round(eqEnd*100)}%</text>`;
-
-  // Label valore μ inizio/fine — viola, coerente col titolo e con la linea tratteggiata
-  const lblMuStart = `<text x="${(xS+6).toFixed(1)}" y="${(yMuS+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.9">${(muStart*100).toFixed(1)}%</text>`;
-  const lblMuEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yMuE+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="end" opacity="0.9">${(muEnd*100).toFixed(1)}%</text>`;
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
-    ${gridLines}${muLabels}${xTicks}${todayMarker}
-    <polygon points="${fillPts}" fill="var(--blue)" opacity="0.07"/>
-    <polyline points="${ptMu}" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-dasharray="6 3" opacity="0.7"/>
-    <polyline points="${ptEq}" fill="none" stroke="var(--blue)"  stroke-width="2.8"/>
-    ${midMarker}
-    <circle cx="${xS.toFixed(1)}" cy="${yEqS.toFixed(1)}" r="4" fill="var(--blue)"/>
-    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="4" fill="var(--blue)" opacity="0.7"/>
-    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="3" fill="var(--green)"/>
-    ${lblEqStart}${lblEqEnd}${lblMuStart}${lblMuEnd}
-  </svg>`;
-}
-
-function _glideSideHTML(which) {
-  const g = state.glide;
-  const side = which === 'a' ? g.sideA : g.sideB;
-  const isCustom = side.type === 'custom';
-  const opts = GLIDE_PRESET_OPTIONS.map(([k, lbl]) =>
-    `<option value="${k}"${!isCustom && side.ref === k ? ' selected' : ''}>${lbl}</option>`).join('');
-  const label = which === 'a' ? 'A — Partenza (giovane)' : 'B — Arrivo (meta)';
-  const emoji = which === 'a' ? '🚀' : '🛡️';
-
-  let body;
-  if (!isCustom) {
-    body = `<select class="glide-select" onchange="setGlideSideRef('${which}',this.value)">${opts}</select>`;
-  } else {
-    // Mini-builder INDIPENDENTE per questo lato (slot propri, non condivisi col custom).
-    const slots = side.slots || [];
-    const total = slots.reduce((s, sl) => s + (+sl.pct || 0), 0);
-    const totalOk = Math.abs(total - 100) < 0.5;
-    const acOptions = Object.entries(ASSET_CLASSES).map(([k, v]) => ({ k, lbl: `${v.emoji} ${v.label}` }));
-    const rows = slots.map((sl, i) => `
-      <div class="glide-slot">
-        <select class="glide-slot-select" onchange="updGlideSlotAc('${which}',${i},this.value)">
-          <option value="">— asset —</option>
-          ${acOptions.map(o => `<option value="${o.k}"${sl.ac === o.k ? ' selected' : ''}>${o.lbl}</option>`).join('')}
-        </select>
-        <input class="glide-slot-pct" type="number" min="0" max="100" step="5" value="${sl.pct}" onchange="updGlideSlotPct('${which}',${i},+this.value)">
-        <button class="dbtn glide-slot-del" onclick="delGlideSlot('${which}',${i})">✕</button>
-      </div>`).join('');
-    body = `
-      <div class="glide-slots">${rows || '<div style="font-size:11px;color:var(--text3);padding:4px 0">Nessun asset. Aggiungine uno o importa.</div>'}</div>
-      <div class="glide-slot-total ${totalOk ? 'ok' : total < 100 ? 'warn' : 'err'}">
-        ${total.toFixed(1)}% ${totalOk ? '✅' : total < 100 ? '⚠️ −' + (100 - total).toFixed(0) + '%' : '❌ +' + (total - 100).toFixed(0) + '%'}
-      </div>
-      <div class="glide-slot-actions">
-        <button class="gbtn" onclick="addGlideSlot('${which}')">+ Asset</button>
-        <button class="gbtn" onclick="normalizeGlideSide('${which}')" title="Riporta i pesi a somma 100%">⚖️ 100%</button>
-        <button class="gbtn" onclick="importGlideSideFromCustom('${which}')" title="Copia la composizione dal builder Custom del Simulatore">⤵ Da Custom</button>
-      </div>`;
-  }
-
-  return `<div class="glide-side ${which}">
-    <div class="glide-side-hd">${emoji} ${label}</div>
-    <div class="glide-radio">
-      <button class="${!isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','preset')">Preset</button>
-      <button class="${isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','custom')">Custom proprio</button>
-    </div>
-    ${body}
-  </div>`;
-}
-
-function renderGlideBuilder() {
-  const el = document.getElementById('glideBuilder');
-  if (!el) return;
-  el.classList.add('visible');
-  const g = state.glide;
-  // Clamp coerenza età
-  if (g.ageEnd <= g.ageStart) g.ageEnd = g.ageStart + 1;
-  const kLabel = g.k <= 0.85 ? 'concavo (de-risk presto)' : g.k >= 1.6 ? 'convesso (de-risk tardi)' : g.k >= 0.95 && g.k <= 1.05 ? 'lineare' : 'intermedio';
-
-  // Param chips a 3 età rappresentative (inizio, metà, fine)
-  const aMid = Math.round((g.ageStart + g.ageEnd) / 2);
-  const chip = (age) => { const p = getGlideParams(age); return `<span class="custom-param-chip" title="Età ${age}">${age}a · Az <strong>${(p.eq*100).toFixed(0)}%</strong> · μ <strong>${(p.normal*100).toFixed(1)}%</strong> · σ <strong>${(p.vol*100).toFixed(0)}%</strong>${p.goldW>0.005?` · Oro <strong>${(p.goldW*100).toFixed(0)}%</strong>`:''}</span>`; };
-
-  document.getElementById('portDetailBox').innerHTML = `
-    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Parametri interpolati lungo il glide (transizione A→B):</div>
-    <div class="custom-params">${chip(g.ageStart)}${chip(aMid)}${chip(g.ageEnd)}</div>`;
-
-  el.innerHTML = `
-    <div class="sec-label" style="margin-bottom:12px">⤵ Glide Path — transizione tra due strategie</div>
-    <div class="glide-sides">${_glideSideHTML('a')}${_glideSideHTML('b')}</div>
-    <div class="glide-curve-wrap">
-      <div class="glide-curve-title">Quota azionaria effettiva lungo l'età (— blu) · rendimento atteso <span style="text-transform:none">μ</span> del blend (- - viola)</div>
-      ${_glideCurveSVG()}
-    </div>
-    <div class="glide-controls">
-      <div class="glide-ctl">
-        <label>Età inizio <span class="val">${g.ageStart}</span></label>
-        <input type="range" min="18" max="70" step="1" value="${g.ageStart}" oninput="setGlideAge('start',+this.value)">
-      </div>
-      <div class="glide-ctl">
-        <label>Età meta <span class="val">${g.ageEnd}</span></label>
-        <input type="range" min="25" max="90" step="1" value="${g.ageEnd}" oninput="setGlideAge('end',+this.value)">
-      </div>
-      <div class="glide-ctl">
-        <label>Curvatura k=<span class="val">${(+g.k).toFixed(2)}</span> · ${kLabel}</label>
-        <input type="range" min="0.4" max="3" step="0.1" value="${g.k}" oninput="setGlideK(+this.value)">
-        <div class="glide-shape-btns">
-          <button class="${g.k>=0.95&&g.k<=1.05?'active':''}" onclick="setGlideK(1)">Lineare</button>
-          <button class="${g.k>=1.9&&g.k<=2.1?'active':''}" onclick="setGlideK(2)">Convesso (k2)</button>
-          <button class="${g.k>=0.55&&g.k<=0.75?'active':''}" onclick="setGlideK(0.65)">Concavo</button>
-        </div>
-      </div>
-    </div>
-    <div class="info-box" style="font-size:11.5px">
-      <strong>Come funziona:</strong> ad ogni età il portafoglio è una miscela α·A + (1−α)·B. Tutte le proprietà (quota azionaria, leva, composizione, fiscalità, FX) sono interpolate insieme. <strong>k&gt;1</strong> (convesso) mantiene la strategia aggressiva più a lungo e de-rischia rapidamente verso la meta — coerente col rischio di sequenza, massimo negli ultimi anni. Il backtest storico non è disponibile (strategia forward-looking); usa <strong>Simulatore</strong> e <strong>Monte Carlo</strong>.
-    </div>`;
-}
-
-// ── Handlers del glide builder ───────────────────────────────────────────────
-function _afterGlideChange(){ if (typeof _glideCache!=='undefined') _glideCache.sig=null; renderGlideBuilder(); syncPresetTer('glide'); updateRetInfo(); updateSeqDesc(); render(); }
-function _glideSide(which){ return which==='a' ? state.glide.sideA : state.glide.sideB; }
-function setGlideSideType(which, type){
-  const side = _glideSide(which);
-  if (type==='custom'){
-    side.type='custom';
-    // Mantieni gli slot già definiti per questo lato; se assenti, seed sensato
-    // (NON copia automaticamente dal builder condiviso: i due lati sono indipendenti).
-    if (!Array.isArray(side.slots) || !side.slots.length) {
-      side.slots = which==='a'
-        ? [{ac:'eq_sviluppati',pct:80},{ac:'ob_glob_agg',pct:20}]
-        : [{ac:'eq_sviluppati',pct:30},{ac:'ob_glob_agg',pct:50},{ac:'gold',pct:20}];
-    }
-  } else {
-    side.type='preset'; if(!side.ref) side.ref = which==='a'?'ec_glob_9060':'golden_butterfly';
-  }
-  _afterGlideChange();
-}
-function setGlideSideRef(which, ref){ const side=_glideSide(which); side.type='preset'; side.ref=ref; _afterGlideChange(); }
-// Editor slot per-lato (indipendente dal builder custom condiviso)
-function updGlideSlotAc(which, i, ac){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].ac=ac; _afterGlideChange(); } }
-function updGlideSlotPct(which, i, pct){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].pct=Math.max(0,pct||0); _afterGlideChange(); } }
-function addGlideSlot(which){ const s=_glideSide(which); if(!Array.isArray(s.slots)) s.slots=[]; s.slots.push({ac:'',pct:0}); _afterGlideChange(); }
-function delGlideSlot(which, i){ const s=_glideSide(which); if(s.slots){ s.slots.splice(i,1); if(!s.slots.length) s.slots.push({ac:'eq_sviluppati',pct:100}); _afterGlideChange(); } }
-function normalizeGlideSide(which){ const s=_glideSide(which); const arr=(s.slots||[]).filter(sl=>sl.ac&&sl.pct>0); const t=arr.reduce((a,sl)=>a+sl.pct,0); if(!t) return; s.slots=arr.map(sl=>({...sl,pct:Math.round(sl.pct/t*1000)/10})); _afterGlideChange(); }
-function importGlideSideFromCustom(which){ const s=_glideSide(which); const src=(state.customPortfolio?.slots||[]).filter(sl=>sl.ac&&sl.pct>0); if(!src.length){ alert('Il builder Custom del Simulatore è vuoto. Configura prima un\'allocazione nella scheda Custom.'); return; } s.type='custom'; s.slots=src.map(sl=>({...sl})); _afterGlideChange(); }
-function setGlideAge(which, v){ if(which==='start') state.glide.ageStart=v; else state.glide.ageEnd=v; if(state.glide.ageEnd<=state.glide.ageStart){ if(which==='start') state.glide.ageStart=state.glide.ageEnd-1; else state.glide.ageEnd=state.glide.ageStart+1; } _afterGlideChange(); }
-function setGlideK(v){ state.glide.k=Math.max(0.4,Math.min(3,v)); _afterGlideChange(); }
 
 // ── Helper unificato: restituisce parametri portafoglio (custom o PORT) ──────
 // Usato da tutti i moduli che prima accedevano direttamente a PORT[key].
 // Per 'custom' chiama calcCustomParams(); per gli altri restituisce PORT[key].
 function getPortParams(portKey) {
   if (portKey === 'custom') return calcCustomParams();
-  if (portKey === 'glide')  return getGlideParams(state.age); // params @ età corrente
   // Per portafogli predefiniti, restituisce una copia con best/normal/worst
   // aggiustati per FX hedging — così updateRetInfo mostra valori coerenti con render()
   const p = PORT[portKey];
@@ -3769,8 +3321,7 @@ function getPortParams(portKey) {
 }
 // ── Label portafoglio (anche per 'custom') ────────────────────────────────────
 function getPortLabel(portKey) {
-  if (portKey === 'custom') return '🔧 Custom';
-  if (portKey === 'glide')  return '⤵ Glide Path';
+  if (portKey === 'custom') return 'Custom';
   return PORT[portKey]?.label ?? portKey;
 }
 
@@ -3780,7 +3331,6 @@ function getPortLabel(portKey) {
 // Per gli altri: usa PORT[key].fxExp
 function getFxExposure(portKey, age) {
   if (portKey === 'custom') return calcCustomParams().fxExposure ?? 0;
-  if (portKey === 'glide')  return getGlideParams(age ?? state.age).fxExposure ?? 0;
   if (portKey === 'lifecycle') {
     const eq = getLCWeight(age ?? state.age);
     return eq * 0.85 + (1 - eq) * 0.05; // equity ~85% USD, bond ~5%
@@ -3805,17 +3355,6 @@ function getFxAdjustment(portKey, age) {
 const PRESET_TER = { "eq100": 0.18, "eq80": 0.18, "eq60": 0.17, "eq50": 0.16, "eq40": 0.15, "eq20": 0.13, "ob100": 0.12, "lifecycle": 0.18, "golden_butterfly": 0.20, "permanent": 0.20, "all_seasons": 0.25, "larry": 0.30, "global_market": 0.22, "ec_us_9060": 0.20, "ec_glob_9060": 0.25, "return_stack": 0.55 };
 function syncPresetTer(portKey) {
   if (portKey === 'custom') return; // il custom ha il suo sync dedicato
-  if (portKey === 'glide') {
-    // TER del glide = TER blendato sugli slot interpolati all'età corrente.
-    const cp = getGlideParams(state.age);
-    const t = Math.round((cp.ter ?? 0.20) * 100) / 100;
-    state.ter = t;
-    const sl = document.getElementById('sTer');
-    const lb = document.getElementById('lTer');
-    if (sl) sl.value = t;
-    if (lb) lb.textContent = t.toFixed(2) + '%';
-    return;
-  }
   const t = PRESET_TER[portKey];
   if (t === undefined) return;
   state.ter = t;
@@ -3843,6 +3382,41 @@ function syncCustomTer() {
 function addCustomSlot(){ state.customPortfolio.slots.push({ac:'',pct:0}); renderCustomBuilder(); syncCustomTer(); render(); }
 function delCustomSlot(i){ state.customPortfolio.slots.splice(i,1); if(!state.customPortfolio.slots.length) state.customPortfolio.slots.push({ac:'eq_world',pct:100}); renderCustomBuilder(); syncCustomTer(); render(); }
 function updCustomAc(i,ac){ state.customPortfolio.slots[i].ac=ac; renderCustomBuilder(); syncCustomTer(); render(); }
+
+// Costruisce le <option> del builder raggruppate per categoria in <optgroup>.
+// Niente emoji: la distinzione visiva è data dalle intestazioni native dei gruppi,
+// stile terminale finanziario. I gruppi seguono un ordine logico (azioni → fattori
+// → obbligazioni → reali → carry/trend → liquidità → strategie a leva).
+function buildAcOptions(selectedAc) {
+  const GROUPS = [
+    { label: 'Azioni',                test: (k,v) => v.cat === 'eq' && !v.isComposite },
+    { label: 'Fattori / Smart Beta',  test: (k,v) => v.cat === 'fat' },
+    { label: 'Obbligazioni',          test: (k,v) => typeof v.cat === 'string' && v.cat.indexOf('ob') === 0 },
+    { label: 'Beni reali (oro, materie prime)', test: (k,v) => v.cat === 'real' },
+    { label: 'Strategie alternative (carry, trend)', test: (k,v) => v.cat === 'carry' || v.cat === 'trend' },
+    { label: 'Liquidità',             test: (k,v) => v.cat === 'cash' },
+    { label: 'Strategie a leva (Efficient Core)', test: (k,v) => v.isComposite === true },
+  ];
+  const entries = Object.entries(ASSET_CLASSES);
+  const used = new Set();
+  let html = '';
+  for (const g of GROUPS) {
+    const items = entries.filter(([k,v]) => !used.has(k) && g.test(k,v));
+    if (!items.length) continue;
+    items.forEach(([k]) => used.add(k));
+    html += `<optgroup label="${g.label}">`;
+    html += items.map(([k,v]) => `<option value="${k}"${selectedAc===k?' selected':''}>${v.label}</option>`).join('');
+    html += `</optgroup>`;
+  }
+  // eventuali asset non classificate (fallback di sicurezza)
+  const orphans = entries.filter(([k]) => !used.has(k));
+  if (orphans.length) {
+    html += `<optgroup label="Altro">`;
+    html += orphans.map(([k,v]) => `<option value="${k}"${selectedAc===k?' selected':''}>${v.label}</option>`).join('');
+    html += `</optgroup>`;
+  }
+  return html;
+}
 function updCustomPct(i,pct){ state.customPortfolio.slots[i].pct=Math.max(0,pct); renderCustomBuilder(); syncCustomTer(); render(); }
 function normalizeCustom(){ const s=state.customPortfolio.slots.filter(sl=>sl.ac&&sl.pct>0); const t=s.reduce((acc,sl)=>acc+sl.pct,0); if(!t) return; state.customPortfolio.slots=s.map(sl=>({...sl,pct:Math.round(sl.pct/t*1000)/10})); renderCustomBuilder(); syncCustomTer(); render(); }
 
@@ -3859,17 +3433,18 @@ function toggleFxHedge() {
   render();
 }
 function resetCustomPreset(key){
-  // Preset extra non presenti in PRESET_SLOTS (specifici del builder custom)
-  const extra = {
+  const p = {
+    eq60:         [{ac:'eq_sviluppati',pct:60},{ac:'ob_glob_agg',pct:40}],
+    all_seasons:  [{ac:'eq_sviluppati',pct:30},{ac:'ob_usa_ult',pct:40},{ac:'ob_usa_it',pct:15},{ac:'gold',pct:7.5},{ac:'commodities',pct:7.5}],
+    permanent:    [{ac:'eq_sviluppati',pct:25},{ac:'ob_usa_ult',pct:25},{ac:'gold',pct:25},{ac:'cash',pct:25}],
+    larry:        [{ac:'eq_small_value',pct:15},{ac:'eq_europa',pct:7.5},{ac:'eq_em',pct:7.5},{ac:'ob_usa_it',pct:70}],
     global:       [{ac:'eq_sviluppati',pct:55},{ac:'ob_glob_agg',pct:45}],
     inflaz:       [{ac:'eq_sviluppati',pct:30},{ac:'ob_infl',pct:30},{ac:'gold',pct:20},{ac:'commodities',pct:20}],
     multifat:     [{ac:'fat_multifat',pct:70},{ac:'ob_glob_agg',pct:20},{ac:'gold',pct:10}],
     trend_div:    [{ac:'eq_sviluppati',pct:40},{ac:'fat_trend',pct:25},{ac:'ob_glob_gov',pct:25},{ac:'gold',pct:10}],
     carry_mix:    [{ac:'fat_carry_bond',pct:25},{ac:'fat_carry_fx',pct:20},{ac:'fat_carry_comm',pct:15},{ac:'eq_sviluppati',pct:25},{ac:'ob_glob_agg',pct:15}],
   };
-  // PRESET_SLOTS è la fonte di verità condivisa con il glide path.
-  const src = extra[key] ?? PRESET_SLOTS[key];
-  if(src){state.customPortfolio.slots=src.map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
+  if(p[key]){state.customPortfolio.slots=p[key].map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
 }
 
 
@@ -3902,7 +3477,7 @@ function makeEditable(labelId, sliderId, stateKey, fmtFn, opts) {
     inp.type = 'text';
     inp.inputMode = 'numeric';
     inp.value = cur;                                   // numero grezzo, niente € o punti
-    inp.style.cssText = 'width:9ch;font:inherit;color:inherit;background:var(--bg2,#1a1a1a);border:1px solid var(--blue,#1a73e8);border-radius:5px;padding:1px 5px;text-align:right';
+    inp.style.cssText = 'width:9ch;font:inherit;color:inherit;background:var(--bg-surface,#ffffff);border:1px solid var(--brand-red,#9e1b32);border-radius:5px;padding:1px 5px;text-align:right';
     const oldHTML = lab.innerHTML;
     lab.innerHTML = '';
     lab.appendChild(inp);
@@ -4029,28 +3604,14 @@ bindDecSlider('sDecTer', 'lDecTer', 'ter', v => v.toFixed(2) + '%');
 bindDecSlider('sDecI', 'lDecI', 'inflation', v => v.toFixed(1) + '%');
 
 document.getElementById('decAllocBtns').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; decState.portfolio = b.dataset.k; document.querySelectorAll('#decAllocBtns .gbtn').forEach(x => x.classList.remove('a-blue')); b.classList.add('a-blue'); 
+  // Avviso se si sceglie "Mia allocazione" ma il Simulatore non ha un'allocazione custom configurata
   const decAllocWarn = document.getElementById('decAllocWarn');
   if (decAllocWarn) {
     const slots = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0);
-    if (b.dataset.k === 'glide') {
-      // Il decumulo usa il Glide Path all'età di pensionamento (state.age + state.years).
-      // Poiché quell'età è ≥ ageEnd, il glide è clampato al LATO B (de-risking finale).
-      const g = state.glide;
-      const decAge = state.age + state.years;
-      const sideLbl = s => s && (s.type === 'custom' ? 'allocazione custom'
-        : (typeof getPortLabel === 'function' ? getPortLabel(s.ref) : (s && s.ref)) || (s && s.ref));
+    if (b.dataset.k === 'custom' && slots.length === 0) {
       decAllocWarn.style.display = 'block';
-      if (g && decAge < g.ageEnd) {
-        decAllocWarn.innerHTML = `⚠️ Il tuo pensionamento (età ${decAge}) cade <strong>prima</strong> della fine del Glide Path (età ${g.ageEnd}). Il decumulo congela la composizione all'età ${decAge} — una <strong>miscela A/B ancora in transizione</strong>, non il Lato B finale. Per modellare il de-risking che prosegue durante il decumulo, usa il <strong>Monte Carlo Avanzato</strong>.`;
-      } else {
-        decAllocWarn.innerHTML = `✓ Decumulo del <strong>Lato B</strong> del Glide Path (${sideLbl(g && g.sideB)}), la composizione di de-risking raggiunta a fine accumulo (età ${g ? g.ageEnd : decAge}). È l'allocazione corretta da prelevare in pensione. <span style="color:var(--text3)">La composizione resta fissa: il glide ha già completato la transizione.</span>`;
-      }
-    } else if (b.dataset.k === 'custom' && state.portfolio === 'glide') {
-      decAllocWarn.style.display = 'block';
-      decAllocWarn.innerHTML = '⚠️ Hai il <strong>Glide Path</strong> attivo nel Simulatore, ma questa scheda usa l\'Allocazione Custom (pesi fissi del builder), <strong>non</strong> il Lato B del glide. Se vuoi decumulare la composizione di de-risking del lifecycle, scegli il bottone <strong>⤵ Glide Path (Lato B)</strong> qui sopra.';
-    } else if (b.dataset.k === 'custom' && slots.length === 0) {
-      decAllocWarn.style.display = 'block';
-      decAllocWarn.innerHTML = '⚠️ Non hai ancora configurato un\'allocazione personalizzata nella scheda Simulatore. Vai al Simulatore, scegli "Allocazione personalizzata" e imposta gli asset, poi torna qui.';
+      decAllocWarn.innerHTML = '<i data-lucide="alert-triangle" class="lucide-sm"></i> Non hai ancora configurato un\'allocazione personalizzata nella scheda Simulatore. Vai al Simulatore, scegli "Allocazione personalizzata" e imposta gli asset, poi torna qui.';
+      if (window.refreshIcons) window.refreshIcons();
     } else {
       decAllocWarn.style.display = 'none';
     }
@@ -4088,9 +3649,10 @@ function updateDecOverlapWarning() {
   const both = decState.seq && decState.seq.on && decState.ecoScenario;
   if (both) {
     el.style.display = 'block';
-    el.innerHTML = `⚠ <strong>Stai sovrapponendo due stress</strong>: un crash di sequenza e un regime macro (${ECO_SCENARIOS[decState.ecoScenario]?.label || decState.ecoScenario}). ` +
+    el.innerHTML = `<i data-lucide="alert-triangle" class="lucide-sm"></i> <strong>Stai sovrapponendo due stress</strong>: un crash di sequenza e un regime macro (${ECO_SCENARIOS[decState.ecoScenario]?.label || decState.ecoScenario}). ` +
       `Negli anni colpiti dal crash, il crollo prevale sul rendimento del regime; negli altri anni resta attivo il regime macro. ` +
       `È uno scenario di stress combinato volutamente severo — utile per testare la tenuta nel caso peggiore, ma poco probabile come evento congiunto.`;
+    if (window.refreshIcons) window.refreshIcons();
   } else {
     el.style.display = 'none';
     el.innerHTML = '';
@@ -4119,7 +3681,8 @@ function initDecEcoBtns() {
   Object.entries(ECO_SCENARIOS).forEach(([k, s]) => {
     const btn = document.createElement('button');
     btn.className = 'gbtn'; btn.dataset.e = k;
-    btn.innerHTML = s.emoji + ' ' + s.label;
+    btn.innerHTML = s.label;
+    if (window.refreshIcons) window.refreshIcons();
     wrap.appendChild(btn);
   });
 }
@@ -4156,12 +3719,8 @@ document.getElementById('allocBtns').onclick = e => {
   document.querySelectorAll('#allocBtns .gbtn').forEach(x => x.classList.remove('a-blue'));
   b.classList.add('a-blue');
   const builder = document.getElementById('customBuilder');
-  const glideB = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', b.dataset.k === 'custom');
-  if (glideB) glideB.classList.toggle('visible', b.dataset.k === 'glide');
-  if (b.dataset.k === 'custom') syncCustomTer();
-  else syncPresetTer(b.dataset.k);
-  if (b.dataset.k === 'glide') renderGlideBuilder();
+  if (b.dataset.k === 'custom') syncCustomTer(); else syncPresetTer(b.dataset.k);
   updateRetInfo(); updatePortDetailBox(); updateSeqDesc(); render();
 };
 
@@ -4187,8 +3746,8 @@ function updateRetInfo() {
     }
 
     const btnLabel = isOn
-      ? `⚡ CAPE-adj <span style="font-size:10px;opacity:.7">(valutazioni live)</span>`
-      : `📊 Storico puro <span style="font-size:10px;opacity:.7">(baseline)</span>`;
+      ? `<i data-lucide="zap" class="lucide-sm"></i> CAPE-adj <span style="font-size:10px;opacity:.7">(valutazioni live)</span>`
+      : `<i data-lucide="bar-chart-3" class="lucide-sm"></i> Storico puro <span style="font-size:10px;opacity:.7">(baseline)</span>`;
     const btnTitle = isOn
       ? 'Rendimenti = baseline + scostamento dovuto alle valutazioni correnti (CAPE/yield), calcolato con metodo coerente col baseline. Clicca per disattivare.'
       : 'Rendimenti baseline forward-looking (non aggiustati per le valutazioni di mercato correnti). Clicca per applicare lo scostamento da CAPE/yield live.';
@@ -4210,7 +3769,8 @@ function updateRetInfo() {
     </div>`;
   })();
   if (!p || !p.normal) el.innerHTML = `<span>Lifecycle: equity 80%→20% con l'età.</span><span style="color:var(--text3);width:100%;margin-top:2px">Tassi nominali netti TER ${state.ter.toFixed(2)}%. Tasse solo alla vendita finale.</span>${liveNote}`;
-  else el.innerHTML = `<span>🔴 Pess. <strong>${nT(p.worst).toFixed(2)}%</strong>/a</span><span>🔵 Base <strong>${nT(p.normal).toFixed(2)}%</strong>/a</span><span>🟢 Ott. <strong>${nT(p.best).toFixed(2)}%</strong>/a</span><span>📊 Vol. <strong>${p.vol ? (p.vol * 100).toFixed(0) + '%' : 'var.'}</strong>/a</span><span style="color:var(--text3);width:100%;margin-top:2px">Tassi nominali lordi netti TER ${state.ter.toFixed(2)}%. Tasse solo alla liquidazione.</span>${liveNote}`;
+  else el.innerHTML = `<span><span class="ldot" style="background:var(--negative)"></span> Pess. <strong>${nT(p.worst).toFixed(2)}%</strong>/a</span><span><span class="ldot" style="background:var(--brand-red)"></span> Base <strong>${nT(p.normal).toFixed(2)}%</strong>/a</span><span><span class="ldot" style="background:var(--positive)"></span> Ott. <strong>${nT(p.best).toFixed(2)}%</strong>/a</span><span><i data-lucide="bar-chart-3" class="lucide-sm"></i> Vol. <strong>${p.vol ? (p.vol * 100).toFixed(0) + '%' : 'var.'}</strong>/a</span><span style="color:var(--text3);width:100%;margin-top:2px">Tassi nominali lordi netti TER ${state.ter.toFixed(2)}%. Tasse solo alla liquidazione.</span>${liveNote}`;
+  if (window.refreshIcons) window.refreshIcons();
 }
 
 function toggleSeq() { state.seq.on = !state.seq.on; document.getElementById('seqTog').classList.toggle('on', state.seq.on); document.getElementById('seqOpts').style.display = state.seq.on ? 'block' : 'none'; updateSeqDesc(); render(); }
@@ -4287,14 +3847,18 @@ function toggleAllRows() { state.allRows = !state.allRows; document.getElementBy
 function renderPacChgList() {
   const el = document.getElementById('pacChgList'), sumEl = document.getElementById('pacSummary');
   if (!state.pacChanges.length) { el.innerHTML = '<div class="empty-entry">PAC fisso per tutto l\'orizzonte</div>'; sumEl.style.display = 'none'; return; }
-  el.innerHTML = state.pacChanges.map(p => { const amt = +p.amount; let bc = 'pac-badge pac-badge-same', bt = '= uguale'; if (amt === 0) { bc = 'pac-badge pac-badge-stop'; bt = 'SOSPESO'; } else if (amt > state.pac) { bc = 'pac-badge pac-badge-up'; bt = '+ €' + fmtN(amt - state.pac) + '/m'; } else if (amt < state.pac) { bc = 'pac-badge pac-badge-down'; bt = '- €' + fmtN(state.pac - amt) + '/m'; } return `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${p.year}" onchange="updPacChg(${p.id},'year',this.value)"><span class="elab">€/mese</span><input class="einput" type="number" min="0" step="50" value="${p.amount}" placeholder="0=sospeso" onchange="updPacChg(${p.id},'amount',this.value)"><span class="${bc}">${bt}</span><button class="dbtn" onclick="delPacChg(${p.id})">✕</button></div>`; }).join('');
+  el.innerHTML = state.pacChanges.map(p => { const amt = +p.amount; let bc = 'pac-badge pac-badge-same', bt = '= uguale'; if (amt === 0) { bc = 'pac-badge pac-badge-stop'; bt = 'SOSPESO'; } else if (amt > state.pac) { bc = 'pac-badge pac-badge-up'; bt = '+ €' + fmtN(amt - state.pac) + '/m'; } else if (amt < state.pac) { bc = 'pac-badge pac-badge-down'; bt = '- €' + fmtN(state.pac - amt) + '/m'; } return `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${p.year}" onchange="updPacChg(${p.id},'year',this.value)"><span class="elab">€/mese</span><input class="einput" type="number" min="0" step="50" value="${p.amount}" placeholder="0=sospeso" onchange="updPacChg(${p.id},'amount',this.value)"><span class="${bc}">${bt}</span><button class="dbtn" onclick="delPacChg(${p.id})"><i data-lucide="x" class="lucide-sm"></i></button></div>`; }).join('');
+  if (window.refreshIcons) window.refreshIcons();
   const sorted = [...state.pacChanges].sort((a, b) => +a.year - +b.year); let tl = '';
   if (sorted[0].year > 1) tl = `Anni 1-${sorted[0].year - 1}: €${fmtN(state.pac)}/m`;
   sorted.forEach((c, i) => { const nxt = sorted[i + 1] ? sorted[i + 1].year - 1 : state.years; const rng = +c.year === nxt ? `Anno ${c.year}` : `Anni ${c.year}-${nxt}`; const sep = tl ? ' → ' : ''; tl += +c.amount === 0 ? `${sep}${rng}: SOSPESO` : `${sep}${rng}: €${fmtN(c.amount)}/m`; });
-  sumEl.innerHTML = '📅 ' + tl; sumEl.style.display = 'block';
+  sumEl.innerHTML = '<i data-lucide="calendar" class="lucide-sm"></i> ' + tl; sumEl.style.display = 'block';
+  if (window.refreshIcons) window.refreshIcons();
 }
-function renderPicList() { const el = document.getElementById('picList'); if (!state.pics.length) { el.innerHTML = '<div class="empty-entry">Nessun versamento aggiuntivo</div>'; return; } el.innerHTML = state.pics.map(p => `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${p.year}" onchange="updPic(${p.id},'year',this.value)"><span class="elab">Importo €</span><input class="einput" type="number" min="0" step="1000" value="${p.amount}" onchange="updPic(${p.id},'amount',this.value)"><button class="dbtn" onclick="delPic(${p.id})">✕</button></div>`).join(''); }
-function renderExpList() { const el = document.getElementById('expList'); if (!state.exps.length) { el.innerHTML = '<div class="empty-entry">Nessuna spesa straordinaria</div>'; return; } el.innerHTML = state.exps.map(e => `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${e.year}" onchange="updExp(${e.id},'year',this.value)"><span class="elab">Importo €</span><input class="einput" type="number" min="0" step="1000" value="${e.amount}" onchange="updExp(${e.id},'amount',this.value)"><button class="dbtn" onclick="delExp(${e.id})">✕</button></div>`).join(''); }
+function renderPicList() { const el = document.getElementById('picList'); if (!state.pics.length) { el.innerHTML = '<div class="empty-entry">Nessun versamento aggiuntivo</div>'; return; } el.innerHTML = state.pics.map(p => `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${p.year}" onchange="updPic(${p.id},'year',this.value)"><span class="elab">Importo €</span><input class="einput" type="number" min="0" step="1000" value="${p.amount}" onchange="updPic(${p.id},'amount',this.value)"><button class="dbtn" onclick="delPic(${p.id})"><i data-lucide="x" class="lucide-sm"></i></button></div>`).join(''); }
+if (window.refreshIcons) window.refreshIcons();
+function renderExpList() { const el = document.getElementById('expList'); if (!state.exps.length) { el.innerHTML = '<div class="empty-entry">Nessuna spesa straordinaria</div>'; return; } el.innerHTML = state.exps.map(e => `<div class="erow"><span class="elab">Anno</span><input class="einput" type="number" min="1" max="${state.years}" value="${e.year}" onchange="updExp(${e.id},'year',this.value)"><span class="elab">Importo €</span><input class="einput" type="number" min="0" step="1000" value="${e.amount}" onchange="updExp(${e.id},'amount',this.value)"><button class="dbtn" onclick="delExp(${e.id})"><i data-lucide="x" class="lucide-sm"></i></button></div>`).join(''); }
+if (window.refreshIcons) window.refreshIcons();
 function addPic() { state.pics.push({ id: picId++, year: 5, amount: 10000 }); renderPicList(); render(); }
 function addExp() { state.exps.push({ id: expId++, year: 6, amount: 20000 }); renderExpList(); render(); }
 function delPic(id) { state.pics = state.pics.filter(p => p.id !== id); renderPicList(); render(); }
@@ -4333,7 +3897,6 @@ function saveStateToLS() {
       activeEcoScenario: state.activeEcoScenario, ecoTiming: state.ecoTiming,
       fxHedge: !!state.fxHedge, fxVol: state.fxVol, fxHedgeCost: state.fxHedgeCost,
       capeAdj: state.capeAdj !== false,
-      glide: state.glide,  // config glide path (lati A/B, età, curvatura k)
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snap));
     localStorage.setItem(LS_KEYB, JSON.stringify({ portfolio: stateB.portfolio, ter: stateB.ter, pac: stateB.pac }));
@@ -4368,20 +3931,6 @@ function loadStateFromLS() {
     state.fxHedge       = !!snap.fxHedge;
     state.fxVol         = n(snap.fxVol, 0.085);    state.fxHedgeCost   = n(snap.fxHedgeCost, 0.003);
     state.capeAdj       = snap.capeAdj !== false; // default true se non presente
-    // Ripristina config glide path (con validazione difensiva)
-    if (snap.glide && typeof snap.glide === 'object') {
-      const gg = snap.glide;
-      const validSide = s => s && (s.type === 'preset' ? typeof s.ref === 'string'
-                                  : (s.type === 'custom' && Array.isArray(s.slots)));
-      if (validSide(gg.sideA) && validSide(gg.sideB)
-          && Number.isFinite(+gg.ageStart) && Number.isFinite(+gg.ageEnd) && Number.isFinite(+gg.k)) {
-        state.glide = {
-          sideA: gg.sideA, sideB: gg.sideB,
-          ageStart: +gg.ageStart, ageEnd: Math.max(+gg.ageStart + 1, +gg.ageEnd),
-          k: Math.max(0.4, Math.min(3, +gg.k)),
-        };
-      }
-    }
     if (snap.seq) {
       state.seq.on       = !!snap.seq.on;
       state.seq.severity = snap.seq.severity || 'moderate';
@@ -4440,8 +3989,9 @@ function _showRestoreBadge() {
   const el = document.getElementById('liveDataBanner');
   if (!el) return;
   const badge = document.createElement('div');
-  badge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--green);background:var(--green-dim);border:1px solid rgba(30,142,62,.3);border-radius:5px;padding:3px 10px;margin-left:8px';
-  badge.innerHTML = '💾 Sessione precedente ripristinata <button onclick="clearSavedState()" style="margin-left:6px;border:none;background:none;cursor:pointer;font-size:11px;color:var(--text3)" title="Cancella e riparte da zero">✕</button>';
+  badge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--green);background:var(--green-dim);border:1px solid rgba(14,122,68,.3);border-radius:5px;padding:3px 10px;margin-left:8px';
+  badge.innerHTML = '<i data-lucide="save" class="lucide-sm"></i> Sessione precedente ripristinata <button onclick="clearSavedState()" style="margin-left:6px;border:none;background:none;cursor:pointer;font-size:11px;color:var(--text3)" title="Cancella e riparte da zero"><i data-lucide="x" class="lucide-sm"></i></button>';
+  if (window.refreshIcons) window.refreshIcons();
   el.parentNode && el.parentNode.insertBefore(badge, el.nextSibling);
   setTimeout(() => badge.remove(), 6000);
 }
@@ -4555,7 +4105,7 @@ function pdfSafe(s) {
 // ══════════════════════════════════════════════════════════════
 async function exportExcel() {
   const btn = document.getElementById('excelBtn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generazione…'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Generazione…'; } if (window.refreshIcons) window.refreshIcons();
   try {
     if (typeof XLSX === 'undefined') throw new Error('SheetJS non caricato');
     const { w, age, years, ter, portfolio, seq } = state;
@@ -4628,39 +4178,6 @@ async function exportExcel() {
       });
       wsCustom = XLSX.utils.aoa_to_sheet([hdrAC, ...rowsAC]);
       wsCustom['!cols'] = [30,10,14,14,14,10,30].map(w=>({wch:w}));
-    } else if (portfolio === 'glide' && state.glide) {
-      // Foglio Glide Path: composizione e parametri interpolati a età rappresentative.
-      const g = state.glide;
-      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : (getPortLabel ? getPortLabel(side.ref)||side.ref : side.ref);
-      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
-      const headRows = [
-        ['GLIDE PATH — transizione tra due strategie'],
-        ['Strategia A (partenza, età '+g.ageStart+')', sideLabel(g.sideA)],
-        ['Strategia B (arrivo, età '+g.ageEnd+')', sideLabel(g.sideB)],
-        ['Curvatura k', (+g.k).toFixed(2) + (g.k>1.05?' (convesso)':g.k<0.95?' (concavo)':' (lineare)')],
-        [''],
-        ['Età', 'Azionario (%)', 'Obblig. (%)', 'Oro (%)', 'Cash (%)', 'μ atteso (%/a)', 'σ (%/a)', 'TER (%)', 'FX (%)', 'Aliquota fiscale (%)'],
-      ];
-      const ageRows = [];
-      for (let a = g.ageStart; a <= g.ageEnd; a++) {
-        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
-        const p = getGlideParams(a);
-        const tax = (typeof blendedTaxRate==='function') ? blendedTaxRate(a)*100 : '';
-        ageRows.push([
-          a,
-          (p.eq*100).toFixed(0),
-          (p.ob*100).toFixed(0),
-          (p.goldW*100).toFixed(0),
-          (p.cashW*100).toFixed(0),
-          (p.normal*100).toFixed(2),
-          (p.vol*100).toFixed(1),
-          (p.ter).toFixed(2),
-          ((p.fxExposure||0)*100).toFixed(0),
-          tax!==''?tax.toFixed(1):'',
-        ]);
-      }
-      wsCustom = XLSX.utils.aoa_to_sheet([...headRows, ...ageRows]);
-      wsCustom['!cols'] = [8,13,12,10,10,14,10,10,8,18].map(w=>({wch:w}));
     }
 
     // ── 4. Monte Carlo (se già eseguito) ────────────────────────
@@ -4816,7 +4333,7 @@ async function exportExcel() {
           +(obWxls*100).toFixed(1),
           +(goldWxls*100).toFixed(1),
           +(cashWxls*100).toFixed(1),
-          c.note,
+          stripTags(c.note),
         ]);
       } catch(e) { /* skip */ }
     }
@@ -4927,42 +4444,35 @@ async function exportExcel() {
       }
     } catch (e) { console.warn('Skip foglio Decumulo Storico:', e.message); }
 
-    // ── Foglio FX e Stress (per portfolio custom o glide) ──
+    // ── Foglio FX e Stress (solo per portfolio custom) ──
     let wsFx = null;
-    if (portfolio === 'custom' || portfolio === 'glide') {
-      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
+    if (portfolio === 'custom') {
+      const cp = calcCustomParams();
       if (cp) {
-        const ageNote = portfolio === 'glide' ? ' (all\'età corrente '+state.age+')' : '';
         const fxRows = [
-          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS'+ageNote+' ──', ''],
+          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS ──', ''],
           ['', ''],
-          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(1) + '%'],
+          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(1) + '%'],
           ['Hedging valutario attivo', cp.fxHedged ? 'SI' : 'NO'],
-          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '0%'],
+          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '0%'],
           ['', ''],
           ['── VOLATILITA NEI DUE REGIMI ──', ''],
-          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
+          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX, regime normale)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol in regime di stress (correlazioni -> 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
-          ['Vol aggiuntiva da FX', ((cp.fxAddVol||0) * 100).toFixed(2) + '%'],
+          ['Vol in regime di stress (correlazioni -> 1)', (cp.volStress * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
+          ['Vol aggiuntiva da FX', (cp.fxAddVol * 100).toFixed(2) + '%'],
           ['', ''],
           ['── PARAMETRI BLENDED ──', ''],
           ['Rendimento atteso (μ)', (cp.normal * 100).toFixed(2) + '%/a'],
           ['Best case', (cp.best * 100).toFixed(2) + '%/a'],
           ['Worst case', (cp.worst * 100).toFixed(2) + '%/a'],
-          ['Beta inflazione', (cp.inflBeta!=null?cp.inflBeta:0).toFixed(3)],
+          ['Beta inflazione', cp.inflBeta.toFixed(3)],
           ['TER medio suggerito', cp.ter.toFixed(2) + '%'],
-          ['Rendimento reale (μ - infl 2.1%)', ((cp.realRet!=null?cp.realRet:(cp.normal-0.021)) * 100).toFixed(2) + '%'],
+          ['Rendimento reale (μ - infl 2.1%)', (cp.realRet * 100).toFixed(2) + '%'],
         ];
-        if (portfolio === 'glide') {
-          fxRows.push(['', '']);
-          fxRows.push(['── NOTA GLIDE PATH ──', '']);
-          fxRows.push(['I parametri sopra sono all\'età '+state.age+'. Variano nel tempo:', '']);
-          fxRows.push(['vedi foglio "Glide Path" per la traiettoria completa.', '']);
-        }
         wsFx = XLSX.utils.aoa_to_sheet(fxRows);
-        wsFx['!cols'] = [{ wch: 46 }, { wch: 18 }];
+        wsFx['!cols'] = [{ wch: 42 }, { wch: 18 }];
       }
     }
 
@@ -4974,7 +4484,7 @@ async function exportExcel() {
     if (wsCS)     XLSX.utils.book_append_sheet(wb, wsCS,     'Stress Test Macro');
     if (wsDecHist) XLSX.utils.book_append_sheet(wb, wsDecHist, 'Decumulo Storico');
     if (wsQuant)  XLSX.utils.book_append_sheet(wb, wsQuant,  'Quant Analytics');
-    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, portfolio === 'glide' ? 'Glide Path' : 'Portfolio Custom');
+    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, 'Portfolio Custom');
     if (wsFx)     XLSX.utils.book_append_sheet(wb, wsFx,     'FX & Stress Vol');
 
     const fname = `report_patrimoniale_${new Date().toISOString().slice(0,10)}.xlsx`;
@@ -4983,7 +4493,7 @@ async function exportExcel() {
     alert('Errore export Excel: ' + e.message);
     console.error(e);
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '📊 Esporta Excel'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="bar-chart-3" class="lucide-sm"></i> Esporta Excel'; } if (window.refreshIcons) window.refreshIcons();
   }
 }
 
@@ -4992,7 +4502,7 @@ function _saveMCResults(results) { window._lastMCResults = results; }
 
 async function generatePDF() {
   const btn = document.getElementById('pdfBtn');
-  btn.disabled = true; btn.textContent = '⏳ Generazione report...';
+  btn.disabled = true; btn.innerHTML = '<i data-lucide="hourglass" class="lucide-sm"></i> Generazione report...'; if (window.refreshIcons) window.refreshIcons();
   await new Promise(r => setTimeout(r, 80));
   try {
     if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Libreria PDF non caricata');
@@ -5068,10 +4578,10 @@ async function generatePDF() {
     let mc = null;
     try { mc = runMontecarlo(); } catch (_) { mc = null; }
 
-    // Palette
-    const BLU = [26, 115, 232], GRN = [30, 142, 62], ORG = [227, 116, 0], PUR = [147, 52, 230];
-    const TEAL = [0, 137, 123], GRAY = [95, 99, 104], LBG = [248, 249, 250];
-    const WHT = [255, 255, 255], RED = [217, 48, 37], DARK = [32, 33, 36];
+    // Palette — allineata al rosso istituzionale del tool (vedi style.css :root)
+    const BLU = [158, 27, 50], GRN = [14, 122, 68], ORG = [89, 89, 89], PUR = [122, 18, 36];
+    const TEAL = [14, 122, 68], GRAY = [89, 89, 89], LBG = [244, 245, 247];
+    const WHT = [255, 255, 255], RED = [201, 42, 42], DARK = [33, 33, 33];
     const W = 210, H = 297, ML = 14, MR = 14, CW = W - ML - MR;
     let y = 0, pN = 1;
 
@@ -5140,12 +4650,12 @@ async function generatePDF() {
 
     // ─────────── COVER ───────────
     doc.setFillColor(...BLU); doc.rect(0, 0, W, 60, 'F');
-    doc.setFillColor(13, 71, 161); doc.rect(0, 55, W, 5, 'F');
+    doc.setFillColor(...PUR); doc.rect(0, 55, W, 5, 'F');
     doc.setFontSize(26); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHT);
     doc.text('Report Patrimoniale Pro', ML, 24);
     doc.setFontSize(11.5); doc.setFont('helvetica', 'normal');
     doc.text(pdfSafe('Suite v3 — Multi-Scenario · Monte Carlo · Regimi Economici · Sequence Risk'), ML, 33);
-    doc.setFontSize(8.8); doc.setTextColor(200, 225, 255);
+    doc.setFontSize(8.8); doc.setTextColor(240, 210, 215);
     doc.text(`Generato il ${new Date().toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' })} alle ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`, ML, 41);
     doc.text(pdfSafe(`Orizzonte ${years} anni  |  Eta ${age} -> ${endAge}  |  Portfolio: ${portMeta.label}`), ML, 47);
     y = 68;
@@ -5572,7 +5082,7 @@ async function generatePDF() {
 
     // ─────────── 7b. BACKTESTING STORICO ───────────
     doc.addPage(); pN++; y = 20; miniHdr();
-    sHdr('7b — Backtesting Storico — Dati Storici 1970-2024', [0, 150, 167]);
+    sHdr('7b — Backtesting Storico — Dati Storici 1970-2024', BLU);
     narrative(
       'Il backtesting usa 660 rendimenti mensili storici 1970-2024, ancorati anno per anno alle serie ufficiali in EUR (azioni MSCI World Net EUR, obbligazioni Euro Aggregate, oro LBMA); la granularita mensile e una ricostruzione coerente con il totale annuo reale. ' +
       'Il portafoglio e il PAC mensile attuali del simulatore vengono applicati a 10 periodi storici diversi, includendo le correlazioni dinamiche: ' +
@@ -5609,7 +5119,7 @@ async function generatePDF() {
       head: [['Anno', 'Evento Storico', 'IRR Piano', 'TWR Asset', 'Valore Finale', 'Max DD', 'Versato']],
       body: btResultRows,
       styles: { fontSize: 7.5, cellPadding: 2.2 },
-      headStyles: { fillColor: [0, 150, 167], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+      headStyles: { fillColor: BLU, textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
       columnStyles: {
         2: { fontStyle: 'bold', textColor: GRN },
         3: { fontStyle: 'bold', textColor: BLU },
@@ -5680,7 +5190,7 @@ async function generatePDF() {
     );
 
     // ─────────── 7d. STRESS TEST MACRO STORICI ───────────
-    sHdr('7d \u2014 Stress Test Macro Storici \u2014 Path Mensile Ricostruito', [183, 28, 28]);
+    sHdr('7d \u2014 Stress Test Macro Storici \u2014 Path Mensile Ricostruito', RED);
     narrative(
       'Simulazione del percorso mensile preciso del portafoglio attuale durante le 6 principali crisi macro 1970-2024. ' +
       'A differenza del backtesting PAC (piani con versamenti), questa analisi usa uno snapshot del capitale iniziale senza contributi aggiuntivi. ' +
@@ -5735,7 +5245,7 @@ async function generatePDF() {
     }
 
     const crisisPDFRows = [];
-    const TEAL_DARK = [0, 130, 150];
+    const TEAL_DARK = PUR;
     for (const c of CRISIS_PDF) {
       try {
         const sim = pdfCrisisPath(c, btPortKeyPDF);
@@ -5760,7 +5270,7 @@ async function generatePDF() {
         head: [['Crisi', 'S&P500', 'Contesto Macro', 'Max DD Port.', 'Perdita ('+fmtFull(btW0PDF)+')', 'Mese Peggiore', 'Recovery', 'Fine Finestra']],
         body: crisisPDFRows,
         styles: { fontSize: 7, cellPadding: 2.0, valign: 'top' },
-        headStyles: { fillColor: [183, 28, 28], textColor: WHT, fontStyle: 'bold', fontSize: 6.5 },
+        headStyles: { fillColor: RED, textColor: WHT, fontStyle: 'bold', fontSize: 6.5 },
         columnStyles: {
           3: { textColor: RED, fontStyle: 'bold' },
           4: { textColor: RED, fontStyle: 'bold' },
@@ -5870,7 +5380,7 @@ async function generatePDF() {
         columnStyles: {
           0: { fontStyle: 'bold' },
           2: { textColor: RED },
-          3: { textColor: [227, 116, 0] },
+          3: { textColor: ORG },
           4: { fontStyle: 'bold', textColor: GRN },
           5: { textColor: GRN },
         },
@@ -5921,7 +5431,7 @@ async function generatePDF() {
     // ─────────── 8b. DECUMULO STORICO (Trinity-style) ───────────
     try {
       const dh = runDecumuloHistorical();
-      sHdr('8c — Decumulo su Sequenze Storiche Reali (1970-2024)', [255, 152, 0]);
+      sHdr('8c — Decumulo su Sequenze Storiche Reali (1970-2024)', PUR);
       narrative(
         'Test di robustezza piu severo del Monte Carlo: ripercorre il piano di prelievo su tutti gli anni di partenza disponibili ' +
         'usando i rendimenti mensili storici REALI calibrati e l\'inflazione effettiva di ogni anno. Incorpora oil shock 1973, ' +
@@ -5958,7 +5468,7 @@ async function generatePDF() {
           ];
         }),
         styles: { fontSize: 8, cellPadding: 2.5 },
-        headStyles: { fillColor: [255, 152, 0], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+        headStyles: { fillColor: PUR, textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
         columnStyles: {
           2: { fontStyle: 'bold' },
           3: { halign: 'right' },
@@ -5974,77 +5484,31 @@ async function generatePDF() {
       );
     } catch (e) { /* skip if not available */ }
 
-    // ─────────── 8c-bis. GLIDE PATH (transizione tra strategie) ───────────
-    if (portfolio === 'glide' && state.glide) {
-      const g = state.glide;
-      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : ((typeof getPortLabel==='function'?getPortLabel(side.ref):side.ref)||side.ref);
-      sHdr('8c — Glide Path: transizione tra due strategie', [26, 115, 232]);
-      narrative(
-        `Il portafoglio Glide Path transiziona gradualmente dalla strategia A (${sideLabel(g.sideA)}, ` +
-        `all'eta ${g.ageStart}) alla strategia B (${sideLabel(g.sideB)}, all'eta ${g.ageEnd}). ` +
-        `Ad ogni eta il portafoglio e una miscela delle due, con tutte le proprieta (quota azionaria, leva, ` +
-        `composizione, fiscalita, FX) interpolate insieme. Curvatura k=${(+g.k).toFixed(2)} ` +
-        `(${g.k>1.05?'convesso: de-risking concentrato verso la meta, coerente col rischio di sequenza':g.k<0.95?'concavo: de-risking anticipato':'lineare'}).`
-      );
-      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
-      const glideRows = [];
-      for (let a = g.ageStart; a <= g.ageEnd; a++) {
-        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
-        const p = getGlideParams(a);
-        const tax = (typeof blendedTaxRate==='function') ? (blendedTaxRate(a)*100).toFixed(1)+'%' : '';
-        glideRows.push([
-          a + 'a',
-          (p.eq*100).toFixed(0)+'%',
-          (p.ob*100).toFixed(0)+'%',
-          (p.goldW*100).toFixed(0)+'%',
-          (p.normal*100).toFixed(2)+'%',
-          (p.vol*100).toFixed(1)+'%',
-          tax,
-        ]);
-      }
-      doc.autoTable({
-        startY: y,
-        head: [['Eta', 'Azioni', 'Obblig.', 'Oro', 'μ atteso', 'σ', 'Aliq. fisc.']],
-        body: glideRows,
-        styles: { fontSize: 8, cellPadding: 2.2 },
-        headStyles: { fillColor: [26, 115, 232], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
-        columnStyles: { 0:{fontStyle:'bold'}, 4:{halign:'right'}, 5:{halign:'right'}, 6:{halign:'right'} },
-        margin: { left: ML, right: MR },
-      });
-      y = doc.lastAutoTable.finalY + 4;
-      const _glLev = (typeof customPortfolioIsNonBacktestable==='function') && customPortfolioIsNonBacktestable();
-      callout('Nota sul Glide Path',
-        'I parametri evolvono con l\'eta: la scheda mostra eta rappresentative (inizio, meta, fine e ogni 5 anni). ' +
-        (_glLev ? 'Una delle due strategie usa leva o managed futures: il backtest storico non e disponibile (strategia forward-looking). Usa Simulatore e Monte Carlo. ' : '') +
-        'Il rischio di sequenza e massimo negli ultimi anni prima della meta, quando il capitale esposto e maggiore.',
-        [26, 115, 232]);
-    }
-
     // ─────────── 8c. FX HEDGING & STRESS VOL ───────────
-    if (portfolio === 'custom' || portfolio === 'glide') {
-      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
-      if (cp && ((cp.fxExposure||0) > 0.05 || cp.volStress)) {
-        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress'+(portfolio==='glide'?' (eta '+state.age+')':''), [156, 39, 176]);
+    if (portfolio === 'custom') {
+      const cp = calcCustomParams();
+      if (cp && (cp.fxExposure > 0.05 || cp.volStress)) {
+        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress', BLU);
         narrative(
           'Per un investitore in euro, l\'esposizione a valute estere (USD, GBP, JPY) ' +
           'introduce un secondo rischio: la volatilita del cambio EUR/USD (~8.5%/a storica). ' +
           'In regime di crisi, le correlazioni fra asset rischiosi salgono verso 1, riducendo i benefici della diversificazione.'
         );
         const fxRows = [
-          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(0) + '%'],
+          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(0) + '%'],
           ['Hedging valutario', cp.fxHedged ? 'ATTIVO' : 'NON ATTIVO'],
-          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '—'],
-          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
+          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '—'],
+          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol portafoglio in stress (correlazioni → 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
+          ['Vol portafoglio in stress (correlazioni → 1)', (cp.volStress * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
         ];
         doc.autoTable({
           startY: y,
           head: [['Parametro', 'Valore']],
           body: fxRows,
           styles: { fontSize: 8, cellPadding: 2.5 },
-          headStyles: { fillColor: [156, 39, 176], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+          headStyles: { fillColor: BLU, textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
           columnStyles: { 0: { fontStyle: 'bold', cellWidth: 90 }, 1: { halign: 'right', fontStyle: 'bold' } },
           margin: { left: ML, right: MR },
         });
@@ -6052,7 +5516,7 @@ async function generatePDF() {
         callout('Quando coprire il cambio?',
           'Per portafogli obbligazionari globali e per orizzonti brevi (<10 anni) l\'hedging EUR/USD migliora il Sharpe (riduce vol senza ridurre molto il rendimento). ' +
           'Per portafogli azionari globali a lungo termine (>15 anni), i benefici dell\'hedging si attenuano: storicamente l\'EUR/USD oscilla ma non mostra trend forti.',
-          [156, 39, 176]);
+          BLU);
       }
     }
 
@@ -6164,7 +5628,7 @@ async function generatePDF() {
       const stratLabels = { fixed: 'Fisso Nominale', inflation: 'Indicizzato Inflazione (4% rule)', gk: 'Guyton-Klinger (guard-rails)' };
       const decStratLabel = stratLabels[decState.strategy] || decState.strategy;
       const decPortMeta = getPortParams(decState.portfolio) || { label: decState.portfolio };
-      sHdr('8f \u2014 Piano di Decumulo \u2014 Strategia Prelievi', [0, 150, 136]);
+      sHdr('8f \u2014 Piano di Decumulo \u2014 Strategia Prelievi', PUR);
       let decExtraNote = '';
       if (decState.seq && decState.seq.on) {
         const sevLbl = { mild: '-20%', moderate: '-35%', severe: '-50%' }[decState.seq.severity] || '';
@@ -6203,7 +5667,7 @@ async function generatePDF() {
           ['Esaurimento capitale', ruinBase  < 0 ? 'Non si esaurisce' : 'Anno ' + (ruinBase + 1), '\u2014', ruinWorst < 0 ? 'Regge' : 'Anno ' + (ruinWorst + 1)],
         ],
         styles: { fontSize: 8, cellPadding: 2.5 },
-        headStyles: { fillColor: [0, 150, 136], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+        headStyles: { fillColor: PUR, textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
         columnStyles: { 1: { fontStyle: 'bold', textColor: BLU }, 3: { textColor: ruinWorst < 0 ? GRN[0] : RED[0] } },
         margin: { left: ML, right: MR }
       });
@@ -6214,14 +5678,14 @@ async function generatePDF() {
       for (let i = 0; i < Y; i += stepDec) {
         const d = dDecBase[i];
         if (!d) continue;
-        decRows.push([String(d.year), fmtFull(d.start), fmtFull(d.ret >= 0 ? d.ret : d.ret), fmtFull(d.withdrawal), fmtFull(d.end), (d.rate * 100).toFixed(2) + '%', d.note || '']);
+        decRows.push([String(d.year), fmtFull(d.start), fmtFull(d.ret >= 0 ? d.ret : d.ret), fmtFull(d.withdrawal), fmtFull(d.end), (d.rate * 100).toFixed(2) + '%', stripTags(d.note) || '']);
       }
       doc.autoTable({
         startY: y,
         head: [['Anno', 'Capitale Inizio', 'Rendimento', 'Prelievo', 'Capitale Fine', 'Tasso Prel.', 'Note']],
         body: decRows,
         styles: { fontSize: 7.5, cellPadding: 2 },
-        headStyles: { fillColor: [0, 150, 136], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
+        headStyles: { fillColor: PUR, textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
         columnStyles: { 2: { textColor: GRN }, 3: { textColor: RED }, 4: { fontStyle: 'bold', textColor: BLU }, 6: { fontSize: 7, textColor: GRAY } },
         margin: { left: ML, right: MR }
       });
@@ -6229,17 +5693,17 @@ async function generatePDF() {
       if (decState.strategy === 'gk') {
         callout('Guyton-Klinger Guard-Rails',
           `La regola GK aggiusta il prelievo in modo dinamico: se il tasso di prelievo corrente supera del 20% quello iniziale (${(decState.withdrawal / Math.max(1, decState.startPortfolio) * 100).toFixed(2)}%), scatta un taglio del 10%; se scende sotto del 20%, aumenta del 10% (salvo anno precedente negativo). Questa flessibilita permette prelievi iniziali piu alti rispetto alla regola del 4% statica, massimizzando il reddito mantenendo la longevita del portafoglio.`,
-          [0, 150, 136]
+          PUR
         );
       } else if (decState.strategy === 'inflation') {
         callout('Prelievo Indicizzato Inflazione',
           `Il prelievo annuale cresce del ${decState.inflation.toFixed(1)}% per mantenere costante il potere d'acquisto reale. E il metodo standard della pianificazione pensionistica (Bengen 1994). La regola del 4% con indicizzazione ha storicamente un tasso di sopravvivenza >95% su 30 anni con portafoglio 60/40 (Trinity Study 1998).`,
-          [0, 150, 136]
+          PUR
         );
       } else {
         callout('Prelievo Fisso Nominale',
           `Il prelievo rimane costante in termini nominali: ${fmtFull(decState.withdrawal)}/anno per ${decState.years} anni. Semplice da gestire ma il potere d'acquisto reale si erode anno per anno dell'inflazione cumulata. Con inflazione ${decState.inflation.toFixed(1)}%/a, dopo ${decState.years} anni il valore reale del prelievo sara circa ${fmtFull(Math.round(decState.withdrawal / Math.pow(1 + decState.inflation/100, decState.years)))}/anno.`,
-          [0, 150, 136]
+          PUR
         );
       }
     }
@@ -6252,7 +5716,7 @@ async function generatePDF() {
         const pr = calcPensione();
         if (pr && isFinite(pr.pensioneLordaAnn) && pr.pensioneLordaAnn > 0) {
           chkPB(40);
-          sHdr('8g — Stima Previdenziale (INPS)', [0, 121, 107]);
+          sHdr('8g — Stima Previdenziale (INPS)', BLU);
           narrative(`Hai utilizzato il modulo Pensione del simulatore. Questa stima e indipendente dal piano di accumulo sopra: proietta la pensione pubblica INPS sulla base della tua carriera contributiva, secondo il metodo contributivo (montante rivalutato al PIL e convertito con il coefficiente di trasformazione per eta). E una stima semplificata a fini educativi, non un calcolo previdenziale ufficiale.`);
           const ts = (pr.tassoSost != null) ? (pr.tassoSost * 100).toFixed(0) + '%' : 'n/d';
           doc.autoTable({
@@ -6265,7 +5729,7 @@ async function generatePDF() {
               ['Eta di pensionamento ipotizzata', String(penState.retAge) + ' anni'],
             ],
             theme:'grid', styles:{fontSize:8.5,cellPadding:2.5,font:'helvetica'},
-            headStyles:{fillColor:[0,121,107],textColor:255,fontStyle:'bold',fontSize:8.5},
+            headStyles:{fillColor:BLU,textColor:255,fontStyle:'bold',fontSize:8.5},
             margin:{left:ML,right:ML}
           });
           y = doc.lastAutoTable.finalY + 5;
@@ -6472,7 +5936,7 @@ async function generatePDF() {
     } catch (eNarr) { /* la sezione narrativa non deve mai bloccare il PDF */ }
 
     // ─────────── 10. NOTE LEGALI FINALI ───────────
-    sHdr('10 — Note Legali e Limiti del Modello', [150, 50, 50]);
+    sHdr('10 — Note Legali e Limiti del Modello', RED);
     narrative(
       'Limiti del modello. (1) Le simulazioni assumono una distribuzione gaussiana dei rendimenti, mentre i mercati reali presentano "fat tails" ' +
       '(eventi estremi piu frequenti). (2) Le correlazioni fra asset class sono assunte stabili, ma in periodi di stress tendono a convergere a 1. ' +
@@ -6486,9 +5950,9 @@ async function generatePDF() {
       CW - 8
     );
     chkPB(discFull.length * 4.2 + 14);
-    doc.setFillColor(255, 235, 235); doc.rect(ML, y, CW, discFull.length * 4.2 + 12, 'F');
-    doc.setDrawColor(200, 80, 80); doc.rect(ML, y, CW, discFull.length * 4.2 + 12, 'S');
-    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 50, 50);
+    doc.setFillColor(252, 237, 237); doc.rect(ML, y, CW, discFull.length * 4.2 + 12, 'F');
+    doc.setDrawColor(...RED); doc.rect(ML, y, CW, discFull.length * 4.2 + 12, 'S');
+    doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(...RED);
     doc.text(discFull, ML + 4, y + 6);
     y += discFull.length * 4.2 + 16;
 
@@ -6497,12 +5961,12 @@ async function generatePDF() {
     doc.text(pdfSafe(`Report generato da Suite Patrimoniale Pro v3 — ${new Date().toISOString().slice(0, 10)} — Pagine totali: ${pN}`), ML, Math.min(y, 285));
 
     doc.save(`report-patrimoniale-pro-${age}-${endAge}anni.pdf`);
-    btn.textContent = '✅ Scaricato!';
-    setTimeout(() => { btn.textContent = '📄 Scarica Report PDF'; btn.disabled = false; }, 3000);
+    btn.innerHTML = '<i data-lucide="check" class="lucide-sm"></i> Scaricato!'; if (window.refreshIcons) window.refreshIcons();
+    setTimeout(() => { btn.innerHTML = '<i data-lucide="file-text" class="lucide-sm"></i> Scarica Report PDF'; btn.disabled = false; }, 3000); if (window.refreshIcons) window.refreshIcons();
   } catch (e) {
     console.error('PDF error:', e);
-    btn.textContent = '❌ Errore: ' + (e.message || 'sconosciuto');
-    setTimeout(() => { btn.textContent = '📄 Scarica Report PDF'; btn.disabled = false; }, 4000);
+    btn.innerHTML = '<i data-lucide="x" class="lucide-sm"></i> Errore: ' + (e.message || 'sconosciuto'); if (window.refreshIcons) window.refreshIcons();
+    setTimeout(() => { btn.innerHTML = '<i data-lucide="file-text" class="lucide-sm"></i> Scarica Report PDF'; btn.disabled = false; }, 4000); if (window.refreshIcons) window.refreshIcons();
   }
 }
 
@@ -6533,12 +5997,6 @@ if (state.portfolio === 'custom') {
   if (builder) builder.classList.add('visible');
   renderCustomBuilder();
   syncCustomTer();
-}
-if (state.portfolio === 'glide') {
-  const glideB = document.getElementById('glideBuilder');
-  if (glideB) glideB.classList.add('visible');
-  renderGlideBuilder();
-  syncPresetTer('glide');
 }
 
 // Riallinea decStrategy buttons
