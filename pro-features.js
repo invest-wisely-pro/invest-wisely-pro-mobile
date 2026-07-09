@@ -462,27 +462,9 @@ function renderGoalTab() {
   const tab = document.getElementById('tab-goal');
   if (!tab || !tab.classList.contains('active')) return;
 
-  const out = document.getElementById('goalOutput');
-  if (!out) return;
-
-  // Il Glide Path NON è gestibile qui: l'obiettivo inverso risolve un'equazione
-  // a rendimento COSTANTE (forma chiusa FV = w0·(1+r)^n + PAC·…). Un glide ha
-  // rendimento variabile per età (de-risking), quindi un tasso costante
-  // sovrastimerebbe il capitale e sottostimerebbe il PAC necessario (~20-25%).
-  // Coerente col backtest storico: si rimanda agli strumenti che modellano la
-  // variazione anno per anno.
-  if (goalState.portfolio === 'glide') {
-    out.innerHTML = `
-      <div class="info-box" style="background:var(--blue-dim);border-color:var(--blue);color:var(--text);font-size:12.5px;line-height:1.6">
-        <strong>⤵ Glide Path non disponibile in questa scheda.</strong><br>
-        L'Obiettivo Inverso calcola il PAC (o gli anni) assumendo un <strong>rendimento costante</strong>: non può modellare il de-risking del Glide Path, che fa scendere il rendimento atteso con l'età. Usare un tasso fisso sovrastimerebbe il capitale e farebbe sembrare l'obiettivo più facile del reale.<br><br>
-        Per pianificare un obiettivo con il Glide Path usa il <strong>Simulatore</strong> (proiezione anno per anno) o il <strong>Monte Carlo Avanzato</strong> (distribuzione completa degli esiti). In alternativa, scegli qui un portafoglio a composizione fissa (es. 60/40, 80/20) come <strong>proxy</strong> del rendimento medio atteso.
-      </div>`;
-    return;
-  }
-
   const result = calcGoalProjection();
-  if (!result) return;
+  const out = document.getElementById('goalOutput');
+  if (!out || !result) return;
 
   const fmt = v => {
     if (!isFinite(v) || v === Infinity) return '> 50 anni';

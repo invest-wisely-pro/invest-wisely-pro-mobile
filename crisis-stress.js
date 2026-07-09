@@ -180,6 +180,37 @@ function simulateCrisisPath(crisis, portKey, capitalEur, pacMonthly) {
   const eqW   = eqAt(0);
   const obW   = Math.max(0, 1 - eqW - goldW - cashW);
 
+  // Pesi fattoriali reali (SV, Momentum, FF5, REITs, EM): così il crisis stress usa
+  // le serie storiche dedicate di questi asset (es. REITs −52% nel 2008, EM nella
+  // crisi asiatica) invece di trattarli come azioni generiche. Coerente con backtest
+  // e sequence risk, che già usano eqReturnWithFactors.
+  const fw = {
+    scvW:   typeof getSmallValueWeight === 'function' ? getSmallValueWeight(portKey) : 0,
+    momW:   typeof getMomentumWeight   === 'function' ? getMomentumWeight(portKey)   : 0,
+    ff5W:   typeof getFactorWeights    === 'function' ? getFactorWeights(portKey)     : null,
+    reitsW: typeof getReitsWeight      === 'function' ? getReitsWeight(portKey)       : 0,
+    emW:    typeof getEmWeight         === 'function' ? getEmWeight(portKey)          : 0,
+    usaW:   (portKey === 'custom' && typeof calcCustomParams === 'function') ? (calcCustomParams().usaW    || 0) : 0,
+    europaW:(portKey === 'custom' && typeof calcCustomParams === 'function') ? (calcCustomParams().europaW || 0) : 0,
+    commW:  (portKey === 'custom' && typeof calcCustomParams === 'function') ? (calcCustomParams().commodW || 0) : 0,
+  };
+
+  // Preset con composizione reale (realMix): stessa logica del backtest.
+  let _realMix = null;
+  try { if (portKey !== 'custom' && typeof PORT !== 'undefined' && PORT[portKey] && PORT[portKey].realMix) _realMix = PORT[portKey].realMix; } catch(e){ _realMix = null; }
+  function _realMixRet(mi) {
+    if (!_realMix) return null;
+    const Hm = HIST_MONTHLY[mi]; let r = 0;
+    if (_realMix.eqUsa && typeof eqUsaReturnAt === 'function') { const ur = eqUsaReturnAt(mi); r += _realMix.eqUsa * (ur !== null ? ur : Hm[0]); }
+    if (_realMix.eqEuropa && typeof eqEuropeReturnAt === 'function') { const er2 = eqEuropeReturnAt(mi); r += _realMix.eqEuropa * (er2 !== null ? er2 : Hm[0]); }
+    if (_realMix.eqWorld) r += _realMix.eqWorld * Hm[0];
+    if (_realMix.scv) r += _realMix.scv * Hm[0];
+    if (_realMix.gold) r += _realMix.gold * Hm[2];
+    if (_realMix.cash) r += _realMix.cash * 0.002;
+    if (_realMix.bond) { for (const key in _realMix.bond) { const w=_realMix.bond[key]; const br=(typeof bondSeriesReturnAt==='function')?bondSeriesReturnAt(key, mi):null; r += w * (br!==null?br:Hm[1]); } }
+    return r;
+  }
+
   const terMonthly = ((state?.ter ?? 0.2) / 100) / 12;
 
   let cumValue = 100; // normalizzato a 100 (per il path % senza PAC)
@@ -198,12 +229,19 @@ function simulateCrisisPath(crisis, portKey, capitalEur, pacMonthly) {
     if (idx >= HIST_MONTHLY.length) break;
     const row = calibrateHistRow(HIST_MONTHLY[idx]);
     const eqRet   = row[0];
-    const obRet   = row[1];
+    const _brCr   = (typeof _mcBondRet === 'function') ? _mcBondRet(idx) : null;
+    const obRet   = (_brCr !== null) ? _brCr : row[1];
     const goldRet = row[2];
 
     const eqW_m   = eqAt(idx - startIdx);
-    const obW_m   = Math.max(0, 1 - eqW_m - goldW - cashW);
-    const portRet = eqW_m * eqRet + obW_m * obRet + goldW * goldRet + cashW * 0.002 - terMonthly;
+    const obW_m   = Math.max(0, 1 - eqW_m - goldW - cashW - (fw.commW || 0));
+    // Quota azionaria con i fattori reali (REITs/EM/fattoriali usano le loro serie
+    // dedicate); fallback a eqW_m*eqRet se l'helper non è disponibile.
+    const eqPart  = (typeof eqReturnWithFactors === 'function')
+      ? eqReturnWithFactors(eqW_m, eqRet, idx, fw)
+      : eqW_m * eqRet;
+    const _rmR = _realMixRet(idx);
+    const portRet = (_rmR !== null) ? (_rmR - terMonthly) : (eqPart + obW_m * obRet + goldW * goldRet + cashW * 0.002 - terMonthly);
 
     // Valore normalizzato (senza PAC, per il grafico % e il drawdown "puro")
     cumValue *= (1 + portRet);
@@ -429,28 +467,25 @@ function renderCrisis(crisisId) {
   // lo stress test storico li modellerebbe come un semplice mix az/obbl/oro,
   // ignorando leva e trend. Mostra un avviso invece di numeri fuorvianti.
   // Stessa cosa per il portafoglio custom che include Trend Following / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
   const isCustomNonBT = portKey === 'custom' &&
     (typeof customPortfolioIsNonBacktestable === 'function') &&
     customPortfolioIsNonBacktestable();
-  if (NON_BACKTESTABLE[portKey] || isCustomNonBT) {
+  const isGlideNonBT = portKey === 'glide' &&
+    (typeof glideIsNonBacktestable === 'function') &&
+    glideIsNonBacktestable();
+  if (NON_BACKTESTABLE[portKey] || isCustomNonBT || isGlideNonBT) {
     const lbl = typeof getPortLabel === 'function' ? getPortLabel(portKey) : portKey;
     const ctx0 = document.getElementById('crisisContext');
     if (ctx0) {
       ctx0.style.background = 'rgba(230,138,0,.08)';
       ctx0.style.borderColor = 'rgba(230,138,0,.35)';
-      const isGlidePath = portKey === 'glide';
       ctx0.innerHTML = `<div style="font-size:13px;font-weight:700;color:#b8860b;margin-bottom:6px">Stress test non disponibile — ${lbl}</div>` +
         (isCustomNonBT
           ? `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Il portafoglio custom include <strong>Trend Following / Managed Futures</strong> o <strong>Carry</strong>, ` +
             `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
             `Senza blocco questi asset verrebbero modellati erroneamente come obbligazionario, producendo risultati fuorvianti. ` +
             `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo</strong>.</div>`
-          : isGlidePath
-          ? `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Lo stress test storico non e applicabile al <strong>Glide Path</strong>, indipendentemente dagli asset che lo compongono. ` +
-            `Il modello simula un portafoglio a <strong>pesi fissi</strong> su una finestra storica mensile contigua: ` +
-            `non puo modellare il ribilanciamento dinamico tra Lato A e Lato B che caratterizza il lifecycle. ` +
-            `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo Avanzato</strong>, che modellano correttamente il cambio di composizione anno per anno.</div>`
           : `<div style="font-size:12.5px;line-height:1.6;color:var(--text2)">Questa strategia usa leva (esposizione &gt;100%) e/o managed futures, ` +
             `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
             `Usa le schede <strong>Simulatore</strong> o <strong>Monte Carlo</strong>, che modellano correttamente leva e diversificazione.</div>`);

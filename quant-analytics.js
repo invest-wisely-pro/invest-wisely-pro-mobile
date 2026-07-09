@@ -5,7 +5,7 @@
 
 // ════════════════════════════════════════════════════════════════════════════
 // 1. MATRICE DI CORRELAZIONE STORICA
-// Calibrata su dati mensili 1970-2024. Fonte: DMS Yearbook 2024,
+// Calibrata su dati mensili 1970-2025. Fonte: DMS Yearbook 2024,
 // Federal Reserve FRED, letteratura accademica.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -18,7 +18,7 @@ const AC_KEYS_EF = [
   'fat_size','fat_investment','fat_dividendi','fat_multifat',
   'fat_carry_bond','fat_carry_fx','fat_carry_comm','fat_trend',
   'ob_usa_st','ob_usa_it','ob_usa_lt','ob_usa_ult',
-  'ob_eu_st','ob_eu_it','ob_eu_lt',
+  'ob_eu_st','ob_eu_it','ob_eu_lt','ob_eu_ult',
   'ob_glob_gov','ob_glob_agg','ob_infl',
   'gold','commodities','cash',
 ];
@@ -33,12 +33,12 @@ const AC_CAT_EF = {
   fat_size:'fat', fat_investment:'fat', fat_dividendi:'fat', fat_multifat:'fat',
   fat_carry_bond:'carry', fat_carry_fx:'carry', fat_carry_comm:'carry', fat_trend:'trend',
   ob_usa_st:'ob_usa', ob_usa_it:'ob_usa', ob_usa_lt:'ob_usa', ob_usa_ult:'ob_usa',
-  ob_eu_st:'ob_eu', ob_eu_it:'ob_eu', ob_eu_lt:'ob_eu',
+  ob_eu_st:'ob_eu', ob_eu_it:'ob_eu', ob_eu_lt:'ob_eu', ob_eu_ult:'ob_eu',
   ob_glob_gov:'ob_glob', ob_glob_agg:'ob_glob', ob_infl:'ob_glob',
   gold:'real', commodities:'real', cash:'cash',
 };
 
-// Correlazione BASE tra categorie (calibrata su dati mensili 1970-2024 e
+// Correlazione BASE tra categorie (calibrata su dati mensili 1970-2025 e
 // letteratura). Simmetrica: l'ordine delle chiavi non conta (gestito in lookup).
 const CAT_CORR_BASE = {
   'eq|eq':0.75, 'eq|fat':0.78, 'eq|carry':0.12, 'eq|trend':-0.05,
@@ -167,6 +167,11 @@ const CORR_MATRIX = (() => {
     ['ob_eu_st','ob_eu_it',           0.70],
     ['ob_eu_st','ob_eu_lt',           0.50],
     ['ob_eu_it','ob_eu_lt',           0.88],
+    ['ob_eu_st','ob_eu_ult',          0.42],
+    ['ob_eu_it','ob_eu_ult',          0.80],
+    ['ob_eu_lt','ob_eu_ult',          0.94],
+    ['eq_sviluppati','ob_eu_ult',     -0.18],
+    ['ob_eu_ult','ob_usa_ult',        0.62],
     ['ob_glob_gov','ob_usa_it',       0.82],
     ['ob_glob_gov','ob_eu_it',        0.74],
     ['ob_glob_agg','ob_glob_gov',     0.85],
@@ -412,46 +417,30 @@ function findMinVariance(frontier) {
 // ── Posizione del portafoglio corrente sul grafico ─────────────────────────
 function getCurrentPortfolioPoint(ter) {
   const key = state.portfolio;
-  // Glide path: usa la composizione all'età corrente, espansa nei sottostanti
-  // atomici (come il custom). PORT['glide'] ha μ/σ null → senza questo ramo
-  // cadrebbe nel fallback e ritornerebbe null (triangolo assente, params "—/a").
-  if (key === 'glide') {
-    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
-    const slots = gs.filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
-    if (!slots.length) return null;
-    const rawTotal = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
-    if (rawTotal<=0) return null;
-    const expandedMap = {};
-    let notionalSum = 0;
-    for (const sl of slots) {
-      const pctNorm = (+sl.pct||0) / rawTotal;
-      const ac = ASSET_CLASSES[sl.ac];
-      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
-        const notional = ac.composite.reduce((a,c)=>a+c.w,0);
-        notionalSum += pctNorm * notional;
-        for (const comp of ac.composite)
-          if (ASSET_CLASSES[comp.ac]) expandedMap[comp.ac] = (expandedMap[comp.ac]||0) + pctNorm*(comp.w/notional);
-      } else {
-        notionalSum += pctNorm;
-        expandedMap[sl.ac] = (expandedMap[sl.ac]||0) + pctNorm;
-      }
+  // GLIDE: usa μ/σ dal motore (getGlideParams) all'età corrente. La composizione può
+  // includere compositi a leva (ec_*_core) non presenti nella matrice EF atomica, per
+  // cui la ricostruzione da matrice darebbe NaN: i parametri del motore sono la fonte
+  // corretta e coerente con tutto il resto del simulatore.
+  if (key === 'glide' && typeof getGlideParams === 'function') {
+    const gp = getGlideParams(state.age);
+    if (gp && isFinite(gp.normal) && isFinite(gp.vol) && gp.vol > 0) {
+      return { mu: gp.normal, vol: gp.vol, sharpe: (gp.normal - RF_RATE) / gp.vol, label: 'Glide Path' };
     }
-    const expSum = Object.values(expandedMap).reduce((a,b)=>a+b,0) || 1;
-    const keys = Object.keys(expandedMap);
-    const weights = keys.map(k => expandedMap[k]/expSum);
-    const leverage = Math.max(1, notionalSum); // notional totale (>1 se lato a leva)
-    const mu0 = portfolioMu(weights, keys, ter);
-    const levCost = (leverage - 1.0) * RF_RATE;
-    const mu = mu0 - levCost;
-    const vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
-    return { mu, vol, sharpe:(mu-RF_RATE)/(vol||0.001), label:`Glide Path @${state.age}a`, isCurrent:true, leverage: leverage>1.001?leverage:undefined };
   }
   // FIX: anche per i preset, ricostruisce μ/σ/Sharpe dalla composizione reale in
   // asset class, passando dalla matrice di correlazione e rispettando il toggle
   // Forward/Storico — invece di usare PORT.normal/PORT.vol congelati (che davano
   // sempre lo stesso Sharpe, scollegato dalla scheda Optimizer).
   if (key !== 'custom') {
-    const comp = PRESET_COMPOSITION[key];
+    let comp = PRESET_COMPOSITION[key];
+    // FIX 2026-07-04: lifecycle non è in PRESET_COMPOSITION (pesi dipendenti dall'età)
+    // e prima cadeva sul fallback PORT (privo di vol/normal statici) → punto null,
+    // nessun ▲ sul grafico EF. Ora la composizione è costruita all'età corrente,
+    // in coerenza con _portfolioToAssetClasses() della scheda Fattori.
+    if (!comp && key === 'lifecycle') {
+      const eW = typeof getLCWeight === 'function' ? getLCWeight(state.age) : 0.5;
+      comp = { eq_sviluppati: eW, ob_glob_agg: 1 - eW };
+    }
     if (comp) {
       const keys = Object.keys(comp);
       const rawW = keys.map(k => comp[k]);
@@ -708,6 +697,28 @@ function _syncEFStateFromSimulator() {
   // Se portafoglio custom, usa le sue asset class.
   // I composite (Efficient Core 90/60) vanno espansi nei sottostanti atomici:
   // ec_glob_core non ha vol/mu propri → computeEfficientFrontier produrrebbe NaN.
+  // GLIDE: usa la composizione REALE all'età corrente (slot interpolati A→B), espandendo
+  // i compositi a leva nei sottostanti atomici — così la frontiera confronta il punto del
+  // glide con l'universo di asset che possiede DAVVERO a quell'età, non un set generico.
+  if (state.portfolio === 'glide' && typeof getGlideSlots === 'function') {
+    const gSlots = getGlideSlots(state.age).filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
+    const expanded = [];
+    for (const sl of gSlots) {
+      const ac = ASSET_CLASSES[sl.ac];
+      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
+        for (const comp of ac.composite) {
+          if (ASSET_CLASSES[comp.ac] && !expanded.includes(comp.ac)) expanded.push(comp.ac);
+        }
+      } else if (!expanded.includes(sl.ac)) {
+        expanded.push(sl.ac);
+      }
+    }
+    if (expanded.length >= 2) { _efState.assets = expanded; return; }
+    if (expanded.length === 1) {
+      const partner = expanded[0].startsWith('eq') || expanded[0].startsWith('fat') ? 'ob_glob_agg' : 'eq_sviluppati';
+      _efState.assets = [expanded[0], partner]; return;
+    }
+  }
   if (state.portfolio === 'custom') {
     const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
     if (slots.length) {
@@ -915,8 +926,16 @@ function lerp(a,b,t) { return a+(b-a)*t; }
 function _updateFrontierStats(curr, maxS, minV) {
   const el = document.getElementById('quantFrontierStats');
   if (!el) return;
-  const fmt = v => v != null ? (v*100).toFixed(1)+'%' : '—';
-  const fmtS = v => v != null ? v.toFixed(2) : '—';
+  // FIX 2026-07-04: precisione adattiva. Se Max Sharpe e Min Varianza sono vicini
+  // (asset molto correlati o universo difensivo), arrotondare a 1 decimale li faceva
+  // apparire IDENTICI (es. 4,48% e 4,27% → entrambi "4,4%"; Sharpe 0,705 e 0,662 →
+  // "0,69") pur essendo due portafogli distinti nel grafico. Ora: quando i punti sono
+  // ravvicinati si mostrano 2 decimali per le percentuali e 3 per lo Sharpe.
+  const _muClose  = (maxS && minV) && Math.abs((maxS.mu||0)-(minV.mu||0)) < 0.005;
+  const _volClose = (maxS && minV) && Math.abs((maxS.vol||0)-(minV.vol||0)) < 0.005;
+  const _shpClose = (maxS && minV) && Math.abs((maxS.sharpe||0)-(minV.sharpe||0)) < 0.05;
+  const fmt  = v => v != null ? (v*100).toFixed(_muClose||_volClose ? 2 : 1)+'%' : '—';
+  const fmtS = v => v != null ? v.toFixed(_shpClose ? 3 : 2) : '—';
   const portLabel = state.portfolio==='custom' ? 'Custom' : (PORT[state.portfolio]?.label||state.portfolio);
 
   el.innerHTML = `
@@ -960,31 +979,7 @@ function _renderVaRView() {
 
   const key = state.portfolio;
   let mu, vol;
-  if (key === 'glide') {
-    // Composizione del glide all'età corrente, espansa nei sottostanti atomici
-    // (come il custom) — riusa _getCurrentPortfolioWeights che già espande i
-    // composite a leva e normalizza i pesi.
-    const w = (typeof _getCurrentPortfolioWeights === 'function') ? _getCurrentPortfolioWeights() : null;
-    if (!w || !w.keys.length) { el.innerHTML='<p style="color:var(--text3)">Configura prima il Glide Path.</p>'; return; }
-    // Espandi eventuali composite rimasti nei keys (ec_*_core) nei sottostanti
-    const expandedMap = {};
-    for (let i = 0; i < w.keys.length; i++) {
-      const acKey = w.keys[i], wgt = w.weights[i];
-      const ac = ASSET_CLASSES[acKey];
-      if (ac && ac.isComposite && Array.isArray(ac.composite)) {
-        const notional = ac.composite.reduce((a,c)=>a+c.w,0);
-        for (const comp of ac.composite)
-          if (ASSET_CLASSES[comp.ac]) expandedMap[comp.ac] = (expandedMap[comp.ac]||0) + wgt*(comp.w/notional);
-      } else {
-        expandedMap[acKey] = (expandedMap[acKey]||0) + wgt;
-      }
-    }
-    const expSum = Object.values(expandedMap).reduce((a,b)=>a+b,0) || 1;
-    const keys = Object.keys(expandedMap);
-    const weights = keys.map(k => expandedMap[k]/expSum);
-    mu  = portfolioMu(weights, keys, 0);
-    vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
-  } else if (key === 'custom') {
+  if (key === 'custom') {
     const slots = (state.customPortfolio?.slots||[]).filter(s=>s.ac&&ASSET_CLASSES[s.ac]&&s.pct>0);
     if (!slots.length) { el.innerHTML='<p style="color:var(--text3)">Configura prima il portafoglio Custom.</p>'; return; }
     const total = slots.reduce((s,sl)=>s+(+sl.pct||0),0);
@@ -1012,6 +1007,12 @@ function _renderVaRView() {
     const weights = keys.map(k => expandedMap[k] / (expSum||1));
     mu  = portfolioMu(weights, keys, 0);
     vol = Math.sqrt(Math.max(0, portfolioVar(weights, keys)));
+  } else if (key === 'glide' && typeof getGlideParams === 'function') {
+    // GLIDE: μ/σ interpolati per età dal motore (gestisce anche i compositi a leva,
+    // che nell'else generico darebbero PORT.glide.vol = null -> "non disponibile").
+    const gp = getGlideParams(state.age);
+    mu  = gp.normal || 0;
+    vol = gp.vol || 0;
   } else {
     const p = PORT[key];
     if (!p?.vol) { el.innerHTML='<p style="color:var(--text3)">Portafoglio non disponibile.</p>'; return; }
@@ -1027,16 +1028,13 @@ function _renderVaRView() {
   // Per i custom con Efficient Core: segnala che il calcolo usa i sottostanti atomici
   const _hasComposite = key === 'custom' &&
     (state.customPortfolio?.slots||[]).some(s => { const ac = ASSET_CLASSES[s.ac]; return ac && ac.isComposite; });
-  // Glide: leva presente se uno dei lati contiene composite a leva o trend/carry.
-  const _glideLeveraged = key === 'glide' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
-  // Leva presente: preset Efficient Core / Return Stacking, o custom con composite, o glide con lato a leva.
+  // Leva presente: preset Efficient Core / Return Stacking, o custom con composite.
   // Il VaR normalizza i pesi al 100%, quindi sottostima il rischio amplificato dalla leva.
-  const _varLeveraged = _hasComposite || _glideLeveraged || key === 'ec_us_9060' || key === 'ec_glob_9060' || key === 'return_stack';
+  const _varLeveraged = _hasComposite || key === 'ec_us_9060' || key === 'ec_glob_9060' || key === 'return_stack' ||
+    (key === 'glide' && typeof glideIsNonBacktestable === 'function' && glideIsNonBacktestable());
   const portLabel = key==='custom'
     ? ('Custom' + (_hasComposite ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">(Efficient Core espanso nei sottostanti)</span>' : ''))
-    : key==='glide'
-      ? (`Glide Path @${state.age}a` + (_glideLeveraged ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">(composizione corrente, sottostanti espansi)</span>' : ' <span style="font-size:10px;color:var(--text3);font-weight:400">(composizione all\'età corrente)</span>'))
-      : (PORT[key]?.label||key);
+    : (PORT[key]?.label||key);
   // fmt/fmtP: null = "nessuna perdita attesa" (VaR negativo su orizzonte lungo)
   const fmt  = v => v === null ? '<span style="color:var(--green);font-size:11px">nessuna perdita attesa</span>'
                                : v >= 0 ? '−€'+Math.round(v).toLocaleString('it-IT')
@@ -1234,7 +1232,7 @@ function _populateAssetSelector() {
 // ════════════════════════════════════════════════════════════════════════════
 
 // Premi fattoriali forward-looking annualizzati (decimali, es. 0.055 = 5.5%/a)
-// Calibrati su Fama-French Data Library 1970-2024, scontati per:
+// Calibrati su Fama-French Data Library 1970-2025, scontati per:
 //   - Affollamento post-pubblicazione accademica
 //   - Mean-reversion dei premi di rischio
 // Fonti: Fama-French (1992, 1993, 2015), Carhart (1997), DMS Yearbook 2024
@@ -1249,7 +1247,7 @@ const FACTOR_PREMIA = {
 };
 
 // Loadings fattoriali per asset class — stimati da letteratura accademica
-// e regressioni FF su dati mensili 1970-2024.
+// e regressioni FF su dati mensili 1970-2025.
 const FACTOR_LOADINGS = {
   // ── Azionari plain ──────────────────────────────────────────────────
   eq_sviluppati:   { MKT: 1.00, SMB:  0.05, HML: -0.05, RMW:  0.05, CMA:  0.00, MOM:  0.00 },
@@ -1361,13 +1359,6 @@ function _portfolioToAssetClasses(portKey, p) {
     { ac: 'gold',          w: 0.075 },
     { ac: 'commodities',   w: 0.075 },
   ];
-  if (portKey === 'glide') {
-    // Composizione del glide all'età corrente (slot interpolati A↔B).
-    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
-    const tot = gs.reduce((s, x) => s + x.pct, 0) || 1;
-    const r = gs.map(x => ({ ac: x.ac, w: x.pct / tot }));
-    if (r.length) return r;
-  }
   if (portKey === 'lifecycle') {
     const eW = typeof getLCWeight === 'function' ? getLCWeight(state.age) : 0.5;
     return [
@@ -1389,23 +1380,6 @@ function _portfolioToAssetClasses(portKey, p) {
 
 // ── Ottiene pesi del portafoglio corrente (custom o predefinito) ──────────
 function _getCurrentPortfolioWeights() {
-  if (state.portfolio === 'glide') {
-    // Composizione del glide all'età corrente, espansa nei componenti atomici
-    // (come il custom) così frontiera/fattori/VaR ricevono asset reali e finCost.
-    const gs = (typeof getGlideSlots === 'function') ? getGlideSlots(state.age) : [];
-    const raw = gs.filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
-    if (!raw.length) return null;
-    const exp = (typeof expandCustomSlots === 'function')
-      ? expandCustomSlots(raw)
-      : { slots: raw, total: raw.reduce((s, sl) => s + (+sl.pct || 0), 0), finCostTotal: 0 };
-    const total = exp.slots.reduce((s, sl) => s + (+sl.pct || 0), 0) || 1;
-    return {
-      keys:    exp.slots.map(s => s.ac),
-      weights: exp.slots.map(s => (+s.pct || 0) / total),
-      label:   'Glide Path',
-      finCost: exp.finCostTotal || 0,
-    };
-  }
   if (state.portfolio === 'custom') {
     const raw = (state.customPortfolio?.slots || [])
       .filter(s => s.ac && ASSET_CLASSES[s.ac] && s.pct > 0);
@@ -1643,7 +1617,7 @@ function _renderFactorView() {
       RMW=${(FACTOR_PREMIA.RMW*100).toFixed(1)}% ·
       CMA=${(FACTOR_PREMIA.CMA*100).toFixed(1)}% ·
       MOM=${(FACTOR_PREMIA.MOM*100).toFixed(1)}%
-      <br><span style="font-size:11px">Calibrati su Fama-French Data Library 1970-2024, scontati per affollamento post-pubblicazione e mean-reversion.</span>
+      <br><span style="font-size:11px">Calibrati su Fama-French Data Library 1970-2025, scontati per affollamento post-pubblicazione e mean-reversion.</span>
     </div>
 
     <!-- Note interpretative -->
@@ -2092,7 +2066,7 @@ function _renderOptimizerView() {
             <button class="gbtn ${_optState.returnBasis === 'historical' ? 'a-blue' : ''}"
               onclick="optSetReturnBasis('historical')" style="flex:1;padding:8px;font-size:11.5px">
               <strong>Storici</strong>
-              <div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:2px">CAGR 1970-2024</div>
+              <div style="font-size:10px;color:var(--text3);font-weight:400;margin-top:2px">CAGR 1970-2025</div>
             </button>
           </div>
           <div style="font-size:10.5px;color:var(--text3);margin-top:6px;line-height:1.5">
@@ -2114,7 +2088,7 @@ function _renderOptimizerView() {
     <div id="optResultContainer"></div>
 
     <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:14px;margin-top:16px;font-size:12px;color:var(--text3);line-height:1.7">
-      <strong>Metodologia:</strong> 8.000 portafogli casuali Dirichlet che rispettano i vincoli, seguiti da 300 iterazioni di local search adattiva (random perturbation greedy). Per Risk Parity: iterazione fixed-point con damping 0.5 e proiezione sui vincoli (max 300 iter). Rendimenti attesi e covarianze basati su dati storici 1970-2024 calibrati. Il risultato è ottimale dato il modello statistico — la realtà può differire (instabilità di Markowitz, errore di stima sui rendimenti attesi).
+      <strong>Metodologia:</strong> 8.000 portafogli casuali Dirichlet che rispettano i vincoli, seguiti da 300 iterazioni di local search adattiva (random perturbation greedy). Per Risk Parity: iterazione fixed-point con damping 0.5 e proiezione sui vincoli (max 300 iter). Rendimenti attesi e covarianze basati su dati storici 1970-2025 calibrati. Il risultato è ottimale dato il modello statistico — la realtà può differire (instabilità di Markowitz, errore di stima sui rendimenti attesi).
     </div>
   `;
 
@@ -2482,11 +2456,11 @@ function _renderOptCharts(allocRows, rc) {
 // ── Applica portafoglio ottimale al simulatore (custom) ───────────────────
 window.optApplyToSimulator = function() {
   if (!_optState.result) return;
-  // Se l'ottimizzazione è su base STORICA, il rendimento mostrato (CAGR 1970-2024)
+  // Se l'ottimizzazione è su base STORICA, il rendimento mostrato (CAGR 1970-2025)
   // è più alto di quello che userà il Simulatore (forward-looking, più prudente).
   // Avvisiamo l'utente così il calo del rendimento atteso è atteso, non una sorpresa.
   const histWarn = (_optState.returnBasis === 'historical')
-    ? '\n\nNOTA: hai ottimizzato sui rendimenti STORICI (CAGR 1970-2024). Il Simulatore ricalcolerà il portafoglio con i rendimenti FORWARD-LOOKING (più prudenti), quindi il rendimento atteso mostrato sarà più basso di quello dell\'optimizer. I pesi restano identici; cambia solo l\'ipotesi di rendimento, in coerenza con tutto il resto del Simulatore.'
+    ? '\n\nNOTA: hai ottimizzato sui rendimenti STORICI (CAGR 1970-2025). Il Simulatore ricalcolerà il portafoglio con i rendimenti FORWARD-LOOKING (più prudenti), quindi il rendimento atteso mostrato sarà più basso di quello dell\'optimizer. I pesi restano identici; cambia solo l\'ipotesi di rendimento, in coerenza con tutto il resto del Simulatore.'
     : '';
   if (!confirm('Sostituire il portafoglio Custom corrente con l\'allocazione ottimizzata? Questa azione è irreversibile (puoi salvare lo stato attuale prima dal pannello Scenari Salvati).' + histWarn)) return;
   // Costruisci slots custom
@@ -2526,6 +2500,275 @@ function _flashOptToast(msg, type) {
   setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2800);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// CORRELATION HEATMAP — Matrice di correlazione tra tutte le asset class
+// Legge la CORR_MATRIX già esistente (calibrata su dati 1970-2025, Fama-French).
+// Sotto la heatmap: analisi delle correlazioni del PORTAFOGLIO impostato.
+// ══════════════════════════════════════════════════════════════════════════
+function _corrColor(v) {
+  if (v >= 0) {
+    const t = Math.min(1, v);
+    const r = Math.round(255 + t * (26 - 255));
+    const g = Math.round(255 + t * (115 - 255));
+    const b = Math.round(255 + t * (232 - 255));
+    return `rgb(${r},${g},${b})`;
+  } else {
+    const t = Math.min(1, -v);
+    const r = Math.round(255 + t * (217 - 255));
+    const g = Math.round(255 + t * (48 - 255));
+    const b = Math.round(255 + t * (37 - 255));
+    return `rgb(${r},${g},${b})`;
+  }
+}
+function _corrTextColor(v) {
+  return Math.abs(v) > 0.55 ? '#fff' : '#1f3540';
+}
+function _analyzePortfolioCorr() {
+  let pf = null;
+  try { pf = _getCurrentPortfolioWeights(); } catch (e) { pf = null; }
+  if (!pf || !pf.keys || pf.keys.length === 0) return null;
+  const idx = pf.keys.map(k => AC_KEYS_EF.indexOf(k));
+  const valid = [];
+  pf.keys.forEach((k, i) => {
+    if (idx[i] >= 0 && pf.weights[i] > 0) valid.push({ key: k, w: pf.weights[i], mi: idx[i] });
+  });
+  if (valid.length < 2) return { single: true, label: pf.label, assets: valid.length };
+  let sumW = 0, wCorr = 0;
+  const pairs = [];
+  for (let a = 0; a < valid.length; a++) {
+    for (let b = a + 1; b < valid.length; b++) {
+      const va = valid[a], vb = valid[b];
+      const rho = CORR_MATRIX[va.mi][vb.mi];
+      const wprod = va.w * vb.w;
+      sumW += wprod; wCorr += wprod * rho;
+      pairs.push({ a: va.key, b: vb.key, rho, wprod });
+    }
+  }
+  const avgCorr = sumW > 0 ? wCorr / sumW : 0;
+  pairs.sort((x, y) => x.rho - y.rho);
+  const bestDiv = pairs.slice(0, 3);
+  const worstDiv = pairs.slice(-3).reverse();
+  const divScore = Math.max(0, Math.min(1, (1 - avgCorr) / 1.5));
+  return { single: false, label: pf.label, nAssets: valid.length, avgCorr, bestDiv, worstDiv, divScore };
+}
+function _renderCorrelationView() {
+  const el = document.getElementById('quantCorrelationContent');
+  if (!el) return;
+  const keys = AC_KEYS_EF;
+  const shortLabel = (k) => {
+    const ac = ASSET_CLASSES[k]; let lbl = ac ? ac.label : k;
+    return lbl.length > 22 ? lbl.slice(0, 21) + '…' : lbl;
+  };
+  const catColor = { eq:'#1a73e8', fat:'#6a4a7c', carry:'#00897b', trend:'#5d4037',
+    ob_usa:'#1e8e3e', ob_eu:'#188038', ob_glob:'#0b8043', real:'#e37400', cash:'#9aa0a6' };
+  let thead = '<th class="corr-corner"></th>';
+  keys.forEach((k, j) => {
+    const cat = AC_CAT_EF[k] || 'eq';
+    thead += `<th class="corr-colhdr" title="${ASSET_CLASSES[k] ? ASSET_CLASSES[k].label : k}"><div class="corr-colhdr-inner"><span class="corr-cat-dot" style="background:${catColor[cat]||'#999'}"></span>${j + 1}</div></th>`;
+  });
+  let rows = '';
+  keys.forEach((ki, i) => {
+    const cat = AC_CAT_EF[ki] || 'eq';
+    let cells = `<th class="corr-rowhdr" title="${ASSET_CLASSES[ki] ? ASSET_CLASSES[ki].label : ki}"><span class="corr-cat-dot" style="background:${catColor[cat]||'#999'}"></span><span class="corr-rownum">${i + 1}.</span> ${shortLabel(ki)}</th>`;
+    keys.forEach((kj, j) => {
+      const v = CORR_MATRIX[i][j];
+      const isDiag = i === j;
+      cells += `<td class="corr-cell${isDiag ? ' corr-diag' : ''}" style="background:${isDiag ? '#1f3540' : _corrColor(v)};color:${isDiag ? '#fff' : _corrTextColor(v)}" title="${ASSET_CLASSES[ki]?ASSET_CLASSES[ki].label:ki} ↔ ${ASSET_CLASSES[kj]?ASSET_CLASSES[kj].label:kj}: ρ = ${v.toFixed(2)}">${isDiag ? '1' : v.toFixed(2)}</td>`;
+    });
+    rows += `<tr>${cells}</tr>`;
+  });
+  const legendCats = [['eq','Azioni'],['fat','Fattori (Fama-French)'],['carry','Carry'],['trend','Trend'],['ob_usa','Obblig. USA'],['ob_eu','Obblig. EU'],['ob_glob','Obblig. Globali'],['real','Reali (Oro/Comm.)'],['cash','Liquidità']];
+  const legendHtml = legendCats.map(([c, lbl]) => `<span class="corr-legend-item"><span class="corr-cat-dot" style="background:${catColor[c]}"></span>${lbl}</span>`).join('');
+  const an = _analyzePortfolioCorr();
+  let analysisHtml = '';
+  if (!an) {
+    analysisHtml = `<div class="info-box" style="margin-top:20px">Imposta un portafoglio nel Simulatore (e premi <strong>↩ Importa dal Simulatore</strong>) per vedere l'analisi delle correlazioni della tua allocazione.</div>`;
+  } else if (an.single) {
+    analysisHtml = `<div class="info-box" style="margin-top:20px">Il portafoglio <strong>${an.label}</strong> ha una sola asset class mappata: non ci sono coppie da analizzare.</div>`;
+  } else {
+    const lbl = (k) => ASSET_CLASSES[k] ? ASSET_CLASSES[k].label : k;
+    const corrVerdict = an.avgCorr < 0.3 ? ['Eccellente', 'var(--green)'] : an.avgCorr < 0.5 ? ['Buona', '#1a73e8'] : an.avgCorr < 0.7 ? ['Moderata', 'var(--orange)'] : ['Bassa (asset ridondanti)', 'var(--red)'];
+    const pct = v => (v >= 0 ? '+' : '') + v.toFixed(2);
+    const divPct = Math.round(an.divScore * 100);
+    const bestRows = an.bestDiv.map(p => `<div class="corr-pair-row"><span class="corr-pair-dot" style="background:${_corrColor(p.rho)}"></span><span class="corr-pair-names">${lbl(p.a)} ↔ ${lbl(p.b)}</span><strong style="color:${p.rho<0?'var(--green)':'var(--text)'}">${pct(p.rho)}</strong></div>`).join('');
+    const worstRows = an.worstDiv.map(p => `<div class="corr-pair-row"><span class="corr-pair-dot" style="background:${_corrColor(p.rho)}"></span><span class="corr-pair-names">${lbl(p.a)} ↔ ${lbl(p.b)}</span><strong style="color:${p.rho>0.7?'var(--red)':'var(--text)'}">${pct(p.rho)}</strong></div>`).join('');
+    analysisHtml = `<div class="sec-label" data-info-id="info-quant-corr-pf" style="margin-top:24px;margin-bottom:8px"><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analisi del tuo portafoglio — ${an.label} (${an.nAssets} asset class)</div>
+    <div class="corr-analysis-grid">
+      <div class="quant-stat-card" style="border-left:3px solid ${corrVerdict[1]}"><div class="qsc-title">Correlazione media pesata</div><div class="qsc-big" style="color:${corrVerdict[1]}">${an.avgCorr.toFixed(2)}</div><div class="qsc-row"><span>Diversificazione</span><strong style="color:${corrVerdict[1]}">${corrVerdict[0]}</strong></div></div>
+      <div class="quant-stat-card" style="border-left:3px solid #1a73e8"><div class="qsc-title">Punteggio diversificazione</div><div class="qsc-big" style="color:#1a73e8">${divPct}<span style="font-size:14px">/100</span></div><div class="corr-divbar"><span style="width:${divPct}%"></span></div></div>
+    </div>
+    <div class="corr-pairs-wrap">
+      <div class="corr-pairs-col"><div class="corr-pairs-title" style="color:var(--green)">🛡 Coppie più diversificanti (proteggono)</div>${bestRows}</div>
+      <div class="corr-pairs-col"><div class="corr-pairs-title" style="color:var(--red)">⚠ Coppie più ridondanti (si muovono insieme)</div>${worstRows}</div>
+    </div>
+    <div style="margin-top:12px;font-size:11px;color:var(--text3);line-height:1.6"><strong>Interpretazione:</strong> la correlazione media pesata (${an.avgCorr.toFixed(2)}) riassume quanto le tue asset class si muovono insieme, tenendo conto dei pesi. Valori bassi o negativi = il portafoglio assorbe meglio gli shock. Le coppie ridondanti suggeriscono dove sostituire un'asset class con una meno correlata.</div>
+    <div class="corr-disclaimer">&#8505;&#65039; Analisi a scopo puramente informativo e divulgativo. Non costituisce raccomandazione, consulenza o sollecitazione di investimento. I dati storici non garantiscono risultati futuri.</div>`;
+  }
+  el.innerHTML = `<div class="sec-label" data-info-id="info-quant-corr" style="margin-bottom:8px"><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Matrice di Correlazione — 32 Asset Class</div>
+    <div class="info-box" style="margin-bottom:14px">Correlazione storica (ρ) tra ogni coppia di asset class, calibrata su serie 1970–2024 e premi fattoriali Fama-French. <strong style="color:#1a73e8">Blu</strong> = si muovono insieme. <strong style="color:#d93025">Rosso</strong> = si muovono in opposizione (copertura). Bianco ≈ indipendenti.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:12px;font-size:11px">${legendHtml}</div>
+    <div class="corr-scale"><span>−1.0 copertura</span><span class="corr-scale-bar"></span><span>+1.0 insieme</span></div>
+    <div class="corr-wrap"><table class="corr-table"><thead><tr>${thead}</tr></thead><tbody>${rows}</tbody></table></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--text3);line-height:1.6"><strong>Come leggere:</strong> i numeri da 1 a 31 in alto corrispondono alle righe a sinistra. La diagonale (scura) è sempre 1. Cerca le celle <strong style="color:#d93025">rosse</strong>: proteggono il portafoglio nei ribassi.</div>
+    ${_rollingCorrSectionHTML()}
+    ${analysisHtml}`;
+  // disegna il grafico rolling (dopo che il canvas è nel DOM)
+  setTimeout(_drawRollingCorrChart, 30);
+}
+
+// ── Correlazione rolling 36 mesi — serie macro REALI ricostruite dal motore ──
+// Asset con dinamica propria (dati mensili reali in EUR già nel motore):
+//   Azioni (MSCI World), Obbligazioni (Bloomberg Euro Agg), Oro (LBMA),
+//   REITs (NAREIT, dal 1979), Emergenti (Fama-French EM, dal 1989).
+// NB: i fattori di stile (Value, Momentum...) NON sono inclusi qui perché come
+// asset long-only sono dominati dal mercato comune (correlazione ~0.95), il che
+// renderebbe il grafico fuorviante. La loro decorrelazione vera (es. Value-Momentum
+// −0.15) è un fenomeno dei fattori long-short, mostrato nella matrice statica sopra.
+let _rollCorrChart = null;
+const _ROLL_ASSETS = [
+  { key: 'mkt',   label: 'Azioni',        col: 0 },
+  { key: 'bond',  label: 'Obbligazioni',  col: 1 },
+  { key: 'gold',  label: 'Oro',           col: 2 },
+  { key: 'reits', label: 'REITs',         series: 'reits' },
+  { key: 'em',    label: 'Emergenti',     series: 'em' },
+  { key: 'comm',  label: 'Commodities',   series: 'comm' },
+];
+function _rollAssetSeries(a) {
+  const H = HIST_MONTHLY, N = H.length, out = new Array(N);
+  for (let idx = 0; idx < N; idx++) {
+    const mkt = H[idx][0];
+    if (a.col != null) { out[idx] = H[idx][a.col]; continue; }
+    if (a.series === 'reits' && typeof HIST_REITS !== 'undefined' && typeof REITS_START !== 'undefined') {
+      const i = idx - REITS_START; out[idx] = (i >= 0 && i < HIST_REITS.length) ? HIST_REITS[i] : mkt;
+    } else if (a.series === 'em' && typeof HIST_EM !== 'undefined' && typeof EM_START !== 'undefined') {
+      const i = idx - EM_START; out[idx] = (i >= 0 && i < HIST_EM.length) ? HIST_EM[i] : mkt;
+    } else if (a.series === 'comm' && typeof HIST_COMMODITIES !== 'undefined' && typeof COMM_START !== 'undefined') {
+      const i = idx - COMM_START; out[idx] = (i >= 0 && i < HIST_COMMODITIES.length) ? HIST_COMMODITIES[i] : mkt;
+    } else { out[idx] = mkt; }
+  }
+  return out;
+}
+// indice del primo mese con dati reali (per non disegnare il fallback al mercato)
+function _rollAssetStart(a) {
+  if (a.series === 'reits' && typeof REITS_START !== 'undefined') return REITS_START;
+  if (a.series === 'em' && typeof EM_START !== 'undefined') return EM_START;
+  if (a.series === 'comm' && typeof COMM_START !== 'undefined') return COMM_START;
+  return 0;
+}
+function _rollingCorrPair(sa, sb, win, fromIdx) {
+  const N = sa.length, out = [];
+  for (let t = Math.max(win, fromIdx); t <= N; t++) {
+    let ma = 0, mb = 0;
+    for (let k = t - win; k < t; k++) { ma += sa[k]; mb += sb[k]; }
+    ma /= win; mb /= win;
+    let cov = 0, va = 0, vb = 0;
+    for (let k = t - win; k < t; k++) { const da = sa[k] - ma, db = sb[k] - mb; cov += da * db; va += da * da; vb += db * db; }
+    out.push({ idx: t, rho: (va > 0 && vb > 0) ? cov / Math.sqrt(va * vb) : 0 });
+  }
+  return out;
+}
+// preset di coppie mostrate (default = le 3 più educative)
+const _ROLL_PRESETS = {
+  classic: { label: 'Azioni vs Obbligazioni / Oro', pairs: [['mkt','bond'],['mkt','gold'],['bond','gold']] },
+  risky:   { label: 'Azioni vs Asset rischiosi',     pairs: [['mkt','reits'],['mkt','em'],['reits','em']] },
+  gold:    { label: 'Oro come diversificatore',       pairs: [['mkt','gold'],['bond','gold'],['gold','em']] },
+};
+let _rollPreset = 'classic';
+function _setRollPreset(p) {
+  _rollPreset = p;
+  // aggiorna la classe active sui bottoni (altrimenti il bottone evidenziato
+  // resta quello iniziale anche se il grafico cambia)
+  try {
+    document.querySelectorAll('.corr-roll-btn').forEach(btn => {
+      const onclick = btn.getAttribute('onclick') || '';
+      const isThis = onclick.indexOf("'" + p + "'") >= 0;
+      btn.classList.toggle('active', isThis);
+    });
+  } catch (e) { /* no-op */ }
+  _drawRollingCorrChart();
+}
+window._setRollPreset = _setRollPreset;
+
+function _rollingCorrSectionHTML() {
+  if (typeof HIST_MONTHLY === 'undefined' || !HIST_MONTHLY || HIST_MONTHLY.length < 40) return '';
+  const opts = Object.entries(_ROLL_PRESETS).map(([k, v]) =>
+    `<button class="gbtn corr-roll-btn${k === _rollPreset ? ' active' : ''}" onclick="_setRollPreset('${k}')">${v.label}</button>`).join('');
+  return `
+    <div class="sec-label" data-info-id="info-quant-rollcorr" style="margin-top:24px;margin-bottom:8px"><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-6 6-4-4-4 4"/></svg>Correlazione Rolling 36 mesi — quando gli asset smettono di proteggersi</div>
+    <div class="info-box" style="margin-bottom:12px">La correlazione storica non è fissa: cambia nel tempo. Questo grafico mostra la correlazione mobile a 36 mesi tra le serie macro reali (Azioni, Obbligazioni, Oro, REITs, Emergenti — dati 1970–2025 in EUR). Quando la linea <strong>Azioni ↔ Obbligazioni</strong> sale sopra lo zero (come nel 2022), significa che azioni e bond scendono <em>insieme</em>: la diversificazione tradizionale smette di funzionare.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${opts}</div>
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:6px"><div style="position:relative;height:300px"><canvas id="quantRollCorrChart"></canvas></div></div>
+    <div class="corr-disclaimer">&#8505;&#65039; Correlazioni mobili calcolate sulle serie storiche reali in EUR (MSCI World, Bloomberg Euro Agg, oro LBMA, FTSE NAREIT REITs dal 1979, Fama-French Emerging Markets dal 1989). I fattori di stile (Value, Momentum...) non sono inclusi perché come asset investibili sono dominati dal mercato comune — la loro decorrelazione è mostrata nella matrice statica sopra. A scopo informativo e divulgativo, non costituisce raccomandazione di investimento.</div>`;
+}
+function _drawRollingCorrChart() {
+  const canvas = document.getElementById('quantRollCorrChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (typeof HIST_MONTHLY === 'undefined' || !HIST_MONTHLY || HIST_MONTHLY.length < 40) return;
+  const WIN = 36, startYear = 1970;
+  const byKey = {}; _ROLL_ASSETS.forEach(a => byKey[a.key] = a);
+  const preset = _ROLL_PRESETS[_rollPreset] || _ROLL_PRESETS.classic;
+  const colors = ['#d93025', '#e37400', '#1a73e8', '#1e8e3e', '#6a4a7c'];
+  const datasets = [];
+  let maxLen = 0, globalFrom = Infinity;
+  const series = {};
+  _ROLL_ASSETS.forEach(a => series[a.key] = _rollAssetSeries(a));
+  preset.pairs.forEach((pair, pi) => {
+    const a = byKey[pair[0]], b = byKey[pair[1]];
+    const from = Math.max(_rollAssetStart(a), _rollAssetStart(b));
+    const pts = _rollingCorrPair(series[a.key], series[b.key], WIN, from);
+    if (pts.length > maxLen) maxLen = pts.length;
+    if (pts.length && pts[0].idx < globalFrom) globalFrom = pts[0].idx;
+    datasets.push({ _pts: pts, label: `${a.label} ↔ ${b.label}`,
+      borderColor: colors[pi % colors.length], borderWidth: pi === 0 ? 2 : 1.5,
+      pointRadius: 0, tension: 0.2, fill: false });
+  });
+  // asse X comune: da globalFrom a N. Allineiamo ogni serie a quell'asse.
+  const N = HIST_MONTHLY.length;
+  const labels = [];
+  for (let t = globalFrom; t <= N; t++) labels.push(Math.floor(startYear + t / 12));
+  datasets.forEach(ds => {
+    const map = {}; ds._pts.forEach(p => map[p.idx] = p.rho);
+    ds.data = labels.map((_, i) => { const idx = globalFrom + i; return map[idx] != null ? map[idx] : null; });
+    ds.spanGaps = true; delete ds._pts;
+  });
+  if (_rollCorrChart) { _rollCorrChart.destroy(); _rollCorrChart = null; }
+  const ctx = canvas.getContext('2d');
+  _rollCorrChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { font: { family: "'DM Sans',sans-serif", size: 11 }, usePointStyle: true } },
+        tooltip: {
+          callbacks: { label: c => `${c.dataset.label}: ${c.parsed.y != null ? c.parsed.y.toFixed(2) : 'n/d'}` },
+          backgroundColor: 'rgba(32,33,36,0.9)', titleColor: '#fff', bodyColor: '#e8eaed', padding: 10, cornerRadius: 8,
+        },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Anno', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12, autoSkip: true } },
+        y: { min: -1, max: 1, title: { display: true, text: 'Correlazione (ρ) — finestra 36 mesi', font: { size: 11 } },
+          grid: { color: ctx2 => ctx2.tick.value === 0 ? 'rgba(0,0,0,0.35)' : 'rgba(0,0,0,0.05)' },
+          ticks: { stepSize: 0.5 } },
+      },
+    },
+  });
+}
+window._drawRollingCorrChart = _drawRollingCorrChart;
+window._renderCorrelationView = _renderCorrelationView;
+
 // ── Override switchQuantMode per gestire 'optimizer' ──────────────────────
 window.switchQuantMode = function(mode) {
   _efState.mode = mode;
@@ -2536,6 +2779,7 @@ window.switchQuantMode = function(mode) {
     var:       document.getElementById('quantVaRSection'),
     factor:    document.getElementById('quantFactorSection'),
     optimizer: document.getElementById('quantOptimizerSection'),
+    correlation: document.getElementById('quantCorrelationSection'),
   };
   for (const [k, sec] of Object.entries(sections)) {
     if (sec) sec.style.display = mode === k ? '' : 'none';
@@ -2552,6 +2796,7 @@ window.renderQuantTab = function() {
   else if (_efState.mode === 'var')       _renderVaRView();
   else if (_efState.mode === 'factor')    _renderFactorView();
   else if (_efState.mode === 'optimizer') _renderOptimizerView();
+  else if (_efState.mode === 'correlation') _renderCorrelationView();
 };
 
 // Espone funzioni per debug

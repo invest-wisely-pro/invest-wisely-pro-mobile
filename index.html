@@ -104,18 +104,34 @@
     </div>
     <div class="footer-disclaimer" style="margin-top:10px">
       <strong>Fonte e natura dei dati storici</strong><br>
-      I dati storici 1970&ndash;2024 utilizzati nel backtesting e nelle simulazioni Monte Carlo sono
-      <strong>a scopo illustrativo</strong>. I rendimenti annuali sono <strong>ancorati alle serie ufficiali</strong>
-      delle tre asset class &mdash; azioni <strong>MSCI World</strong> (Net Total Return, EUR), obbligazioni
-      <strong>Bloomberg Euro Aggregate</strong> e oro (prezzo in EUR, LBMA) &mdash; e ne riproducono i valori
-      di lungo periodo (CAGR, volatilità) e l'andamento dei principali anni di crisi (1973&ndash;74, 1987,
-      2000&ndash;02, 2008, 2020, 2022). La <strong>granularità mensile</strong> dei singoli mesi è una
-      <strong>ricostruzione</strong> coerente con il rendimento annuo reale, non una serie tick-by-tick certificata.
-      I dati <strong>non provengono da feed su licenza dei fornitori degli indici</strong> e non costituiscono
+      I dati storici 1970&ndash;2025 (672 osservazioni mensili) utilizzati nel backtesting e nelle
+      simulazioni Monte Carlo sono forniti <strong>a scopo educativo e illustrativo</strong>.
+      Le asset class principali usano le <strong>serie mensili reali degli indici in EUR, mese per mese</strong>
+      (non ricostruzioni): azioni <strong>MSCI World, MSCI USA e MSCI Europe</strong> (Net Total Return, EUR),
+      <strong>MSCI Emerging Markets</strong> (dalla base ufficiale dell'indice, dic 1987),
+      obbligazioni <strong>Bloomberg Euro Aggregate</strong> (microstruttura mensile reale dal 2009,
+      ricostruzione ancorata ai totali annui prima) e oro in EUR (convenzione DEM/EUR-sintetico prima
+      del 1999, la stessa dei principali strumenti di backtest europei); le serie sono state verificate
+      mese per mese contro gli export di riferimento e sugli anni di crisi noti (1973&ndash;74, 1987,
+      2000&ndash;02, 2008, 2020, 2022, e il 2025 reale incluso). Serie storiche reali dedicate anche per:
+      <strong>governativo globale hedged EUR</strong> (dal 1985), <strong>obbligazioni indicizzate
+      all'inflazione</strong> (dal 2005), <strong>aggregato obbligazionario globale hedged</strong> (dal 2018)
+      e <strong>commodities Bloomberg Commodity</strong> (dal 2005), ciascuna con fallback dichiarato prima
+      della propria data di inizio. I fattori azionari (Small Cap Value, Momentum, Value, Quality,
+      Investment, Size) derivano dalla <strong>Kenneth French Data Library</strong>, la Bassa Volatilità dal
+      dataset <strong>AQR Betting Against Beta</strong>, l'Immobiliare Quotato dall'indice
+      <strong>FTSE Nareit All Equity REITs</strong> (dal 1979); convertiti in EUR coi cambi ufficiali
+      BCE/FRED. L'<strong>inflazione</strong> usata per i valori reali &egrave; quella <strong>euro</strong>:
+      CPI Germania fino al 1998 (coerente con la convenzione DEM delle serie pre-euro) e area euro dal
+      1999 (fonte World Bank/Eurostat via FRED) &mdash; non il CPI USA. I dati
+      <strong>non provengono da feed su licenza dei fornitori degli indici</strong> e non costituiscono
       una riproduzione ufficiale degli stessi. Per analisi che richiedano dati certificati si rimanda alle
       fonti primarie (<a href="https://www.msci.com" target="_blank" rel="noopener" style="color:var(--blue)">MSCI</a>,
-      Bloomberg, <a href="https://www.lbma.org.uk" target="_blank" rel="noopener" style="color:var(--blue)">LBMA</a>)
-      o a strumenti basati su dati su licenza (es. <a href="https://curvo.eu" target="_blank" rel="noopener" style="color:var(--blue)">Curvo.eu</a>). MSCI, Bloomberg e LBMA sono marchi dei rispettivi proprietari, citati a solo scopo identificativo delle serie di riferimento; nessuna affiliazione o sponsorizzazione è implicita.
+      Bloomberg, <a href="https://www.lbma.org.uk" target="_blank" rel="noopener" style="color:var(--blue)">LBMA</a>,
+      <a href="https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html" target="_blank" rel="noopener" style="color:var(--blue)">Kenneth French Data Library</a>,
+      <a href="https://www.aqr.com/Insights/Datasets" target="_blank" rel="noopener" style="color:var(--blue)">AQR</a>,
+      <a href="https://www.reit.com" target="_blank" rel="noopener" style="color:var(--blue)">Nareit</a>)
+      o a strumenti basati su dati su licenza (es. <a href="https://curvo.eu" target="_blank" rel="noopener" style="color:var(--blue)">Curvo.eu</a>). MSCI, Bloomberg, LBMA, FTSE Nareit e AQR sono marchi dei rispettivi proprietari, citati a solo scopo identificativo delle serie di riferimento; nessuna affiliazione o sponsorizzazione &egrave; implicita.
     </div>
     <div class="footer-links">
       <button onclick="showView('privacy')" class="footer-link-btn">🔒 Privacy Policy</button>
@@ -272,7 +288,7 @@
         <li><b>t di Student (ν=4, fat tail)</b> — distribuzioni a <i>code grasse</i>: crash del −20/−40% accadono 3–5× più spesso rispetto alla gaussiana. Curtosi elevata. <b>Raccomandato per la pianificazione conservativa.</b></li>
         <li><b>GARCH(1,1) — volatility clustering</b> — la volatilità non è costante ma si autoalimenta: un mese volatile tende a essere seguito da un altro volatile. I parametri α=0,09, β=0,90 sono calibrati su equity globale. Il fan chart si allarga e restringe nel tempo invece di essere monotonicamente crescente.</li>
         <li><b>Regime-Switching (Hamilton 1989)</b> — il mercato alterna stati latenti Bull (μ=+1,2%/m, σ=3,5%) e Bear (μ=−1,8%/m, σ=7%). La matrice di transizione P(Bull→Bull)=97%, P(Bear→Bull)=20% cattura la persistenza dei trend. I crash prolungati emergono naturalmente senza impostare il Sequence Risk manualmente.</li>
-        <li><b>Block Bootstrap — Serie Storica (1970–2024)</b> — campiona blocchi da 660 osservazioni mensili storiche — serie mensile ricostruita: totali annui e mesi-crisi chiave ancorati ai dati reali (MSCI World Net EUR, Bloomberg Euro Aggregate, oro LBMA EUR), distribuzione infra-annuale stimata; inflazione CPI USA da FRED. I blocchi di 12 mesi preservano l'autocorrelazione seriale (volatility clustering, momentum). Non assume nessuna distribuzione parametrica: i crash storici (1973, 1987, 2000, 2008, 2022) entrano direttamente nella simulazione con la loro frequenza reale. È il modello più accurato per portafogli con componente azionaria e oro.</li>
+        <li><b>Block Bootstrap — Serie Storica (1970–2024)</b> — campiona blocchi da 660 osservazioni mensili storiche — serie mensile ricostruita: totali annui e mesi-crisi chiave reali: le azioni mondiali usano la serie mensile <b>effettiva</b> del MSCI World Net in euro su tutto il periodo (1970&ndash;2000 dalla ricostruzione Curvo/IWDA al lordo del TER; dal 2001 il dato MSCI ufficiale). Obbligazioni Bloomberg Euro Aggregate e oro spot in euro (validato Bundesbank); inflazione CPI USA da FRED. I blocchi di 12 mesi preservano l'autocorrelazione seriale (volatility clustering, momentum). Non assume nessuna distribuzione parametrica: i crash storici (1973, 1987, 2000, 2008, 2022) entrano direttamente nella simulazione con la loro frequenza reale. È il modello più accurato per portafogli con componente azionaria e oro.</li>
 
       </ul>
       <div class="guide-impact"><b>Come leggere i risultati:</b> confronta il P10 del Gaussiano con quello del Regime-Switching — la differenza mostra quanto la tua pianificazione dipende dall'assunzione di normalità. Il Regime-Switching e il t-Student producono code più pesanti perché modellano crash più frequenti e prolungati.</div>
@@ -283,7 +299,7 @@
       <h2><span class="num">7</span> Scheda <b>Backtesting Storico</b> 📅</h2>
       <p>Il Backtesting Storico risponde alla domanda <b>"Cosa sarebbe successo se avessi iniziato il mio piano in un anno specifico?"</b> — usando i rendimenti mensili effettivi reali 1970–2024 (non simulazioni parametriche). È la verifica più concreta della robustezza del tuo piano.</p>
       <h3>Come funziona il motore</h3>
-      <p>Il simulatore usa 660 osservazioni mensili (Gen 1970 – Dic 2024) di tre asset class: <b>azioni mercati sviluppati</b> (MSCI World equiv.), <b>obbligazioni aggregate</b> (Bloomberg US Agg equiv.) e <b>oro spot</b> — serie mensile ricostruita: totali annui e mesi-crisi chiave ancorati ai dati reali, distribuzione infra-annuale stimata. I pesi del portafoglio selezionato vengono applicati ai rendimenti mensili di ogni periodo. Il TER viene sottratto mensilmente. Il PAC viene aggiunto a inizio mese prima di applicare il rendimento.</p>
+      <p>Il simulatore usa 660 osservazioni mensili (Gen 1970 – Dic 2024). Le tre asset class di base &mdash; <b>azioni mercati sviluppati</b> (MSCI World equiv.), <b>obbligazioni aggregate</b> (Bloomberg Euro Agg equiv.) e <b>oro spot</b> &mdash; hanno serie mensile ricostruita: totali annui e mesi-crisi chiave reali (azioni mondiali mensili effettive su tutto il periodo 1970-2024, v. sopra). Gli asset aggiuntivi (fattori azionari Small Cap Value, Momentum, Value, Quality, Investment, Size; Bassa Volatilità; Immobiliare Quotato REITs; Mercati Emergenti) usano <b>serie storiche reali dedicate</b> (Kenneth French Data Library, AQR, FTSE Nareit) convertite in EUR, anziché comportarsi come proxy del mercato sviluppato. I pesi del portafoglio selezionato vengono applicati ai rendimenti mensili di ogni periodo. Il TER viene sottratto mensilmente. Il PAC viene aggiunto a inizio mese prima di applicare il rendimento.</p>
       <h3>Anni di partenza disponibili</h3>
       <ul>
         <li><b>1973 — Stagflazione OPEC</b>: il peggior inizio nella storia moderna. Inflazione al 12%, azioni −48% in 2 anni, oro +162%. Testa la resilienza massima del piano in contesto inflattivo estremo.</li>
@@ -297,7 +313,7 @@
         <li><b>2019 — Pre-COVID</b>: anno neutro, poi COVID-19 (feb-mar 2020): −34% in 33 giorni. Recovery completata in meno di 6 mesi — il crash più veloce della storia.</li>
         <li><b>2022 — Inflazione &amp; rialzo tassi</b>: azioni −20% E obbligazioni −15% simultaneamente — il 60/40 perde −17%, il peggior anno dal 1937 per portafogli bilanciati. Le correlazioni storicamente negative tra equity e bond si sono invertite.</li>
       </ul>
-      <h3>Correlazioni Dinamiche</h3>
+      <h3>Duration dei bond (portafogli custom)</h3> <p>Nei portafogli <b>custom</b>, il backtest e il Monte Carlo block-bootstrap distinguono le obbligazioni per <b>scadenza/duration</b> usando <b>serie storiche total-return reali</b> per ogni scadenza: un Gov. breve (1-3a) e un Gov. ultra-lungo (20-30a) subiscono i drawdown storici veri, non un unico valore aggregato. Le serie sono ricostruite dai rendimenti ufficiali (yield USA da FRED 1962-2024; area euro da ECB dal 2004, e Bund tedesco reale (Bundesbank) per 2/5/10 anni dal 1972 per il periodo precedente) convertiti in total-return col metodo carry + duration + convessit&agrave;. <b>Le obbligazioni USA sono convertite in euro</b> applicando il cambio USD/EUR (ECU/USD dal 1978, BCE dal 1999), cos&igrave; riflettono il rendimento per un investitore in euro incluso il rischio cambio: nel 2022 il dollaro forte ha attenuato le perdite (Treasury 10Y &minus;10% in EUR contro &minus;16% in USD), mentre nel 2008 il dollaro bene-rifugio le ha amplificate al rialzo (30Y +52% in EUR). Solo per il periodo pre-1979 (privo di dati di cambio) si assume neutralit&agrave; valutaria. <b>Validazione su crisi note:</b> 2022 (rialzo tassi) USA 2Y &minus;4%, 5Y &minus;9%, 10Y &minus;16%, 30Y &minus;32%; area euro 5Y &minus;12%, 30Y &minus;40% &mdash; tutti aderenti ai valori reali. Il 2008 (fuga verso la qualit&agrave;) riproduce il rally opposto dei Treasury lunghi (+40%). <span style="color:var(--text3)">Le obbligazioni globali hedged e indicizzate all'inflazione, prive di serie dedicata per scadenza, usano l'aggregato. I preset usano la serie aggregata come prima.</span></p> <h3>Azioni per regione (USA, Europa)</h3> <p>Nei portafogli <b>custom</b>, le azioni <b>USA</b> ed <b>Europa</b> usano serie storiche reali regionali distinte, non pi&ugrave; il solo indice mondiale: cos&igrave; backtest, block bootstrap e crisis test riflettono le divergenze vere tra i due mercati. Fonti: Fama-French (mercato USA dal 1926, aggregato 14 paesi europei dal 1975) e MSCI USA/Europe Net EUR dal 2001. Le serie regionali sono costruite come <b>divergenza</b> rispetto all'indice mondiale (World in euro + differenza regionale reale), cos&igrave; catturano la sovra/sotto-performance di USA ed Europa senza distorsioni di cambio: nel lungo periodo USA ed Europa si collocano coerentemente attorno al World. <b>Validazione:</b> 2011 USA +5% / Europa &minus;8% (crisi del debito euro); 2020 USA +11% / Europa &minus;3% (rally tecnologico USA); 2008 USA &minus;34% / Europa &minus;44%. <span style="color:var(--text3)">L'indice Mercati Sviluppati (World) resta la serie globale; USA ed Europa sono sotto-serie regionali reali. Pre-1975 l'Europa ripiega sul World (dichiarato).</span></p> <p style="margin-top:8px"><b>Preset con composizione specifica</b> (Golden Butterfly, Permanent Portfolio): nel backtest storico e nel crisis test le loro componenti usano le <b>serie reali</b> per scadenza e regione (es. il 20% Ob. Lungo Termine del Golden Butterfly usa la serie Treasury USA 10 anni reale, il 20% Az. Large Cap US la serie azionaria USA reale), invece dell'aggregato. Cos&igrave; il backtest riflette la vera composizione mostrata nella scheda. I parametri di rendimento atteso e volatilit&agrave; dei preset restano quelli calibrati.</p> <h3>Correlazioni Dinamiche</h3>
       <p>Il motore implementa le <b>correlazioni dinamiche reali</b>: quando il drawdown azionario supera il 15%, le correlazioni si spostano progressivamente verso la matrice di stress (come osservato empiricamente). Nel 2022 azioni e obbligazioni hanno correlato positivamente (+0,6) per la prima volta dagli anni '70 — il modello lo cattura automaticamente dai dati storici reali, senza assumption parametriche.</p>
       <h3>Confronto tutti i periodi</h3>
       <p>Il pulsante <b>"Confronta tutti gli anni"</b> esegue il backtesting per tutti i 10 periodi contemporaneamente e produce: tabella comparativa ordinata per CAGR (con Max Drawdown), e grafico normalizzato che mostra le traiettorie di ogni periodo sulla stessa scala (base 100 al punto di partenza). Permette di vedere in un colpo d'occhio quale periodo è stato più favorevole e quale più sfidante per il tuo portafoglio specifico.</p>
@@ -497,7 +513,7 @@
 
     <div class="guide-sec" id="g16">
       <h2><span class="num">16</span> 📐 Quant Analytics</h2>
-      <p>Il tab <b>Quant Analytics</b> raccoglie quattro strumenti di analisi quantitativa professionale del portafoglio. Tutti si sincronizzano automaticamente con il portafoglio impostato nel Simulatore tramite il pulsante <b>↩ Importa dal Simulatore</b>.</p>
+      <p>Il tab <b>Quant Analytics</b> raccoglie cinque strumenti di analisi quantitativa professionale del portafoglio. Tutti si sincronizzano automaticamente con il portafoglio impostato nel Simulatore tramite il pulsante <b>↩ Importa dal Simulatore</b>.</p>
 
       <h3>📈 Frontiera Efficiente di Markowitz</h3>
       <p>Seleziona 2-8 asset class dal menu multi-selezione (Ctrl/Cmd+click). Il sistema calcola la <b>frontiera efficiente</b>: la curva dei portafogli ottimali che massimizzano il rendimento atteso per ogni livello di rischio (volatilità). Il grafico mostra:</p>
@@ -507,7 +523,7 @@
         <li><b>▼ Punto verde</b> — portafoglio Minima Varianza: volatilità più bassa possibile tra le combinazioni disponibili.</li>
         <li><b>▲ Triangolo rosso</b> — il tuo portafoglio corrente. Se è sotto la curva, esiste un'allocazione più efficiente con lo stesso rischio e rendimento superiore.</li>
       </ul>
-      <p>Le statistiche comparative mostrano rendimento atteso, volatilità e Sharpe ratio dei tre punti a confronto. La matrice di correlazione usata è calibrata su dati storici 1970-2024 (26×26 asset class).</p>
+      <p>Le statistiche comparative mostrano rendimento atteso, volatilità e Sharpe ratio dei tre punti a confronto. La matrice di correlazione usata è calibrata su dati storici 1970-2024 (32×32 asset class).</p>
       <div class="guide-callout"><b>Nota metodologica:</b> i rendimenti attesi sono forward-looking conservativi — non storici. Piccole variazioni negli input possono spostare significativamente il portafoglio ottimale (instabilità di Markowitz). Usare come guida qualitativa, non come prescrizione assoluta.</div>
 
       <h3>🎯 VaR / CVaR</h3>
@@ -541,7 +557,7 @@
         <li><b>⚖️ Risk Parity</b> — ogni asset contribuisce in egual misura al rischio totale del portafoglio (equal risk contribution). Non dipende dalle stime di rendimento — solo dalle volatilità e correlazioni.</li>
       </ul>
       <p>È possibile impostare <b>vincoli personalizzati</b>: peso minimo e massimo per ogni asset class, e un cap aggregato sull'azionario totale. Il risultato mostra i pesi ottimali con grafico a torta, il Risk Contribution Chart (contributo al rischio per asset), e le metriche del portafoglio ottimizzato (rendimento, volatilità, Sharpe, Sortino). Il pulsante <b>Applica al Simulatore</b> trasferisce direttamente i pesi ottimali nel portafoglio Custom del Simulatore.</p>
-      <div class="guide-callout"><b>Risk Parity vs Max Sharpe:</b> il Risk Parity è spesso preferito dai gestori professionali perché non dipende dalle stime di rendimento atteso (molto incerte) — usa solo le covarianze storiche. Max Sharpe è ottimale in teoria ma molto sensibile agli input. Per un investitore retail, Risk Parity è generalmente più robusto.</div>
+      <div class="guide-callout"><b>Risk Parity vs Max Sharpe:</b> il Risk Parity è spesso preferito dai gestori professionali perché non dipende dalle stime di rendimento atteso (molto incerte) — usa solo le covarianze storiche. Max Sharpe è ottimale in teoria ma molto sensibile agli input. Per un investitore retail, Risk Parity è generalmente più robusto.</div> <h3>Matrice di Correlazione &amp; Rolling</h3> <p>Il pulsante <b>Correlazioni</b> apre due strumenti complementari per capire come gli asset si muovono tra loro.</p> <ul> <li><b>Matrice di Correlazione (heatmap 32&times;32)</b> &mdash; mostra la correlazione storica (&rho;) tra ogni coppia delle 32 asset class, calibrata su serie 1970&ndash;2024 e premi fattoriali Fama-French. <b style="color:var(--blue)">Blu</b> = si muovono insieme (poca diversificazione); <b style="color:var(--red)">rosso</b> = si oppongono (copertura nei ribassi); bianco &asymp; indipendenti. Passa il mouse su una cella per il valore esatto. Cerca le celle rosse: sono le coppie che proteggono il portafoglio (es. Value &harr; Momentum, azioni &harr; bond governativi).</li> <li><b>Correlazione Rolling 36 mesi</b> &mdash; la correlazione non &egrave; fissa: cambia nel tempo. Questo grafico mostra la correlazione mobile a 36 mesi tra le 5 asset class macro con dati mensili reali (Azioni, Obbligazioni, Oro, REITs, Emergenti, in EUR). Quando la linea <b>Azioni &harr; Obbligazioni</b> sale sopra lo zero (come nel 2022), azioni e bond scendono <i>insieme</i>: la diversificazione tradizionale smette di funzionare. Tre viste selezionabili: <i>Azioni vs Obbligazioni/Oro</i>, <i>Azioni vs Asset rischiosi</i>, <i>Oro come diversificatore</i>.</li> <li><b>Analisi del portafoglio impostato</b> &mdash; sotto i grafici, una sezione calcola la <b>correlazione media pesata</b> tra le tue asset class (con giudizio Eccellente/Buona/Moderata/Bassa), un <b>punteggio di diversificazione</b> su 100, e le coppie pi&ugrave; diversificanti (proteggono) e pi&ugrave; ridondanti (si muovono insieme) del tuo portafoglio.</li> </ul> <div class="guide-callout"><b>Nota metodologica:</b> i fattori di stile (Value, Momentum...) compaiono nella matrice statica ma <b>non</b> nel grafico rolling: come asset investibili long-only sono dominati dal mercato comune (correlazione ~0.95), quindi una loro rolling sarebbe fuorviante. La loro vera decorrelazione &egrave; un fenomeno dei fattori long-short, visibile nella matrice statica. Tutti i valori sono a scopo informativo e divulgativo, non costituiscono raccomandazione di investimento.</div>
     </div>
 
   </div>
@@ -660,18 +676,18 @@
 </div>
 
 <div class="tab-nav">
-  <button class="tab-btn active" data-tab="main" onclick="switchTab('main')"><span>📊</span> Simulatore</button>
-  <button class="tab-btn" data-tab="scenarios" onclick="switchTab('scenarios')"><span>🌐</span> Scenari Economici</button>
-  <button class="tab-btn" data-tab="ab" onclick="switchTab('ab')"><span>⚖️</span> A/B Confronto</button>
-  <button class="tab-btn" data-tab="mc" onclick="switchTab('mc')"><span>🎯</span> Prob. Successo</button>
-  <button class="tab-btn" data-tab="decumulo" onclick="switchTab('decumulo')"><span>📉</span> Decumulo</button>
-  <button class="tab-btn" data-tab="advmc" onclick="switchTab('advmc')"><span>🧮</span> MC Avanzato</button>
-  <button class="tab-btn" data-tab="backtest" onclick="switchTab('backtest')"><span>📅</span> Backtesting Storico</button>
-  <button class="tab-btn" data-tab="fiscale" onclick="switchTab('fiscale')"><span>🏛️</span> Fiscalità IT</button>
-  <button class="tab-btn" data-tab="pensione" onclick="switchTab('pensione')"><span>👴</span> Piano Pensione</button>
-  <button class="tab-btn" data-tab="valuation" onclick="switchTab('valuation')"><span>🎯</span> Stress Valutazioni</button>
-  <button class="tab-btn" data-tab="goal" onclick="switchTab('goal')"><span>🏆</span> Obiettivo Inverso</button>
-  <button class="tab-btn" data-tab="quant" onclick="switchTab('quant')"><span>📐</span> Quant Analytics</button>
+  <button class="tab-btn active" data-tab="main" onclick="switchTab('main')">Simulatore</button>
+  <button class="tab-btn" data-tab="scenarios" onclick="switchTab('scenarios')">Scenari Economici</button>
+  <button class="tab-btn" data-tab="ab" onclick="switchTab('ab')">A/B Confronto</button>
+  <button class="tab-btn" data-tab="mc" onclick="switchTab('mc')">Prob. Successo</button>
+  <button class="tab-btn" data-tab="decumulo" onclick="switchTab('decumulo')">Decumulo</button>
+  <button class="tab-btn" data-tab="advmc" onclick="switchTab('advmc')">MC Avanzato</button>
+  <button class="tab-btn" data-tab="backtest" onclick="switchTab('backtest')">Backtesting Storico</button>
+  <button class="tab-btn" data-tab="fiscale" onclick="switchTab('fiscale')">Fiscalità IT</button>
+  <button class="tab-btn" data-tab="pensione" onclick="switchTab('pensione')">Piano Pensione</button>
+  <button class="tab-btn" data-tab="valuation" onclick="switchTab('valuation')">Stress Valutazioni</button>
+  <button class="tab-btn" data-tab="goal" onclick="switchTab('goal')">Obiettivo Inverso</button>
+  <button class="tab-btn" data-tab="quant" onclick="switchTab('quant')">Quant Analytics</button>
 </div>
 
 <!-- ══════════════════════════════════════════════════════ TAB 1: MAIN -->
@@ -689,7 +705,7 @@
     <div class="pblock"><div class="plabel"><span>PAC mensile (base)</span><span class="pval" id="lP">€0/m</span></div><input type="range" id="sP" min="0" max="15000" step="50" value="0"><div class="range-hints"><span>€0</span><span>€15.000</span></div></div>
     <div class="pblock"><div class="plabel"><span>Età iniziale</span><span class="pval" id="lA">0 anni</span></div><input type="range" id="sA" min="0" max="80" step="1" value="0"><div class="range-hints"><span>0</span><span>80</span></div></div>
     <div class="pblock"><div class="plabel"><span>Orizzonte temporale</span><span class="pval" id="lY">35 anni</span></div><input type="range" id="sY" min="1" max="50" step="1" value="35"><div class="range-hints"><span>1 anno</span><span>50 anni</span></div></div>
-    <div class="pblock"><div class="plabel"><span class="opt-tooltip-wrap">💎 Soglia Optionality <span class="opt-tooltip-icon" tabindex="0">?<span class="opt-tooltip-bubble"><strong style="color:var(--blue)">Cos'è la Soglia di Optionality?</strong><br>Livello patrimoniale a cui il portafoglio ti dà <em>opzioni di vita reali</em> — part-time, sabbatico, cambio carriera — prima della libertà finanziaria totale (FIRE). Distinta dal FIRE (100% copertura): questa è il punto di <strong>"abbastanza per avere scelta"</strong>. Il grafico mostra la linea tratteggiata per vedere quando ogni scenario la raggiunge.</span></span></span><span class="pval" id="lO">€450.000</span></div><input type="range" id="sO" min="50000" max="3000000" step="25000" value="450000"><div class="range-hints"><span>€50k</span><span>€3M</span></div></div>
+    <div class="pblock"><div class="plabel"><span class="opt-tooltip-wrap">💎 Soglia Optionality <span class="opt-tooltip-icon">?<span class="opt-tooltip-bubble"><strong style="color:var(--blue)">Cos'è la Soglia di Optionality?</strong><br>Livello patrimoniale a cui il portafoglio ti dà <em>opzioni di vita reali</em> — part-time, sabbatico, cambio carriera — prima della libertà finanziaria totale (FIRE). Distinta dal FIRE (100% copertura): questa è il punto di <strong>"abbastanza per avere scelta"</strong>. Il grafico mostra la linea tratteggiata per vedere quando ogni scenario la raggiunge.</span></span></span><span class="pval" id="lO">€450.000</span></div><input type="range" id="sO" min="50000" max="3000000" step="25000" value="450000"><div class="range-hints"><span>€50k</span><span>€3M</span></div></div>
     <div class="pblock"><div class="plabel"><span>TER ETF <span class="ter-badge">💸 costo fondo</span></span><span class="pval" id="lTer">0.20%</span></div><input type="range" id="sTer" min="0" max="2.0" step="0.05" value="0.20"><div class="range-hints"><span>0%</span><span>2.0%</span></div></div>
     <div class="pblock"><div class="plabel"><span>Tasse Azionario</span><span class="pval" id="lTeq">26.0%</span></div><input type="range" id="sTeq" min="0" max="40" step="0.5" value="26.0"><div class="range-hints"><span>0%</span><span>40%</span></div></div>
     <div class="pblock"><div class="plabel"><span>Tasse Obbligaz. (Gov.)</span><span class="pval" id="lTob">12.5%</span></div><input type="range" id="sTob" min="0" max="40" step="0.5" value="12.5"><div class="range-hints"><span>0%</span><span>40%</span></div></div>
@@ -744,6 +760,7 @@
     <button class="gbtn" data-k="eq20">20/80</button>
     <button class="gbtn" data-k="ob100">100% Ob.</button>
     <button class="gbtn" data-k="lifecycle">♻ Lifecycle</button>
+    <button class="gbtn" data-k="glide">⤵ Glide Path</button>
     <button class="gbtn" data-k="golden_butterfly">🦋 Golden Butterfly</button>
     <button class="gbtn" data-k="permanent">🏛️ Permanent</button>
     <button class="gbtn" data-k="all_seasons">🌤️ All Seasons</button>
@@ -752,12 +769,12 @@
     <button class="gbtn" data-k="ec_us_9060">⚡ Eff.Core 90/60 US</button>
     <button class="gbtn" data-k="ec_glob_9060">⚡ Eff.Core 90/60 Glob</button>
     <button class="gbtn" data-k="return_stack">🔀 Return Stacking</button>
-    <button class="gbtn" data-k="glide">⤵ Glide Path</button>
     <button class="gbtn" data-k="custom">🔧 Custom</button>
   </div>
 
   <div id="customBuilder" class="custom-builder"></div>
-  <div id="glideBuilder" class="glide-builder"></div>
+
+  <div id="glideBuilder" class="custom-builder"></div>
 
 
   <div id="portDetailBox" class="port-detail-box"></div>
@@ -794,6 +811,8 @@
 
 <div class="ter-drag-bar"><div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;font-family:'DM Mono',monospace;white-space:nowrap">💸 TER Drag</div><div id="terDragContent" style="font-size:13px;color:var(--text2);flex:1">—</div></div>
 
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg><span>Liquidazione Fiscale & Rendita SWR</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec liq-box" style="margin-bottom:10px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
     <div><div class="sec-label" data-info-id="info-liquidazione" style="margin-bottom:4px;color:var(--blue)">Liquidazione Fiscale Finale (Nominale)</div><div style="font-size:12.5px;color:var(--text2)">Capital Gain a fine periodo — età <strong id="liqAge">—</strong>.</div></div>
@@ -802,9 +821,11 @@
   <div id="liqData" style="display:none;margin-top:18px;border-top:1px solid rgba(26,115,232,.2);padding-top:18px"></div>
 </div>
 
-<div class="sec" style="margin-bottom:10px"><div class="sec-label" data-info-id="info-swr">Rendita Sostenibile — SWR (Nominale)</div><div id="swrData">—</div></div>
+<div class="sec" style="margin-bottom:10px"><div class="sec-label" data-info-id="info-swr">Rendita Sostenibile — SWR (Nominale)</div><div id="swrData">—</div></div></details>
 
 <!-- INFLAZIONE AVANZATA -->
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg><span>Inflazione Avanzata & Capitale vs Plusvalenza</span><span class="adv-badge">Avanzato</span></summary>
 <div class="infl-box">
   <div class="sec-label" data-info-id="info-inflazione" style="color:#e65100;margin-bottom:8px">🌡️ Modulo Inflazione Avanzato — Nominale → Reale con Correlazione Asset</div>
   <div style="font-size:12.5px;color:#795548;margin-bottom:12px;line-height:1.6">
@@ -833,6 +854,8 @@
   <div class="bar-stats" id="barStats"></div>
 </div>
 
+</details><details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg><span>Rischio di Sequenza & Rimbalzo</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
     <div class="sec-label" data-info-id="info-sequenza" style="margin-bottom:0">Rischio di Sequenza &amp; Rimbalzo</div>
@@ -863,8 +886,10 @@
     <div class="adv-desc" id="seqDesc"></div>
     <div id="multiCrashInfo" style="display:none;margin-top:8px;padding:10px 14px;background:var(--purple-dim);border:1px solid rgba(147,52,230,.25);border-radius:var(--radius-sm);font-size:12.5px;color:var(--purple);line-height:1.6"></div>
   </div>
-</div>
+</div></details>
 
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Monte Carlo 1.000 Scenari</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec">
   <div class="sec-label" data-info-id="info-mc-fan">Monte Carlo 1.000 Scenari (Fan Percentili — Lordo Nominale)</div>
   <div id="mcDesc" style="font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:12px"></div>
@@ -878,8 +903,10 @@
     <div class="mc-box"><div class="mc-lbl">Media</div><div class="mc-val" id="mcMean" style="color:var(--blue);font-size:13px">—</div></div>
     <div class="mc-box"><div class="mc-lbl">P75</div><div class="mc-val" id="mcP75" style="color:var(--green);font-size:13px">—</div></div>
   </div>
-</div>
+</div></details>
 
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg><span>Tabella Anno per Anno</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec">
   <div class="show-all-row">
     <div class="sec-label" style="margin-bottom:0" data-info-id="info-proiezione-annuale">Tabella Scenario Base (Nominali Lordi, netti TER)</div>
@@ -888,7 +915,7 @@
   <div class="tbl-outer">
     <table><thead><tr><th style="text-align:left">Età</th><th style="text-align:left">Anno</th><th>Versato</th><th>Plusvalenza</th><th>Valore Lordo</th><th>Rendita Netta/a</th><th>vs PAC</th><th>Note</th></tr></thead><tbody id="tb"></tbody></table>
   </div>
-</div>
+</div></details>
 
 <div class="pdf-section">
   <div class="pdf-section-text"><h3>📊 Esporta Report</h3><p>PDF completo multi-scheda o Excel con proiezione annuale, parametri, Monte Carlo e asset class custom.</p></div>
@@ -933,7 +960,9 @@
 </div>
 <div class="chart-wrap"><canvas id="chEco"></canvas></div>
 
-<div class="sec"><div class="sec-label" data-info-id="info-eco-confronto">Confronto Finale — Tutti gli Scenari</div><div id="ecoCompareTable">—</div></div>
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg><span>Confronto Finale Scenari</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec"><div class="sec-label" data-info-id="info-eco-confronto">Confronto Finale — Tutti gli Scenari</div><div id="ecoCompareTable">—</div></div></details>
 <div class="sec">
   <div class="sec-label">Tabella Anno per Anno — Scenario Selezionato</div>
   <div class="tbl-outer">
@@ -942,6 +971,8 @@
 </div>
 
 <!-- ════════════ SEZIONE MULTI-REGIME STOCASTICO ════════════ -->
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Simulazione Multi-Regime Stocastica</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec" style="border-top:2px solid var(--border2);margin-top:8px;padding-top:20px">
   <div class="sec-label" data-info-id="info-multi-regime" style="font-size:15px">🔀 Simulazione Multi-Regime Stocastica
     <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:8px">1.000 percorsi · sequenza di regimi consecutivi lungo il piano</span>
@@ -1043,7 +1074,7 @@
     <div class="sec-label" style="margin-top:4px">Distribuzione anno per anno</div>
     <div id="mrTable"></div>
   </div>
-</div>
+</div></details>
 <!-- /multi-regime -->
 
 </div><!-- /tab-scenarios -->
@@ -1087,8 +1118,10 @@
   <div class="li"><span class="ll" style="background:#c4b5fd"></span>B — Ott./Pess.</div>
 </div>
 <div class="chart-wrap"><canvas id="chAB"></canvas></div>
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Confronto Metriche & Analisi Fiscale</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec"><div class="sec-label" data-info-id="info-ab-metriche">Confronto Metriche Chiave</div><div id="ab-metrics">—</div></div>
-<div class="sec"><div class="sec-label" data-info-id="info-ab-fiscale">Analisi Fiscale Comparata</div><div id="ab-fiscal">—</div></div>
+<div class="sec"><div class="sec-label" data-info-id="info-ab-fiscale">Analisi Fiscale Comparata</div><div id="ab-fiscal">—</div></div></details>
 <div class="sec">
   <div class="sec-label">Tabella Anno per Anno — A vs B (Scenario Base)</div>
   <div class="tbl-outer"><table><thead><tr><th style="text-align:left">Età</th><th style="text-align:left">Anno</th><th style="color:var(--blue)">Valore A</th><th style="color:var(--purple)">Valore B</th><th>Δ (B−A)</th><th>Δ %</th></tr></thead><tbody id="ab-table"></tbody></table></div>
@@ -1134,8 +1167,7 @@
         <button class="gbtn" data-k="golden_butterfly">🦋 GB</button><button class="gbtn" data-k="permanent">🏛️ PP</button>
         <button class="gbtn" data-k="all_seasons">🌤️ AS</button><button class="gbtn" data-k="larry">📐 Larry</button>
         <button class="gbtn" data-k="global_market">🗺️ GMP</button>
-        <button class="gbtn" data-k="glide">⤵ Glide Path (Lato B)</button>
-        <button class="gbtn" data-k="custom">⚙️ Mia allocazione (dal Simulatore)</button>
+        <button class="gbtn" data-k="__sim__">⚙️ Mia allocazione (dal Simulatore)</button>
       </div>
       <div id="decAllocWarn" style="display:none;font-size:11.5px;color:var(--orange,#e37400);background:var(--orange-dim,#3a2a00);border-radius:6px;padding:8px 10px;margin-top:8px;line-height:1.5"></div>
       <div id="decFxBadge" style="font-size:11px;color:var(--text3);margin-top:6px;line-height:1.4"></div>
@@ -1176,6 +1208,8 @@
     </div>
   </div>
 </div>
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg><span>Scenario Economico Overlay</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec">
   <div class="sec-label" data-info-id="info-decumulo-overlay">🌐 Scenario Economico (opzionale)</div>
   <div class="info-box" style="margin-bottom:12px">Sovrapponi un regime macro per testare la resilienza del decumulo. Le righe viola in tabella indicano gli anni del regime attivo.</div>
@@ -1192,7 +1226,7 @@
     </div>
     <div id="decEcoTimDesc" style="font-size:12px;color:var(--text3);margin-top:8px;line-height:1.6"></div>
   </div>
-</div>
+</div></details>
 <div class="dec-stats-grid" id="dec-stats"></div>
 <div class="legend">
   <div class="li"><span class="ll" style="background:var(--green)"></span>Ottimistico</div>
@@ -1206,14 +1240,16 @@
 </div>
 
 <!-- ═══════ DECUMULO STORICO REALE ═══════ -->
+<details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg><span>Sequenze Storiche Reali 1970–2024</span><span class="adv-badge">Avanzato</span></summary>
 <div class="sec" style="background:linear-gradient(135deg,#fff8e1 0%,#fff3e0 100%);border:1.5px solid var(--amber)">
   <div class="sec-label" data-info-id="info-decumulo-storico">📅 Decumulo su Sequenze Storiche Reali (1970-2024)</div>
   <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px">
-    <strong>"Cosa sarebbe successo se fossi andato in pensione in un anno qualsiasi?"</strong> — esegue il piano di decumulazione su <strong>tutti gli anni di partenza disponibili</strong> (1970 in poi) usando rendimenti mensili storici reali (calibrati) e inflazione storica effettiva. È il test più severo del sequence risk: incorpora oil shock 1973, stagflazione, dot-com bust, GFC, COVID, inflazione 2022.
+    <strong>"Cosa sarebbe successo se fossi andato in pensione nel <em>year</em>?"</strong> — esegue il piano di decumulazione su <strong>tutti gli anni di partenza disponibili</strong> usando rendimenti mensili storici reali (calibrati) e inflazione storica effettiva. È il test più severo del sequence risk: incorpora oil shock 1973, stagflazione, dot-com bust, GFC, COVID, inflazione 2022.
   </div>
   <button class="pdf-btn" id="decHistBtn" onclick="runDecHistorical()" style="background:var(--amber);color:#fff;margin-bottom:14px"><span>📅</span> Esegui Backtest Storico</button>
   <div id="decHistResults"></div>
-</div>
+</div></details>
 </div><!-- /tab-decumulo -->
 
 
@@ -1254,7 +1290,9 @@
 </div>
 
 <div id="advMcResults" style="display:none">
-  <div class="sec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 13c.5-2 1.5-3 3-3s2.5 1 3 3 1.5 3 3 3 2.5-1 3-3"/></svg><span>Distribuzione & Istogramma</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-advmc-dist">Distribuzione Risultati</div>
     <div id="advMcStats" class="grid-4" style="margin-bottom:14px"></div>
     <div class="chart-wrap"><canvas id="chAdvMC"></canvas></div>
@@ -1263,14 +1301,18 @@
     <div class="sec-label" data-info-id="info-advmc-histo">Istogramma dei Capitali Finali — Forma della Distribuzione</div>
     <div class="chart-wrap" style="height:280px"><canvas id="chAdvHist"></canvas></div>
     <div id="advHistNote" style="font-size:12px;color:var(--text3);line-height:1.6;margin-top:10px"></div>
-  </div>
-  <div class="sec">
+  </div></details>
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M11 18H8a2 2 0 0 1-2-2V9"/></svg><span>Confronto Modelli</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-advmc-confronto">Confronto Modelli — Stesso Portafoglio</div>
     <div class="info-box" style="margin-bottom:12px">Mostra P10/P50/P90 per tutti e 4 i modelli affiancati. Le differenze al P10 (scenario peggiore) sono le più significative per la pianificazione.</div>
     <div id="advMcComparison"></div>
     <div class="chart-wrap" style="height:300px"><canvas id="chAdvMCComp"></canvas></div>
-  </div>
-  <div class="sec" id="garchSection" style="display:none">
+  </div></details>
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>GARCH & Regime-Switching</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec" id="garchSection" style="display:none">
     <div class="sec-label" data-info-id="info-advmc-garch">GARCH — Volatilità Dinamica nel Tempo</div>
     <div class="chart-wrap" style="height:260px"><canvas id="chGarch"></canvas></div>
   </div>
@@ -1278,7 +1320,7 @@
     <div class="sec-label" data-info-id="info-advmc-regime">Regime-Switching — Distribuzione Tempo in Bull/Bear</div>
     <div id="regimeStats" style="margin-bottom:12px"></div>
     <div class="chart-wrap" style="height:260px"><canvas id="chRegime"></canvas></div>
-  </div>
+  </div></details>
 </div>
 </div><!-- /tab-advmc -->
 
@@ -1348,18 +1390,22 @@
     <div class="chart-wrap"><canvas id="chBt"></canvas></div>
   </div>
 
-  <div class="sec" id="btDrawdownSec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 11 4 4 4-4 4 4"/></svg><span>Analisi Drawdown & Correlazioni</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec" id="btDrawdownSec">
     <div class="sec-label" data-info-id="info-backtest-drawdown">Analisi Drawdown &amp; Correlazioni Dinamiche</div>
     <div id="btDrawdownInfo" style="margin-bottom:12px;font-size:12.5px;color:var(--text2);line-height:1.6"></div>
     <div class="chart-wrap" style="height:260px"><canvas id="chBtDD"></canvas></div>
     <div id="btCorrInfo" style="margin-top:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12.5px;color:var(--text2);line-height:1.7"></div>
-  </div>
+  </div></details>
 
-  <div class="sec" id="btCompareSec" style="display:none">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg><span>Confronto Tutti i Periodi</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec" id="btCompareSec" style="display:none">
     <div class="sec-label" data-info-id="info-backtest-multi">Confronto Tutti i Periodi di Partenza</div>
     <div id="btCompareStats" style="margin-bottom:12px"></div>
     <div class="chart-wrap" style="height:340px"><canvas id="chBtComp"></canvas></div>
-  </div>
+  </div></details>
 
   <!-- ══ SEQUENCE OF RETURNS RISK ══ -->
   <details class="sec" id="btSeqRiskSec" open style="cursor:default">
@@ -1486,12 +1532,16 @@
 </div>
 
 <div id="fiscResults">
-  <div class="sec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Evoluzione Lotti & Base di Costo</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-fiscale-lotti">Evoluzione Lotti e Base di Costo (PAC simulato)</div>
     <div id="fiscLotSummary" style="margin-bottom:12px"></div>
     <div class="chart-wrap" style="height:300px"><canvas id="chFisc"></canvas></div>
-  </div>
-  <div class="sec">
+  </div></details>
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg><span>Simulazione Vendita Parziale</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-fiscale-switch">Simulazione Vendita Parziale / Totale</div>
     <div class="grid-2" style="margin-bottom:14px">
       <div class="pblock">
@@ -1504,20 +1554,22 @@
       </div>
     </div>
     <div id="fiscSellResult"></div>
-  </div>
+  </div></details>
   <div class="sec">
     <div class="sec-label" data-info-id="info-fiscale-regimi">Confronto Regimi — Impatto Netto su Piano Completo</div>
     <div id="fiscCompare"></div>
     <div class="chart-wrap" style="height:300px"><canvas id="chFiscComp"></canvas></div>
   </div>
-  <div class="sec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Imposta di Bollo & Zainetto Fiscale</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-fiscale-bollo">Imposta di Bollo — Erosione nel Tempo</div>
     <div id="fiscBollo"></div>
   </div>
   <div class="sec">
     <div class="sec-label" data-info-id="info-fiscale-zainetto">Zainetto Fiscale — Utilizzo Minusvalenze</div>
     <div id="fiscZainetto"></div>
-  </div>
+  </div></details>
 </div>
 </div><!-- /tab-fiscale -->
 
@@ -1616,7 +1668,7 @@
       </div>
       <div class="pblock" style="margin-bottom:10px">
         <div class="plabel"><span>Spesa mensile desiderata in pensione (€ oggi)</span><span class="pval" id="lPenDesired">€2.000</span></div>
-        <input type="range" id="sPenDesired" min="800" max="6000" step="100" value="2000" oninput="penState.desired=+this.value;document.getElementById('lPenDesired').textContent=fmt(+this.value);renderPensione()">
+        <input type="range" id="sPenDesired" min="800" max="6000" step="100" value="2000" oninput="penState.desired=+this.value;document.getElementById('lPenDesired').textContent=fmtFull(+this.value);renderPensione()">
       </div>
       <div class="pblock" style="margin-bottom:10px">
         <div class="plabel"><span>Inflazione attesa</span><span class="pval" id="lPenInfl">2%</span></div>
@@ -1648,27 +1700,33 @@
     <div id="penLegsBox" style="margin-bottom:12px"></div>
     <div class="chart-wrap" style="height:320px"><canvas id="chPen"></canvas></div>
   </div>
-  <div class="sec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><path d="M12 2L2 7h20z"/></svg><span>Dettaglio INPS, Fondo & Confronto</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-pensione-inps">Dettaglio Pensione INPS</div>
     <div id="penINPSDetail"></div>
   </div>
   <div class="sec">
     <div class="sec-label" data-info-id="info-pensione-fondo">Dettaglio Fondo Pensione</div>
     <div id="penFPDetail"></div>
-  </div>
-  <details class="sec" style="cursor:pointer">
+  </div></details>
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg><span>Confronto Strumenti Pensionistici</span><span class="adv-badge">Avanzato</span></summary>
+<details class="sec" style="cursor:pointer" open>
     <summary class="sec-label" data-info-id="info-pensione-confronto" style="cursor:pointer">⚖️ Confronto Fiscale — Fondo Pensione vs ETF equivalente</summary>
     <div id="penFiscComp" style="margin-top:12px"></div>
     <div class="chart-wrap" style="height:300px"><canvas id="chPenFisc"></canvas></div>
-  </details>
+  </details></details>
   <div class="sec">
     <div class="sec-label">Tabella Accumulo (fase contributiva)</div>
     <div id="penAccTable" class="table-wrap"></div>
   </div>
-  <div class="sec">
+  <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg><span>Tabelle Accumulo & Decumulo</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec">
     <div class="sec-label" data-info-id="info-pensione-dec">Tabella Decumulo (fase pensione)</div>
     <div id="penDecTable" class="table-wrap"></div>
-  </div>
+  </div></details>
 </div>
 </div><!-- /tab-pensione -->
 
@@ -1691,7 +1749,9 @@
   <div id="valContent" style="display:none">
     <!-- Parametri stress test -->
     <div class="grid-2" style="margin-bottom:18px;gap:16px">
-      <div class="sec" style="margin:0;padding:16px">
+      <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg><span>Parametri & Dati Live</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec" style="margin:0;padding:16px">
         <div class="sec-label" data-info-id="info-valuation-parametri" style="margin-bottom:12px">Parametri Scenario</div>
         <div class="pblock">
           <div class="plabel"><span>CAPE target (mean-reversion a)</span><span class="pval" id="lValCapeTarget">17</span></div>
@@ -1710,9 +1770,11 @@
         </div>
       </div>
       <div class="sec" style="margin:0;padding:16px">
-        <div class="sec-label" data-info-id="info-valuation-live" style="margin-bottom:12px">Dati Live</div>
+        <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m7 11 4 4 4-4 4 4"/></svg><span>Impatto Rendimento & Decomposizione Bogle</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec-label" data-info-id="info-valuation-live" style="margin-bottom:12px">Dati Live</div></details>
         <div id="valLiveStats" style="display:flex;flex-direction:column;gap:8px;font-size:12.5px"></div>
-      </div>
+      </div></details>
     </div>
 
     <!-- Risultati scenari -->
@@ -1812,9 +1874,9 @@
 <!-- ══════════════════════════════════════════════════ TAB: QUANT ANALYTICS -->
 <div class="tab-content" id="tab-quant">
 <div class="sec">
-  <div class="sec-label" data-info-id="info-quant-markowitz">📐 Quant Analytics — Frontiera Efficiente & VaR/CVaR</div>
+  <div class="sec-label" data-info-id="info-quant-markowitz">📐 Quant Analytics — Frontiera Efficiente, VaR/CVaR & Correlazioni</div>
   <div class="info-box" style="margin-bottom:14px">
-    Analisi quantitativa avanzata del portafoglio. Frontiera Efficiente di Markowitz con posizionamento del portafoglio corrente, e misure di rischio professionali (VaR/CVaR) con tre metodi: Gaussiano, t-Student (fat tails), Monte Carlo.
+    Analisi quantitativa avanzata del portafoglio. Frontiera Efficiente di Markowitz con posizionamento del portafoglio corrente, e misure di rischio professionali (VaR/CVaR) con tre metodi: Gaussiano, t-Student (fat tails), Monte Carlo. Il pulsante <strong>Correlazioni</strong> apre la <strong>Matrice di Correlazione</strong> (heatmap) tra tutte le 32 asset class, calibrata su serie 1970&ndash;2024 e premi fattoriali Fama-French: blu = si muovono insieme, rosso = si oppongono (copertura). Sotto la heatmap, un grafico di <strong>correlazione rolling a 36 mesi</strong> mostra come la correlazione tra gli asset macro reali (Azioni, Obbligazioni, Oro, REITs, Emergenti) cambia nel tempo: quando la linea Azioni&ndash;Obbligazioni sale sopra lo zero (come nel 2022) la diversificazione tradizionale smette di funzionare. Tre viste selezionabili (Azioni vs Obbligazioni/Oro, Azioni vs Asset rischiosi, Oro come diversificatore). Infine una sezione dedicata <strong>analizza il portafoglio impostato</strong> mostrando correlazione media pesata, punteggio di diversificazione e le coppie di asset pi&ugrave; diversificanti o ridondanti. I valori sono a scopo informativo e divulgativo, non costituiscono raccomandazione di investimento.
   </div>
 
   <!-- Selezione modalità -->
@@ -1824,6 +1886,7 @@
   <button class="gbtn" data-qm="var" onclick="switchQuantMode('var')">🎯 VaR / CVaR</button>
   <button class="gbtn" data-qm="factor" onclick="switchQuantMode('factor')">📐 Factor Decomposition</button>
   <button class="gbtn" data-qm="optimizer" onclick="switchQuantMode('optimizer')">⚙️ Optimizer</button>
+      <button class="gbtn" data-qm="correlation" onclick="switchQuantMode('correlation')">Correlazioni</button>
 </div>
 
   <!-- Selettore asset class per la frontiera -->
@@ -1860,7 +1923,9 @@
 
   <!-- Sezione VaR/CVaR -->
   <div id="quantVaRSection" style="display:none">
-    <div class="sec-label" data-info-id="info-quant-var" style="margin-bottom:8px">Misure di Rischio — VaR / CVaR</div>
+    <details class="adv-section-wrap">
+<summary class="adv-section-summary"><svg class="adv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg><svg class="sec-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>VaR & Analisi Quantitativa Avanzata</span><span class="adv-badge">Avanzato</span></summary>
+<div class="sec-label" data-info-id="info-quant-var" style="margin-bottom:8px">Misure di Rischio — VaR / CVaR</div></details>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
       <span style="font-size:13px;color:var(--text2)">Orizzonte temporale:</span>
       <div class="btn-group" id="quantHorizonBtns">
@@ -1883,6 +1948,7 @@
   <div id="quantOptimizerSection" style="display:none">
     <div id="quantOptimizerContent"></div>
   </div>
+<!-- Sezione Matrice di Correlazione --> <div id="quantCorrelationSection" style="display:none"> <div id="quantCorrelationContent"></div> </div>
 </div><!-- /tab-quant -->
 
 </div><!-- /view-app -->
@@ -1900,6 +1966,84 @@
 <script src="pro-features.js"></script>
 <script src="quant-analytics.js"></script>
 <script src="tier-system.js"></script>
+<script>
+/* ── InfoHelper tooltip: mobile tap fix (Chrome Android) ── */
+(function() {
+  var active = null;
+
+  function closeActive() {
+    if (active) {
+      active.classList.remove('tooltip-active');
+      active = null;
+    }
+  }
+
+  function openIcon(icon) {
+    if (active && active !== icon) closeActive();
+    icon.classList.add('tooltip-active');
+    active = icon;
+  }
+
+  document.addEventListener('touchstart', function(e) {
+    var icon = e.target.closest('.opt-tooltip-icon');
+    if (icon) {
+      e.preventDefault();
+      if (active === icon) {
+        closeActive();
+      } else {
+        openIcon(icon);
+      }
+    } else {
+      closeActive();
+    }
+  }, { passive: false });
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.opt-tooltip-icon')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeActive(); return; }
+    if (e.key === 'Enter' || e.key === ' ') {
+      var icon = document.activeElement && document.activeElement.closest
+        ? document.activeElement.closest('.opt-tooltip-icon') 
+        : null;
+      if (!icon && document.activeElement && document.activeElement.classList.contains('opt-tooltip-icon'))
+        icon = document.activeElement;
+      if (icon) {
+        e.preventDefault();
+        active === icon ? closeActive() : openIcon(icon);
+      }
+    }
+  });
+})();
+</script>
+
+
+
+
+<script>
+/* ── Details resize fix: ridisegna i chart Chart.js quando una sezione si apre ── */
+document.addEventListener('toggle', function(e) {
+  var det = e.target;
+  if (!det || det.tagName !== 'DETAILS' || !det.open) return;
+  // Trigger resize after transition (150ms)
+  setTimeout(function() {
+    det.querySelectorAll('canvas').forEach(function(canvas) {
+      // Find Chart.js instance on this canvas
+      if (window.Chart && Chart.getChart) {
+        var chart = Chart.getChart(canvas);
+        if (chart) chart.resize();
+      }
+    });
+    // Also dispatch window resize for any other responsive listeners
+    window.dispatchEvent(new Event('resize'));
+  }, 150);
+}, true); // capture phase to catch all details elements
+</script>
 
 </body>
 </html>

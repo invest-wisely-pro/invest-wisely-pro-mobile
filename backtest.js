@@ -86,14 +86,26 @@ const BT_PERIODS = {
   2019: { label: '2019 \u2192 Inflazione & tassi (crisi 2022)', color: '#00897b', bg: 'rgba(0,137,123,.08)', context: 'Inizio nel 2019: si accumula capitale, poi il 2022 unico nella storia \u2014 azioni \u221220% E obbligazioni \u221215% contemporaneamente. Il 60/40 perde \u221217%: il peggior anno dal 1937 per portafogli bilanciati. Lo stress test colpisce il capitale formato.', crisis: [2022] },
 };
 
-// Inflazione storica annua (CPI USA approssimato) per periodo, per deflatare
+// Inflazione storica annua per deflatare — FIX 2026-07-04: sostituito il CPI USA
+// (valuta sbagliata per serie rendimenti in EUR) con la serie coerente con la
+// convenzione delle serie Curvo: CPI GERMANIA 1970-1998 (le serie EUR pre-euro sono
+// in DEM-sintetico: l'inflazione tedesca e' il deflatore della valuta in cui i
+// rendimenti sono espressi) + AREA EURO 1999-2024 (dall'introduzione dell'euro).
+// Fonte: World Bank via FRED (FPCPITOTLZGDEU 1970-98, FPCPITOTLZGEMU 1999-2024),
+// scaricate e verificate il 2026-07-04. NON usato l'aggregato EMU pre-1999: include
+// le inflazioni in lire/pesetas/franchi (1974: 14.7%), valute che si svalutavano
+// contro il DEM — deflazionare rendimenti DEM-based con quelle inflazioni
+// sovrastimerebbe l'erosione reale. Effetto principale: anni '70-'80 con inflazione
+// molto piu' bassa del CPI USA (1974: 7.0 vs 11.0; 1979: 4.0 vs 11.3; 1980: 5.4 vs
+// 13.5) -> i rendimenti REALI storici di quel periodo salgono; 2022: 8.5 vs 8.0.
+// 2025: 2.1 = media dei tassi mensili HICP area euro pubblicati da Eurostat.
 const HIST_INFLATION = {
-  1970:5.7,1971:4.4,1972:3.2,1973:6.2,1974:11.0,1975:9.1,1976:5.8,1977:6.5,1978:7.6,1979:11.3,
-  1980:13.5,1981:10.3,1982:6.2,1983:3.2,1984:4.3,1985:3.6,1986:1.9,1987:3.6,1988:4.1,1989:4.8,
-  1990:5.4,1991:4.2,1992:3.0,1993:3.0,1994:2.6,1995:2.8,1996:3.0,1997:2.3,1998:1.6,1999:2.2,
-  2000:3.4,2001:2.8,2002:1.6,2003:2.3,2004:2.7,2005:3.4,2006:3.2,2007:2.8,2008:3.8,2009:-0.4,
-  2010:1.6,2011:3.2,2012:2.1,2013:1.5,2014:1.6,2015:0.1,2016:1.3,2017:2.1,2018:2.4,2019:1.8,
-  2020:1.2,2021:4.7,2022:8.0,2023:4.1,2024:2.9,
+  1970:3.5,1971:5.2,1972:5.5,1973:7.0,1974:7.0,1975:5.9,1976:4.2,1977:3.7,1978:2.7,1979:4.0,
+  1980:5.4,1981:6.3,1982:5.2,1983:3.3,1984:2.4,1985:2.1,1986:-0.1,1987:0.2,1988:1.3,1989:2.8,
+  1990:2.7,1991:4.0,1992:5.1,1993:4.5,1994:2.7,1995:1.7,1996:1.4,1997:1.9,1998:0.9,1999:1.9,
+  2000:2.9,2001:2.9,2002:2.3,2003:2.1,2004:2.2,2005:2.5,2006:2.7,2007:2.5,2008:4.1,2009:0.4,
+  2010:1.5,2011:3.3,2012:2.5,2013:1.3,2014:0.2,2015:-0.1,2016:0.2,2017:1.4,2018:1.7,2019:1.4,
+  2020:0.2,2021:2.5,2022:8.5,2023:5.8,2024:2.2,2025:2.1,
 };
 
 // Stato Backtesting
@@ -249,6 +261,16 @@ function getCorrMultiplier(eqDraw, obDraw) {
 // Questo NON altera la struttura dei crash storici (i mesi negativi rimangono
 // negativi), agisce solo sul drift medio annualizzato del componente azionario.
 function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCape) {
+  // GLIDE/CUSTOM: composizione dettagliata (regioni, commodity, bond mix) all'età
+  // corrente. Per il glide viene dagli slot interpolati (getGlideParams -> calcCustomParams
+  // con override); per il custom dal builder; per i preset non serve (usano realMix/aggregato).
+  const _compParams = (pk) => {
+    try {
+      if (pk === 'glide' && typeof getGlideParams === 'function') return getGlideParams(state.age) || {};
+      if (pk === 'custom' && typeof calcCustomParams === 'function') return calcCustomParams() || {};
+    } catch (e) {}
+    return {};
+  };
   const startIdx = yearToHistIdx(startYear);
   const years = Math.min(state.years, Math.floor((HIST_MONTHLY.length - startIdx) / 12));
   const months = years * 12;
@@ -263,11 +285,94 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
   // (l'investitore invecchia anche nel backtest); per gli altri sono costanti.
   const goldW = getGoldWeight(portKey);
   const cashW = getCashWeight(portKey);
+  // Pesi dei fattori reali (sottoinsiemi di eqW): Small Value, Momentum, HML/RMW/CMA/SMB.
+  const fw = {
+    scvW: (typeof getSmallValueWeight === 'function') ? getSmallValueWeight(portKey) : 0,
+    momW: (typeof getMomentumWeight === 'function') ? getMomentumWeight(portKey) : 0,
+    ff5W: (typeof getFactorWeights === 'function') ? getFactorWeights(portKey) : null,
+    reitsW: (typeof getReitsWeight === 'function') ? getReitsWeight(portKey) : 0,
+    emW: (typeof getEmWeight === 'function') ? getEmWeight(portKey) : 0,
+    usaW: _compParams(portKey).usaW || 0,
+    europaW: _compParams(portKey).europaW || 0,
+    commW:   _compParams(portKey).commodW || 0,
+  };
   const wAt = (mIdx) => {
     const e = getEquityWeight(portKey, state.age + mIdx / 12);
-    return { eqW: e, obW: Math.max(0, 1 - e - goldW - cashW) };
+    return { eqW: e, obW: Math.max(0, 1 - e - goldW - cashW - (fw.commW || 0)) };
   };
   const { eqW, obW } = wAt(0); // pesi iniziali (per le sezioni informative)
+
+  // ── DURATION dei bond: serie storiche REALI per scadenza (solo custom) ────
+  // I bond per scadenza ora usano serie total-return reali (yield FRED/ECB convertiti):
+  // un Gov breve, intermedio, lungo, ultra-lungo subiscono i drawdown storici VERI
+  // (es. 2022: USA 2Y -4%, 5Y -9%, 10Y -16%, 30Y -32%; 2008 flight-to-quality opposto).
+  // FIX 2026-07-04: 'Gov. Globale hedged' (HIST_GOV_GLOBAL, dal 1985-02), 'Inflation-Linked'
+  // (HIST_INFL_LINKED, dal 2005-12) e 'Aggregato Globale hedged' (HIST_AGG_GLOBAL, dal 2017-12)
+  // hanno serie dedicate reali con fallback aggregato pre-start via null. La quota bond residua
+  // senza serie dedicata usa l'aggregato
+  // row[1] con scaling per volatilità come fallback. I preset usano sempre l'aggregato.
+  const _BOND_AGG_VOL = 0.057;
+  const _BOND_MEAN_M = 0.00466;
+  let _obDurK = 1.0;            // fallback duration per la quota aggregata
+  let _bondMix = null;         // composizione bond per serie reale
+  let _obWtot = 0;
+  try {
+    if ((portKey === 'custom' || portKey === 'glide')) {
+      const _cp = _compParams(portKey);
+      _obDurK = Math.max(0.5, Math.min(1.8, Math.sqrt((_cp.obVolW || _BOND_AGG_VOL) / _BOND_AGG_VOL)));
+      _bondMix = _cp.bondMix || null;
+      if (_bondMix) { for (const k in _bondMix) _obWtot += _bondMix[k]; }
+    }
+  } catch (e) { _obDurK = 1.0; _bondMix = null; }
+
+  // ── PRESET con composizione reale (realMix): mappa Golden Butterfly, Permanent, ecc.
+  // alle serie storiche reali per scadenza/regione, invece dell'aggregato eq/ob.
+  // Allinea il calcolo storico al breakdown mostrato all'utente. I parametri μ/σ/best/worst
+  // dei preset restano invariati (usati per le proiezioni), qui cambia solo il backtest storico.
+  let _realMix = null;
+  try {
+    if (portKey !== 'custom' && typeof PORT !== 'undefined' && PORT[portKey] && PORT[portKey].realMix) {
+      _realMix = PORT[portKey].realMix;
+    }
+  } catch (e) { _realMix = null; }
+  function _realMixRet(mi) {
+    if (!_realMix) return null;
+    const H = HIST_MONTHLY[mi];
+    let r = 0;
+    // azionario
+    if (_realMix.eqUsa && typeof eqUsaReturnAt === 'function') { const ur = eqUsaReturnAt(mi); r += _realMix.eqUsa * (ur !== null ? ur : H[0]); }
+    if (_realMix.eqEuropa && typeof eqEuropeReturnAt === 'function') { const er2 = eqEuropeReturnAt(mi); r += _realMix.eqEuropa * (er2 !== null ? er2 : H[0]); }
+    if (_realMix.eqWorld) r += _realMix.eqWorld * H[0];
+    if (_realMix.scv) r += _realMix.scv * H[0]; // small value ≈ mercato + premio (semplificato nel backtest)
+    if (_realMix.em && typeof HIST_EM !== 'undefined') { const ei = mi - (typeof EM_START!=='undefined'?EM_START:216); r += _realMix.em * (ei>=0 && ei<HIST_EM.length ? HIST_EM[ei] : H[0]); }
+    // oro, cash
+    if (_realMix.gold) r += _realMix.gold * H[2];
+    if (_realMix.cash) r += _realMix.cash * 0.002;
+    // bond per scadenza
+    if (_realMix.bond) {
+      for (const key in _realMix.bond) {
+        const w = _realMix.bond[key];
+        const br = (typeof bondSeriesReturnAt === 'function') ? bondSeriesReturnAt(key, mi) : null;
+        r += w * (br !== null ? br : H[1]);
+      }
+    }
+    return r;
+  }
+  // Rendimento bond del mese (indice assoluto): media pesata delle serie reali + quota aggregata.
+  function _bondRetReal(mi) {
+    if (!_bondMix || _obWtot <= 0) return null;
+    let acc = 0;
+    for (const key in _bondMix) {
+      const w = _bondMix[key];
+      if (key === '_agg') {
+        acc += w * (_BOND_MEAN_M + _obDurK * (HIST_MONTHLY[mi][1] - _BOND_MEAN_M));
+      } else {
+        const br = (typeof bondSeriesReturnAt === 'function') ? bondSeriesReturnAt(key, mi) : null;
+        acc += w * (br !== null ? br : HIST_MONTHLY[mi][1]);
+      }
+    }
+    return acc / _obWtot;
+  }
 
   const terRate = state.ter / 100 / 12; // mensile
 
@@ -319,7 +424,10 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
     const eqAdj = eqRaw >= 0
       ? eqRaw * rf                          // mesi positivi: scala per fattore CAPE
       : eqRaw * (1 + (1 - rf) * 0.15);     // mesi negativi: lieve attenuazione se CAPE basso (mercati economici rimbalzano prima)
-    const obRet   = row[1];
+    // Rendimento bond scalato per duration: cedola fissa + spread amplificato/smorzato
+    const _brReal = _bondRetReal(idx);
+    const obRet   = (_brReal !== null) ? _brReal
+                  : (_obDurK === 1.0) ? row[1] : (_BOND_MEAN_M + _obDurK * (row[1] - _BOND_MEAN_M));
     const goldRet = row[2];
     const cashRet = 0.002;
 
@@ -330,7 +438,18 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
 
     // Rendimento portafoglio mensile con pesi (glidepath per lifecycle)
     const { eqW: eqW_m, obW: obW_m } = wAt(m);
-    let portRet = eqW_m * eqAdj + obW_m * obRet + goldW * goldRet + cashW * cashRet;
+    // Quota azionaria con tutti i fattori reali (SV, Momentum, HML/RMW/CMA/SMB),
+    // applicati sul rendimento di mercato CAPE-adjusted (eqAdj). La quota "pura" usa eqAdj.
+    const eqPart = (typeof eqReturnWithFactors === 'function')
+      ? eqReturnWithFactors(eqW_m, eqAdj, idx, fw)
+      : eqW_m * eqAdj;
+    let portRet;
+    const _rmRet = _realMixRet(idx);
+    if (_rmRet !== null) {
+      portRet = _rmRet;  // composizione reale del preset (Golden Butterfly, Permanent...)
+    } else {
+      portRet = eqPart + obW_m * obRet + goldW * goldRet + cashW * cashRet;
+    }
     portRet -= terRate;
 
     // PAC mensile — metodo midpoint (coerente con project() nel simulatore principale)
@@ -441,7 +560,10 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
       if (idx2 >= HIST_MONTHLY.length) break;
       const row2 = calibrateHistRow(HIST_MONTHLY[idx2]);
       const { eqW: eqW2, obW: obW2 } = wAt(m2);
-      const pr2 = eqW2 * row2[0] + obW2 * row2[1] + goldW * row2[2] + cashW * 0.002 - terRate;
+      const eqPart2 = (typeof eqReturnWithFactors === 'function')
+        ? eqReturnWithFactors(eqW2, row2[0], idx2, fw)
+        : eqW2 * row2[0];
+      const pr2 = eqPart2 + obW2 * row2[1] + goldW * row2[2] + cashW * 0.002 - terRate;
       twrCum2 *= (1 + pr2);
       nM2++;
     }
@@ -460,47 +582,84 @@ function simulateBacktest(portKey, startYear, pacMonthly, w0, skipEvents, useCap
   };
 }
 
-// ── Helper: rileva se il portafoglio custom include Trend Following / Carry ──────
-// fat_trend (Managed Futures) e fat_carry_* non hanno serie storica coerente
-// in HIST_MONTHLY (che copre solo azioni/obbligazioni/oro). Senza blocco, questi
-// asset verrebbero simulati implicitamente come obbligazionario (obW = residuo),
-// perdendo completamente il crisis alpha / la decorrelazione che ne giustificano l'uso.
-// Stesso blocco per asset compositi a leva (Efficient Core 90/60 USA/Globale):
-// isComposite+finCost > 0 indica esposizione notional >100%; il backtest storico
-// ignorerebbe la leva e il costo di finanziamento, producendo risultati fuorvianti.
-// Verifica se un array di slot contiene asset non backtestabili (trend/carry o
-// compositi a leva). Riusabile per custom e per i due lati del glide.
-function slotsAreNonBacktestable(slots) {
-  const NON_BT_CATS = new Set(['trend', 'carry']);
-  return (slots || []).some(sl => {
+// ── Helper: rileva se il portafoglio custom include asset senza serie storica mensile ──
+// HIST_MONTHLY copre SOLO tre colonne: azioni sviluppate (MSCI World), obbligazioni
+// aggregate e oro. Qualsiasi asset NON presente come colonna propria in HIST_MONTHLY
+// verrebbe simulato usando come proxy la serie sbagliata (tipicamente col[0] = MSCI World),
+// producendo risultati fuorvianti. Blocco obbligatorio.
+//
+// Asset bloccati per categoria:
+//   'trend'  — Managed Futures/Trend Following (nessuna colonna in HIST_MONTHLY)
+//   'carry'  — Carry bond/FX/commodity (nessuna colonna in HIST_MONTHLY)
+//   'fat'    — Fattori azionari (Value, Momentum, Quality, Low Vol, Small Cap, ecc.):
+//              la serie MSCI World non è la loro storia reale (cicli e crash diversi)
+//
+// Asset bloccati per chiave specifica:
+//   'eq_em'         — Mercati Emergenti (serie storica distinta, non proxy di MSCI World)
+//   'reits'         — Immobiliare Quotato (REITs): HIST_MONTHLY non include una colonna REITs;
+//              verrebbe simulato come azioni sviluppate ignorando il ciclo immobiliare
+//              reale (2007-09 drawdown −68%, correlazione con equity diversa nel tempo)
+//
+// NOTA: 'eq_small_value' è ora BACKTESTABILE — dispone della serie storica reale
+//   (spread Fama-French Small Value su mercato, EUR 1979-2024, SCV_SPREAD in
+//   advanced-montecarlo.js). Backtest e bootstrap applicano row[0]+scvSpreadAt(idx)
+//   alla sua quota, quindi non è più trattato come proxy di MSCI World.
+//
+// Asset compositi a leva (Efficient Core 90/60 USA/Globale):
+//   isComposite+finCost > 0 → esposizione notional >100%; la leva e il suo costo
+//   verrebbero ignorati nel backtest storico → risultati sistematicamente gonfiati.
+// NOTA: questi fattori sono ora BACKTESTABILI pur avendo cat='fat' — dispongono
+//   della serie reale (EUR 1979-2024, in advanced-montecarlo.js):
+//     fat_momentum (β·WML), fat_valore (β·HML), fat_qualita (β·RMW),
+//     fat_investment (β·CMA), fat_size (β·SMB) — fonte Fama-French;
+//     fat_low_vol (β·BAB) — fonte AQR Betting Against Beta;
+//     fat_multifat — composizione VIVA di 5 fattori reali equipesati (Val+Mom+Qual+
+//       LowVol+CMA), espansa nei pesi: nessuna serie propria, sempre coerente coi singoli.
+//   Resta non-backtestabile solo fat_dividendi (nessun fattore accademico standard diretto).
+function customPortfolioIsNonBacktestable() {
+  if (state.portfolio !== 'custom') return false;
+  const NON_BT_CATS = new Set(['trend', 'carry', 'fat']);
+  const NON_BT_KEYS = new Set([]); // tutti gli asset principali ora hanno serie reale
+  // Eccezioni: chiavi con serie reale, backtestabili anche se la categoria è bloccata.
+  const BT_EXCEPTION_KEYS = new Set(['fat_momentum', 'fat_valore', 'fat_qualita', 'fat_investment', 'fat_size', 'fat_low_vol', 'fat_multifat']);
+  return (state.customPortfolio?.slots || []).some(sl => {
     const ac = ASSET_CLASSES[sl.ac];
     if (!ac || !(Number(sl.pct) > 0)) return false;
+    // Asset con serie reale dedicata: backtestabile nonostante la categoria.
+    if (BT_EXCEPTION_KEYS.has(sl.ac)) return false;
+    // Categoria non backtestabile (trend, carry, fattoriali)
     if (NON_BT_CATS.has(ac.cat)) return true;
+    // Asset specifico senza serie reale (mercati emergenti)
+    if (NON_BT_KEYS.has(sl.ac)) return true;
+    // Asset composito a leva (efficient core 90/60 USA o Globale)
     if (ac.isComposite && ac.finCost > 0) return true;
     return false;
   });
 }
 
-function customPortfolioIsNonBacktestable(slotsOverride) {
-  // slotsOverride: se fornito, controlla QUESTI slot invece di dedurre dal
-  // contesto state. Serve al decumulo, che usa decState.portfolio (può essere
-  // 'custom' mentre il Simulatore è su 'glide'): senza override la funzione
-  // ispezionerebbe i lati del glide invece degli slot custom realmente usati.
-  if (Array.isArray(slotsOverride)) {
-    return slotsAreNonBacktestable(slotsOverride);
-  }
-  if (state.portfolio === 'glide') {
-    // Il glide è non-backtestabile se UNO dei due lati contiene leva/trend/carry,
-    // perché lungo l'orizzonte miscela quelle esposizioni (mancano dalla serie
-    // storica 1970-2024 e gli strumenti UCITS non esistevano).
-    const g = state.glide;
-    if (!g) return false;
-    const sA = (typeof strategyToSlots === 'function') ? strategyToSlots(g.sideA) : [];
-    const sB = (typeof strategyToSlots === 'function') ? strategyToSlots(g.sideB) : [];
-    return slotsAreNonBacktestable(sA) || slotsAreNonBacktestable(sB);
-  }
-  if (state.portfolio !== 'custom') return false;
-  return slotsAreNonBacktestable(state.customPortfolio?.slots || []);
+// GLIDE: non-backtestable se UNO QUALSIASI dei due lati (A o B), risolto in slot atomici,
+// contiene asset a leva / managed futures / categorie senza serie storica mensile propria.
+// Usa la stessa logica di customPortfolioIsNonBacktestable ma sugli slot di entrambi i lati
+// (strategyToSlots gestisce sia preset che custom). Cosi' i gate storici (backtest single
+// sequence, block bootstrap MC) scattano per un glide con lato Efficient Core / Return
+// Stacking / Trend, ma NON per un glide fatto di soli asset backtestabili (es. 80/20 -> GB).
+function glideIsNonBacktestable() {
+  if (state.portfolio !== 'glide' || !state.glide) return false;
+  const NON_BT_CATS = new Set(['trend', 'carry', 'fat']);
+  const BT_EXCEPTION_KEYS = new Set(['fat_momentum', 'fat_valore', 'fat_qualita', 'fat_investment', 'fat_size', 'fat_low_vol', 'fat_multifat']);
+  const sideBad = (side) => {
+    let slots = [];
+    try { slots = (typeof strategyToSlots === 'function') ? strategyToSlots(side) : []; } catch (e) { return false; }
+    return slots.some(sl => {
+      const ac = ASSET_CLASSES[sl.ac];
+      if (!ac || !(Number(sl.pct) > 0)) return false;
+      if (BT_EXCEPTION_KEYS.has(sl.ac)) return false;
+      if (NON_BT_CATS.has(ac.cat)) return true;
+      if (ac.isComposite && ac.finCost > 0) return true;
+      return false;
+    });
+  };
+  return sideBad(state.glide.sideA) || sideBad(state.glide.sideB);
 }
 
 function runBacktest() {
@@ -512,8 +671,8 @@ function runBacktest() {
   // azioni/obbligazioni/oro (manca il managed futures), la leva verrebbe
   // ignorata, e gli strumenti UCITS non esistevano nelle finestre storiche.
   // Stessa cosa per il portafoglio custom che include Trend Following / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
-  if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable())) {
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable()) || (portKey === 'glide' && typeof glideIsNonBacktestable === 'function' && glideIsNonBacktestable())) {
     document.getElementById('btResults').style.display = 'block';
     document.getElementById('btCompareSec').style.display = 'none';
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(portKey) : portKey;
@@ -522,20 +681,13 @@ function runBacktest() {
     box.style.background = 'var(--orange-dim, rgba(230,138,0,.08))';
     box.style.border = '1px solid rgba(230,138,0,.35)';
     box.style.color = 'var(--orange, #b8860b)';
-    const isCustomMF  = portKey === 'custom' && customPortfolioIsNonBacktestable();
-    const isGlidePath = portKey === 'glide';
+    const isCustomMF = portKey === 'custom' && customPortfolioIsNonBacktestable();
     box.innerHTML = isCustomMF
-      ? `Il portafoglio custom include <strong>Trend Following / Managed Futures</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>, ` +
-        `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
-        `Il backtest ignorerebbe la leva e i costi di finanziamento, producendo risultati fuorvianti. ` +
-        `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>.`
-      : isGlidePath
-      ? `Il backtest storico non è applicabile al <strong>Glide Path</strong>, indipendentemente dagli asset che lo compongono. ` +
-        `Il backtester simula un portafoglio a <strong>pesi fissi</strong> su una finestra storica contigua: ` +
-        `non modella il ribilanciamento dinamico annuale tra Lato A e Lato B che è il meccanismo centrale del lifecycle. ` +
-        `Applicarlo produrrebbe risultati riferiti a un portafoglio statico diverso da quello configurato. ` +
-        `Usa il <strong>Monte Carlo Avanzato</strong> (modella correttamente il cambio di composizione anno per anno) ` +
-        `o il <strong>Simulatore</strong> per analizzare questa strategia.`
+      ? `Il portafoglio custom include asset <strong>privi di serie storica mensile propria in questo modello</strong>: ` +
+        `<strong>Trend Following / Managed Futures</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>. ` +
+        `(Small Cap Value, REITs, Mercati Emergenti e i fattoriali Value/Momentum/Quality/Size/Investment/Low-Vol sono ora pienamente backtestabili con serie storiche reali 1979-2024.) ` +
+        `Per gli asset a leva o managed futures, la storia mensile coerente non è disponibile. ` +
+        `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>, che usano i parametri specifici (μ, σ) di ogni asset.`
       : `Il backtest storico non è applicabile a <strong>${lbl}</strong>. ` +
         `Questa strategia usa leva (esposizione &gt;100%) e/o managed futures, ` +
         `asset per cui non esiste una serie storica coerente in questo modello ` +
@@ -729,11 +881,16 @@ function runSequenceRiskStress() {
   const isCustomNonBT = portKey === 'custom' &&
     (typeof customPortfolioIsNonBacktestable === 'function') &&
     customPortfolioIsNonBacktestable();
-  if ({ ec_us_9060:1, ec_glob_9060:1, return_stack:1 }[portKey] || isCustomNonBT) {
+  const isGlideNonBT = portKey === 'glide' &&
+    (typeof glideIsNonBacktestable === 'function') &&
+    glideIsNonBacktestable();
+  if ({ ec_us_9060:1, ec_glob_9060:1, return_stack:1 }[portKey] || isCustomNonBT || isGlideNonBT) {
     document.getElementById('btSeqRiskResults').style.display = 'block';
     document.getElementById('btSeqRiskContext').innerHTML =
-      isCustomNonBT
-        ? 'Lo stress test di sequenza non è disponibile per i portafogli custom con Efficient Core (leva), Trend Following o Carry (privi di serie storica coerente).'
+      isGlideNonBT
+        ? 'Lo stress test di sequenza storico non è disponibile per il <strong>Glide Path</strong> quando un lato include <strong>Efficient Core (leva)</strong>, <strong>Return Stacking</strong> o <strong>Trend Following</strong>: HIST_MONTHLY non contiene serie mensili proprie per questi asset, e la composizione varia per età. Usa il Monte Carlo Avanzato, che modella correttamente sia la leva sia la transizione A→B.'
+        : isCustomNonBT
+        ? 'Lo stress test di sequenza non è disponibile per portafogli custom con <strong>Trend Following</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>: HIST_MONTHLY non contiene serie mensili proprie per questi asset. Gli altri asset (Small Cap Value, REITs, Mercati Emergenti, fattoriali) sono ora pienamente supportati con serie storiche reali.'
         : 'Lo stress test di sequenza non è disponibile per i portafogli con leva o managed futures (privi di serie storica coerente).';
     document.getElementById('btSeqRiskCards').innerHTML = '';
     document.getElementById('btSeqRiskNote').innerHTML = '';
@@ -897,8 +1054,8 @@ function runAllBacktests() {
   const portKey = btState.port === 'sim' ? state.portfolio : btState.port;
   // Stessa esclusione di runBacktest: i preset con leva / managed futures non
   // sono backtestabili sulla serie storica. Idem per custom con Trend / Carry.
-  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1, glide: 1 };
-  if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable())) {
+  const NON_BACKTESTABLE = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
+  if (NON_BACKTESTABLE[portKey] || (portKey === 'custom' && customPortfolioIsNonBacktestable()) || (portKey === 'glide' && typeof glideIsNonBacktestable === 'function' && glideIsNonBacktestable())) {
     document.getElementById('btResults').style.display = 'block';
     document.getElementById('btCompareSec').style.display = 'none';
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(portKey) : portKey;
@@ -909,10 +1066,11 @@ function runAllBacktests() {
     box.style.color = 'var(--orange, #b8860b)';
     const isCustomMF2 = portKey === 'custom' && customPortfolioIsNonBacktestable();
     box.innerHTML = isCustomMF2
-      ? `Il portafoglio custom include <strong>Trend Following / Managed Futures</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>, ` +
-        `asset privi di serie storica coerente in questo modello (i dati storici coprono solo azioni, obbligazioni e oro). ` +
-        `Il backtest ignorerebbe la leva e i costi di finanziamento, producendo risultati fuorvianti. ` +
-        `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>.`
+      ? `Il portafoglio custom include asset <strong>privi di serie storica mensile propria in questo modello</strong>: ` +
+        `<strong>Trend Following / Managed Futures</strong>, <strong>Carry</strong> o <strong>Efficient Core (leva)</strong>. ` +
+        `(Small Cap Value, REITs, Mercati Emergenti e i fattoriali Value/Momentum/Quality/Size/Investment/Low-Vol sono ora pienamente backtestabili con serie storiche reali 1979-2024.) ` +
+        `Per gli asset a leva o managed futures, la storia mensile coerente non è disponibile. ` +
+        `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>, che usano i parametri specifici (μ, σ) di ogni asset.`
       : `Il backtest storico non è applicabile a <strong>${lbl}</strong>: ` +
         `usa leva e/o managed futures, asset senza serie storica coerente in questo modello. ` +
         `Usa le schede <strong>Simulatore</strong>, <strong>Monte Carlo</strong> o <strong>Frontiera Efficiente</strong>.`;
@@ -1001,7 +1159,11 @@ function runAllBacktests() {
   const normalizedDatasets = datasets.map(ds => ({
     ...ds,
     data: ds.data.map((v, i) => i === 0 ? 100 : Math.round(v / ds.data[0] * 100)),
-    label: ds.label + ' (' + summaryRows.find(r => r.year === +ds.label)?.cagr ? '+' + (summaryRows.find(r => r.year === +ds.label).cagr*100).toFixed(1)+'%/a' : '' + ')',
+    label: (() => {
+      const row = summaryRows.find(r => r.year === +ds.label);
+      const cagr = row?.cagr;
+      return ds.label + (cagr != null ? ' (+' + (cagr*100).toFixed(1) + '%/a)' : '');
+    })(),
   }));
   
   if (chartBtComp) { chartBtComp.destroy(); chartBtComp = null; }

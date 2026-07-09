@@ -40,7 +40,6 @@ function _buildSnapshot() {
     activeEcoScenario: state.activeEcoScenario, ecoTiming: state.ecoTiming,
     fxHedge: !!state.fxHedge, fxVol: state.fxVol, fxHedgeCost: state.fxHedgeCost,
     customPortfolio: JSON.parse(JSON.stringify(state.customPortfolio || {})),
-    glide: state.glide ? JSON.parse(JSON.stringify(state.glide)) : undefined,
     // stateB
     stateB: { portfolio: stateB.portfolio, ter: stateB.ter, pac: stateB.pac },
     // decState
@@ -74,21 +73,6 @@ function _applySnapshot(snap) {
   state.fxHedge       = !!snap.fxHedge;
   state.fxVol         = n(snap.fxVol, 0.085);
   state.fxHedgeCost   = n(snap.fxHedgeCost, 0.003);
-  // Ripristina la config Glide Path (validazione difensiva): senza questo uno
-  // scenario salvato con glide perderebbe lati/età/k al ripristino.
-  if (snap.glide && typeof snap.glide === 'object') {
-    const gg = snap.glide;
-    const validSide = sd => sd && (sd.type === 'preset' ? typeof sd.ref === 'string'
-                                  : (sd.type === 'custom' && Array.isArray(sd.slots)));
-    if (validSide(gg.sideA) && validSide(gg.sideB)
-        && !isNaN(+gg.ageStart) && !isNaN(+gg.ageEnd) && !isNaN(+gg.k)) {
-      state.glide = {
-        sideA: gg.sideA, sideB: gg.sideB,
-        ageStart: +gg.ageStart, ageEnd: Math.max(+gg.ageStart + 1, +gg.ageEnd),
-        k: Math.max(0.4, Math.min(3, +gg.k)),
-      };
-    }
-  }
 
   if (snap.seq) {
     state.seq.on       = !!snap.seq.on;

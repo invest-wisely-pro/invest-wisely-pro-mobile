@@ -454,7 +454,7 @@ function recalibratePortfolios(data) {
   // In regime storico (delta=0) p.normal resta esattamente = _baseNormal calibrato.
   const recalib = (portKey) => {
     const p = PORT[portKey];
-    if (!p || portKey === 'lifecycle' || portKey === 'custom' || portKey === 'glide') return;
+    if (!p || portKey === 'lifecycle' || portKey === 'custom') return;
     const eqW  = p.eq   ?? 0;
     const obW  = p.ob   ?? 0;
     const goldW = p.gold ?? 0;
@@ -846,6 +846,7 @@ function renderValuationStress() {
   function getPortfolioBlendedCape(portKey, capeUSA, capeEU) {
     if (!capeUSA) return capeUSA;
     const cEU = capeEU || estimateCapeEurope(capeUSA);
+    let _capeTiltFactor = 1.0; // sconto strutturale CAPE per fattori value-tilted (1.0 = nessuno)
     // Peso geografico azionario stimato per portafoglio
     // usa state se disponibile, altrimenti fallback conservativo
     let usaW = 0.65, euW = 0.25; // default MSCI World-like
@@ -860,27 +861,71 @@ function renderValuationStress() {
           let euSlotW = 0, usaSlotW = 0, totalEqW = 0;
           const slots = state.customPortfolio?.slots || [];
           const total = slots.reduce((s, sl) => s + (sl.pct || 0), 0) || 1;
+          // Sconto strutturale sul CAPE per fattori "value-tilted": questi asset
+          // scambiano storicamente a multipli più bassi del mercato (è il loro tratto
+          // distintivo), quindi hanno meno "rendimento speculativo" da sgonfiare in una
+          // mean-reversion. Sconti conservativi su evidenza accademica (FF value spread,
+          // CAPE per stile MSCI/Research Affiliates): value/small ~ -30%, dividendi -25%.
+          // Momentum e Quality NON sono economici → nessuno sconto. EM ha già CAPE proprio.
+          const CAPE_TILT = {
+            eq_small_value: 0.70, // SCV: forte sconto value+size
+            fat_valore:     0.70, // value puro
+            fat_size:       0.80, // small cap: meno caro ma non value puro
+            fat_dividendi:  0.75, // high dividend: value-tilted
+            fat_low_vol:    0.85, // low-vol leggermente difensivo/value
+            fat_multifat:   0.85, // mix: sconto attenuato
+          };
+          let capeTiltW = 0; // somma pesata degli sconti (1.0 = nessuno sconto)
           for (const sl of slots) {
             const ac = typeof ASSET_CLASSES !== 'undefined' ? ASSET_CLASSES[sl.ac] : null;
             if (!ac || !ac.isEq) continue;
             const w = sl.pct / total;
             totalEqW += w;
+            capeTiltW += w * (CAPE_TILT[sl.ac] ?? 1.0);
             if (sl.ac === 'eq_europa')      { euSlotW += w * 1.0; usaSlotW += w * 0.0; }
             else if (sl.ac === 'eq_usa')     { euSlotW += w * 0.0; usaSlotW += w * 1.0; }
             else if (sl.ac === 'eq_em')      { euSlotW += w * 0.0; usaSlotW += w * 0.3; }
             else                             { euSlotW += w * 0.25; usaSlotW += w * 0.65; }
           }
-          if (totalEqW > 0) { euW = euSlotW / totalEqW; usaW = usaSlotW / totalEqW; }
+          if (totalEqW > 0) {
+            euW = euSlotW / totalEqW; usaW = usaSlotW / totalEqW;
+            // sconto medio ponderato applicato al CAPE blended geografico (sotto)
+            _capeTiltFactor = capeTiltW / totalEqW;
+          }
         } else if (portKey2 === 'permanent' || portKey2 === 'all_seasons') {
           usaW = 0.50; euW = 0.20; // questi portafogli hanno meno USA
         } else if (portKey2 === 'larry') {
           usaW = 0.50; euW = 0.25; // small cap intl include EU
+        } else if (portKey2 === 'glide' && typeof getGlideSlots === 'function') {
+          // GLIDE: composizione geografica reale all'età corrente. Stima i pesi USA/EU
+          // dagli slot interpolati A→B, così lo stress CAPE è coerente con l'allocation
+          // effettiva a quell'età (che cambia lungo l'orizzonte) invece del default generico.
+          try {
+            const gSlots = getGlideSlots(state.age).filter(s => s.ac && s.pct > 0);
+            let usaSlotW = 0, euSlotW = 0, eqTot = 0;
+            for (const sl of gSlots) {
+              const w = sl.pct / 100;
+              const ac = ASSET_CLASSES[sl.ac];
+              const isEq = ac && (ac.cat === 'equity' || ac.cat === 'fat' || sl.ac.startsWith('eq') || sl.ac === 'reits' || (ac.isComposite && (ac.eqW || 0) > 0));
+              if (!isEq) continue;
+              const eqPart = ac && ac.isComposite ? (ac.eqW || 1) * w : w;
+              eqTot += eqPart;
+              if (sl.ac === 'eq_europa') { euSlotW += eqPart; }
+              else if (sl.ac === 'eq_usa') { usaSlotW += eqPart; }
+              else if (sl.ac === 'eq_em') { usaSlotW += eqPart * 0.0; }
+              else { usaSlotW += eqPart * 0.65; euSlotW += eqPart * 0.25; } // sviluppati/globali
+            }
+            if (eqTot > 0) { usaW = usaSlotW / eqTot; euW = euSlotW / eqTot; }
+          } catch (e) { /* fallback ai default */ }
         }
       }
     } catch(_) {}
     const emW = Math.max(0, 1 - usaW - euW);
     const capeEM = 14; // EM: media storica ~14, nessun CAPE live affidabile
-    return usaW * capeUSA + euW * cEU + emW * capeEM;
+    const capeGeo = usaW * capeUSA + euW * cEU + emW * capeEM;
+    // Applica lo sconto strutturale dei fattori value-tilted (se presenti nel custom).
+    // Un portafoglio value/small ha multipli più bassi → meno mean-reversion attesa.
+    return capeGeo * _capeTiltFactor;
   }
 
   const portKey = (typeof state !== 'undefined') ? state?.portfolio : 'eq60';

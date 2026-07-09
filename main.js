@@ -79,6 +79,7 @@ const PORT = {
     desc: 'Ideato da Tyler from Portfolio Charts (2012). Composizione: 20% Az. Large Cap, 20% Az. Small Cap Value, 20% Oro, 20% Ob. Lungo Termine, 20% Ob. Breve Termine. Ottimizzato per massimizzare la peggior performance storica su 30 anni (\'worst case\'). Volatilità molto bassa, ottimo Sharpe ratio storico (1970-2023: ~9.7%/a lordo — gonfiato dal bull market oro anni \'70 e dal bull bond 1980-2020, non ripetibili). Rendimento atteso forward-looking: ~5.2%/a.',
     best: .067, normal: .052, worst: .023, vol: .075,
     eq: .4, ob: .4, gold: .2, cash: 0, realRet: .032, inflBeta: 0.14, fxExp: 0.55,  // 40%eq*0.85 + 20%oro*1.0 + 40%ob*0.05 ≈ 0.56
+    realMix: { eqUsa: 0.20, scv: 0.20, gold: 0.20, bond: { HIST_USB_10Y: 0.20, HIST_USB_2Y: 0.20 } },
     breakdown: {
       'Az. Large Cap (US)': '20%',
       'Az. Small Cap Value': '20%',
@@ -92,6 +93,7 @@ const PORT = {
     desc: 'Ideato da Harry Browne (1981). Composizione: 25% Azioni, 25% Oro, 25% Ob. Lungo Termine, 25% Liquidità. Progettato per funzionare in OGNI regime economico: prosperità (azioni), inflazione (oro), deflazione (obbligazioni), recessione (liquidità). Volatilità storica molto bassa (σ≈7%), rendimento nominale storico 1970-2023: ~8%/a lordo (beneficio del gold rush degli anni \'70 e del bull bond 1980-2020). Rendimento atteso forward-looking: ~4.4%/a. Beta inflazione calcolato ≈ +0.13: oro e liquidità a tasso variabile coprono parzialmente l\'impatto negativo delle obbligazioni lunghe in regime inflattivo.',
     best: .058, normal: .044, worst: .018, vol: .070,
     eq: .25, ob: .25, gold: .25, cash: .25, realRet: .024, inflBeta: 0.13, fxExp: 0.47, // 25%eq*0.85 + 25%oro*1.0 + 25%ob*0.05 + 25%cash*0
+    realMix: { eqWorld: 0.25, gold: 0.25, cash: 0.25, bond: { HIST_USB_10Y: 0.25 } },
     breakdown: {
       'Azioni': '25%',
       'Oro': '25%',
@@ -117,6 +119,13 @@ const PORT = {
     label: '📐 Larry Portfolio',
     desc: 'Ideato da Larry Swedroe. Alta concentrazione su fattori di rischio accademici (small cap value, emerging). Composizione: 15% US Small Cap Value, 7.5% Intl Small Cap Value, 7.5% Emerging Markets, 70% Ob. Breve/Medio Termine. L\'idea: concentrare il rischio solo sull\'azionario ad alto rendimento atteso (small cap value, emerging) ammortizzato da bond a bassa duration. Volatilità portafoglio calcolata ~7.5%/a. Rendimento atteso ~5.8%/a. Beta inflazione calcolato ≈ −0.02: il contributo del bond breve (tassi flottanti) è quasi neutralizzato dalla quota azionaria value.',
     best: .073, normal: .058, worst: .030, vol: .075,
+    // NB: 'normal' (5.8%) è una stima FORWARD-LOOKING conservativa, NON il CAGR storico.
+    // Il CAGR realizzato 1979-2024 con le serie reali (Small Value + Emerging) è ~7.6%,
+    // ma quel periodo è stato eccezionale per il fattore value: proiettarlo nel decumulo
+    // sarebbe imprudente. Lo sconto forward (~1.8pt) è coerente con TUTTI gli altri preset
+    // (eq60 −3.3pt, golden_butterfly −2.8pt, permanent −2.1pt). NON allineare al CAGR
+    // storico: i percorsi che usano le serie reali sono backtest e sequence risk; il
+    // decumulo è parametrico e DEVE restare forward-looking.
     eq: .30, ob: .70, gold: 0, cash: 0,
     realRet: .038, inflBeta: -0.02, fxExp: 0.29, // 30%eq*0.85 + 70%ob*0.05
     breakdown: {
@@ -190,46 +199,46 @@ const ASSET_CLASSES = {
   // ══════════════════════════════════════════════════════════════
   // AZIONI
   // mu = rendimento nominale forward-looking (10-20a)
-  // vol = volatilità storica annualizzata 1970-2024
+  // vol = volatilità storica annualizzata 1970-2025 (EUR, serie del motore)
   // Fonti: DMS Global Investment Returns Yearbook 2024,
   //        dati storici mercati finanziari (Federal Reserve,
   //        Banche Centrali, letteratura accademica)
   // ══════════════════════════════════════════════════════════════
   eq_sviluppati: {
     label: 'Azioni Mercati Sviluppati', emoji: '🌍', cat: 'eq', isEq: true,
-    mu: 0.067, vol: 0.158, inflBeta: 0.30, ter: 0.2, fxExp: 0.85,
-    histCAGR: 0.102, histPeriod: '1970-2024', src: 'DMS Yearbook 2024',
-    desc: 'Paniere di azioni di paesi sviluppati con composizione geografica ampia (America del Nord, Europa, Pacifico). CAGR storico 10.2%/a. Rendimento atteso forward-looking ~6.7%/a, più conservativo per effetto della mean-reversion delle valutazioni (CAPE elevati nel 2024) e coerente con la media pesata dei componenti (~65-70% USA + Europa + Pacifico).',
+    mu: 0.065, vol: 0.147, inflBeta: 0.30, ter: 0.2, fxExp: 0.85,
+    histCAGR: 0.081, histPeriod: '1970-2025', src: 'MSCI World Net EUR — serie reale del simulatore (curvo.eu)',
+    desc: 'Paniere di azioni di paesi sviluppati con composizione geografica ampia (America del Nord, Europa, Pacifico). CAGR storico in EUR 1970-2025: 8.1%/a (serie MSCI World Net EUR del simulatore — i CAGR in USD della letteratura, ~10%/a, non sono confrontabili per un investitore euro). Rendimento atteso forward-looking ~6.5%/a: più conservativo per mean-reversion delle valutazioni (CAPE USA elevati) e pari alla media pesata dei componenti (~65% USA a 6.3% + Europa a 7.0% + Pacifico).',
   },
   eq_usa: {
     label: 'Azioni USA Large Cap', emoji: '🇺🇸', cat: 'eq', isEq: true,
-    mu: 0.063, vol: 0.155, inflBeta: 0.28, ter: 0.07, fxExp: 1.0,
-    histCAGR: 0.105, histPeriod: '1970-2024', src: 'Dati storici mercato azionario USA',
-    desc: 'Grandi capitalizzazioni americane. CAGR storico 10.5%/a. Valutazioni elevate al 2024 (CAPE ~30-32) comprimono il rendimento atteso a ~7%/a. Massima liquidità e profondità di mercato a livello globale.',
+    mu: 0.063, vol: 0.164, inflBeta: 0.28, ter: 0.07, fxExp: 1.0,
+    histCAGR: 0.089, histPeriod: '1970-2025', src: 'MSCI USA Net EUR — serie reale del simulatore (curvo.eu)',
+    desc: 'Grandi capitalizzazioni americane. CAGR storico in EUR 1970-2025: 8.9%/a — il più alto tra le regioni sviluppate. Il mu forward (6.3%) è però il più basso: le valutazioni elevate (CAPE ~30+) comprimono il rendimento atteso via mean-reversion, ed è per questo che nel caso base gli USA rendono meno del World che li contiene. Nota: la vol in EUR (16.5%) è più alta di quella in USD per l\'esposizione al cambio piena (fxExp 1.0). Massima liquidità e profondità di mercato a livello globale.',
   },
   eq_europa: {
     label: 'Azioni Europa', emoji: '🇪🇺', cat: 'eq', isEq: true,
-    mu: 0.07, vol: 0.170, inflBeta: 0.25, ter: 0.15, fxExp: 0.1,
-    histCAGR: 0.095, histPeriod: '1970-2024', src: 'DMS Yearbook 2024',
-    desc: 'Mercati azionari europei (Germania, Francia, UK, Svizzera, Olanda, Italia ecc.). CAGR storico ~9.5%/a. Valutazioni storicamente più convenienti rispetto agli USA (CAPE ~14-16 in media), ma crescita degli utili inferiore nel lungo periodo.',
+    mu: 0.07, vol: 0.157, inflBeta: 0.25, ter: 0.15, fxExp: 0.1,
+    histCAGR: 0.079, histPeriod: '1970-2025', src: 'MSCI Europe Net EUR — serie reale del simulatore (curvo.eu)',
+    desc: 'Mercati azionari europei (Germania, Francia, UK, Svizzera, Olanda, Italia ecc.). CAGR storico in EUR 1970-2025: 7.9%/a. Per un investitore euro è la regione meno volatile (fxExp 0.1: quasi niente rischio cambio). Valutazioni storicamente più convenienti rispetto agli USA (CAPE ~14-16 in media), ma crescita degli utili inferiore nel lungo periodo.',
   },
   eq_em: {
     label: 'Azioni Mercati Emergenti', emoji: '🌏', cat: 'eq', isEq: true,
-    mu: 0.078, vol: 0.225, inflBeta: 0.35, ter: 0.2, fxExp: 1.0,
-    histCAGR: 0.098, histPeriod: '1988-2024', src: 'DMS Yearbook 2024',
-    desc: 'Cina, India, Brasile, Taiwan, Corea del Sud e altri mercati in sviluppo. CAGR dal 1988: ~9.8%/a. Alta volatilità (σ≈22%) e rischio politico/valutario. Premio di crescita economica parzialmente eroso da perdite da valuta e governance societaria più debole.',
+    mu: 0.078, vol: 0.209, inflBeta: 0.35, ter: 0.2, fxExp: 1.0,
+    histCAGR: 0.102, histPeriod: '1988-2025', src: 'MSCI Emerging Markets Net EUR — serie reale del simulatore (curvo.eu)',
+    desc: 'Cina, India, Brasile, Taiwan, Corea del Sud e altri mercati in sviluppo. CAGR in EUR dal 1988: 10.2%/a (serie MSCI EM del simulatore). Alta volatilità (σ≈22%) e rischio politico/valutario. Premio di crescita economica parzialmente eroso da perdite da valuta e governance societaria più debole.',
   },
   eq_small_value: {
     label: 'Azioni Small Cap Value (fattore)', emoji: '📐', cat: 'eq', isEq: true,
-    mu: 0.085, vol: 0.205, inflBeta: 0.25, ter: 0.3, fxExp: 1.0,
-    histCAGR: 0.135, histPeriod: '1970-2024', src: 'Fama-French Data Library',
-    desc: 'Piccole capitalizzazioni a bassa valutazione (P/B basso). Premio documentato da Fama & French (1992, 1993). CAGR US Small Cap Value ~13.5%/a (1970-2024) — fortemente influenzato dagli anni \'70-\'80. Forward-looking più moderato (~8.5%/a) per mean-reversion dei premi di rischio.',
+    mu: 0.085, vol: 0.160, inflBeta: 0.25, ter: 0.3, fxExp: 1.0,
+    histCAGR: 0.123, histPeriod: '1979-2025', src: 'World + spread SCV Fama-French — come simulato dal motore',
+    desc: 'Piccole capitalizzazioni a bassa valutazione (P/B basso). Premio documentato da Fama & French (1992, 1993). CAGR come simulato dal motore (mercato EUR + spread Fama-French, 1979-2025): 12.3%/a. Forward-looking più moderato (~8.5%/a) per mean-reversion dei premi di rischio.',
   },
   reits: {
     label: 'Immobiliare Quotato (REITs)', emoji: '🏢', cat: 'eq', isEq: true,
     mu: 0.065, vol: 0.175, inflBeta: 0.20, ter: 0.4, fxExp: 0.8,
-    histCAGR: 0.112, histPeriod: '1972-2024', src: 'Dati storici mercato immobiliare quotato',
-    desc: 'Fondi immobiliari quotati su borsa. CAGR 1972-2024: ~11.2%/a. Obbligo di distribuzione ≥90% degli utili → elevata cedola. Copertura parziale dell\'inflazione tramite canoni di affitto indicizzati. Correlazione con azioni ~0.60, parzialmente decorrelante.',
+    histCAGR: 0.109, histPeriod: '1979-2024', src: 'FTSE Nareit All Equity REITs EUR — serie reale del simulatore',
+    desc: 'Fondi immobiliari quotati su borsa. CAGR in EUR 1979-2024 (serie del simulatore): 10.9%/a. Obbligo di distribuzione ≥90% degli utili → elevata cedola. Copertura parziale dell\'inflazione tramite canoni di affitto indicizzati. Correlazione con azioni ~0.60, parzialmente decorrelante. Nota: serie storica USA (NAREIT); un paniere REITs sviluppati globali (FTSE EPRA Developed) ha reso meno (~6.6%/a vs ~9.4%/a, 1990-2023).',
   },
 
   // ══════════════════════════════════════════════════════════════
@@ -252,37 +261,37 @@ const ASSET_CLASSES = {
   fat_valore: {
     label: 'Fattore Valore (Value)', emoji: '💎', cat: 'fat', isEq: true,
     mu: 0.072, vol: 0.175, inflBeta: 0.35, ter: 0.3, fxExp: 0.85,
-    histCAGR: 0.105, histPeriod: '1970-2024', src: 'Fama & French (1992, 1993)',
+    histCAGR: 0.110, histPeriod: '1979-2025', src: 'Fama & French (1992,1993) — CAGR come simulato dal motore (World EUR + spread reale)',
     desc: 'Azioni con basse valutazioni (P/B, P/E, EV/EBITDA bassi). CAGR storico long-only ~10.5%/a. Ha sottoperformato il mercato tra 2007 e 2020, recuperando dal 2021. Forward-looking ~7.2%/a. Alta correlazione con azioni cicliche e finanziarie — soffre in recessioni profonde. Correlazione con Momentum ρ≈−0.15: ottima complementarità.',
   },
   fat_momentum: {
     label: 'Fattore Momentum (Prezzo)', emoji: '🚀', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.195, inflBeta: 0.05, ter: 0.3, fxExp: 0.85,
-    histCAGR: 0.120, histPeriod: '1970-2024', src: 'Jegadeesh & Titman (1993), Carhart (1997)',
+    histCAGR: 0.117, histPeriod: '1979-2025', src: 'Jegadeesh-Titman/Carhart — CAGR come simulato dal motore (World EUR + contributo reale)',
     desc: 'Strategia long sistematica sui vincitori degli ultimi 12-1 mesi. CAGR storico long-only ~12%/a (1970-2024). Rendimento elevato ma con crash risk: drawdown violenti nei mercati a U-turn (es. 2009: −60%). Forward-looking ~7.5%/a. Correlazione con Valore ρ≈−0.15 — principale beneficio del multi-fattore.',
   },
   fat_qualita: {
     label: 'Fattore Qualità / Redditività', emoji: '⭐', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.150, inflBeta: 0.18, ter: 0.3, fxExp: 0.85,
-    histCAGR: 0.095, histPeriod: '1990-2024', src: 'Novy-Marx (2013), Fama & French (2015)',
+    histCAGR: 0.117, histPeriod: '1979-2025', src: 'Novy-Marx/FF5 — CAGR come simulato dal motore (World EUR + spread reale)',
     desc: 'Aziende con alta redditività operativa, bassa leva finanziaria e stabilità degli utili (RMW: Robust Minus Weak). CAGR storico long-only ~9.5%/a (1990-2024). Carattere difensivo: sovra-performa in crisi, sotto-performa nei rally euforici. Parte del modello accademico a 5 fattori. Forward-looking ~7.5%/a.',
   },
   fat_low_vol: {
     label: 'Fattore Bassa Volatilità (Difensivo)', emoji: '📉', cat: 'fat', isEq: true,
     mu: 0.070, vol: 0.120, inflBeta: 0.12, ter: 0.3, fxExp: 0.85,
-    histCAGR: 0.085, histPeriod: '1970-2024', src: 'Frazzini & Pedersen (2014)',
+    histCAGR: 0.089, histPeriod: '1979-2025', src: 'Frazzini & Pedersen — CAGR come simulato dal motore (World EUR + spread reale)',
     desc: 'Azioni con volatilità storica e beta di mercato bassi (BAB: Betting Against Beta). Anomalia CAPM: il rendimento aggiustato per il rischio supera quello del mercato. CAGR storico ~8.5%/a con σ ~12% (1970-2024). Concentrato in settori difensivi: utilities, consumer staples, healthcare. Forward-looking ~7.0%/a. Ottimo abbinamento con Momentum.',
   },
   fat_size: {
     label: 'Fattore Dimensione (Small Cap)', emoji: '🔬', cat: 'fat', isEq: true,
     mu: 0.075, vol: 0.190, inflBeta: 0.20, ter: 0.25, fxExp: 0.85,
-    histCAGR: 0.095, histPeriod: '1970-2024', src: 'Banz (1981), Fama-French Data Library',
+    histCAGR: 0.104, histPeriod: '1979-2025', src: 'Banz/Fama-French — CAGR come simulato dal motore (World EUR + spread reale)',
     desc: 'Premio di dimensione (SMB: Small Minus Big) — le piccole capitalizzazioni tendono a sovra-performare le grandi nel lungo periodo. CAGR storico ~9.5%/a (1970-2024). Il premio è più robusto nel segmento value. Parzialmente compresso post-pubblicazione accademica. Forward-looking ~7.5%/a. Correlazione con mercato ~0.80.',
   },
   fat_investment: {
     label: 'Fattore Investimento (CMA)', emoji: '🏗️', cat: 'fat', isEq: true,
     mu: 0.072, vol: 0.130, inflBeta: 0.10, ter: 0.35, fxExp: 0.85,
-    histCAGR: 0.080, histPeriod: '1990-2024', src: 'Fama & French (2015)',
+    histCAGR: 0.112, histPeriod: '1979-2025', src: 'Fama & French (2015) — CAGR come simulato dal motore (World EUR + spread reale)',
     desc: 'Aziende con crescita degli attivi bassa (Conservative Minus Aggressive — CMA). Le imprese che investono meno producono rendimenti più alti nel lungo periodo. Parte del modello a 5 fattori (Fama-French 2015). CAGR storico ~8%/a (1990-2024). Carattere difensivo, alta correlazione con Qualità (ρ≈0.40). Forward-looking ~7.2%/a.',
   },
   fat_dividendi: {
@@ -334,7 +343,7 @@ const ASSET_CLASSES = {
   // OBBLIGAZIONARIO GOVERNATIVO USA
   // mu = forward-looking basato sui livelli di yield 2024-2025
   //      normalizzati su orizzonte 10-20a
-  // vol = volatilità storica 1970-2024
+  // vol = volatilità storica 1970-2025
   // Fonte: dati storici Federal Reserve (FRED) e mercato USA
   // ══════════════════════════════════════════════════════════════
   ob_usa_st: {
@@ -385,6 +394,12 @@ const ASSET_CLASSES = {
     histCAGR: 0.051, histPeriod: '1999-2024', src: 'Banca Centrale Europea',
     desc: 'Governativi area euro 7-10 anni. Duration ~7.5. Forte sensibilità ai tassi BCE. Decorrelazione dall\'azionario in recessione. Correlazione positiva con azioni in stagflazione (perdita doppia — raro ma storicamente osservato negli anni \'70 e nel 2022).',
   },
+  ob_eu_ult: {
+    label: 'Gov. Euro Ultra-Lungo (20-30a)', emoji: '🇪🇺', cat: 'ob_eu',
+    mu: 0.036, vol: 0.150, inflBeta: -0.45, ter: 0.1, fxExp: 0.0,
+    histCAGR: 0.058, histPeriod: '1999-2024', src: 'Banca Centrale Europea',
+    desc: 'Governativi area euro 20-30 anni (Bund, OAT, BTP a lunghissima scadenza). Duration ~17-19. Volatilità ~15%/a — paragonabile alle azioni. Sensibilità massima ai tassi BCE: −17% circa per ogni +1% di rialzo. Equivalente euro dei Treasury USA ultra-lunghi, senza rischio cambio. Usato come deflation hedge per investitori in euro. Anno 2022: forte ribasso col rialzo tassi BCE.',
+  },
 
   // ══════════════════════════════════════════════════════════════
   // OBBLIGAZIONARIO GLOBALE
@@ -394,19 +409,19 @@ const ASSET_CLASSES = {
   ob_glob_gov: {
     label: 'Gov. Globale Intermedio (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
     mu: 0.042, vol: 0.048, inflBeta: -0.12, ter: 0.1, fxExp: 0.0,
-    histCAGR: 0.056, histPeriod: '1990-2024', src: 'Indici governativi globali aggregati',
+    histCAGR: 0.054, histPeriod: '1985-2024', src: 'Gov globale hedged EUR reale (curvo.eu, dal 1985)',
     desc: 'Paniere di titoli di stato dei principali paesi sviluppati (USA ~40%, Europa ~30%, Giappone ~15%, UK ~5%, altri) con duration ~6 anni e copertura valutaria in EUR. Diversifica il rischio di singola curva dei tassi. Rendimento mediano tra USA (~4.1%) ed Euro (~3.1%).',
   },
   ob_glob_agg: {
     label: 'Aggregato Obbligazionario Globale (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
     mu: 0.047, vol: 0.055, inflBeta: -0.08, ter: 0.1, fxExp: 0.0,
-    histCAGR: 0.060, histPeriod: '1990-2024', src: 'Indice aggregato obbligazionario globale',
+    histCAGR: 0.060, histPeriod: '1990-2024', src: 'Global Agg hedged reale dal 2018 (curvo.eu), aggregato EUR prima',
     desc: 'Universo obbligazionario globale aggregato: titoli di stato (~50%), corporate investment grade (~35%), cartolarizzati ABS/MBS (~15%), con copertura valutaria in EUR. Duration ~6.5 anni. Il riferimento per portafogli multi-asset a livello globale.',
   },
   ob_infl: {
     label: 'Obblig. Indicizzate Inflazione', emoji: '🛡️', cat: 'ob_glob',
     mu: 0.042, vol: 0.060, inflBeta: 0.80, ter: 0.15, fxExp: 0.5,
-    histCAGR: 0.050, histPeriod: '1997-2024', src: 'Mercati obbligazioni indicizzate',
+    histCAGR: 0.021, histPeriod: '2005-2024', src: 'Euro Gov Inflation-Linked reale (curvo.eu, dal 2005)',
     desc: 'Titoli di stato indicizzati all\'inflazione (BTPi italiani, Bund indicizzati, OATi francesi, TIPS USA). Il capitale cresce con l\'indice dei prezzi: protezione diretta dall\'inflazione. Rendimento reale garantito se tenuti a scadenza (~1.5-2% reale nel 2024). Volatilità simile alla duration nominale equivalente (~7 anni).',
   },
 
@@ -422,7 +437,7 @@ const ASSET_CLASSES = {
   commodities: {
     label: 'Commodities Diversificate', emoji: '⚡', cat: 'real',
     mu: 0.032, vol: 0.185, inflBeta: 0.65, ter: 0.3, fxExp: 1.0,
-    histCAGR: 0.052, histPeriod: '1970-2024', src: 'Indici commodity diversificati (dati aggregati)',
+    histCAGR: 0.052, histPeriod: '1970-2024', src: 'Bloomberg Commodity EUR reale dal 2005 (curvo.eu), stima aggregata prima',
     desc: 'Paniere diversificato di materie prime: energia ~55%, metalli industriali ~20%, agricoltura ~25%. CAGR storico ~5.2%/a influenzato dagli shock petroliferi degli anni \'70. Rendimento reale di lungo periodo vicino a zero per i costi di roll sui futures. Ottima copertura inflazione a breve termine (β≈0.65).',
   },
   cash: {
@@ -499,7 +514,7 @@ function expandCustomSlots(rawSlotsAll) {
 }
 
 
-// ── Matrice di correlazione per categoria (empirica, 1970-2024) ───────────────
+// ── Matrice di correlazione per categoria (empirica, 1970-2025) ───────────────
 // Categorie:
 //   eq      — azioni pure (plain equity)
 //   fat     — fattori azionari sistematici (Value, Momentum, Quality, LowVol, Size, CMA, Div)
@@ -683,7 +698,7 @@ const ECO_SCENARIOS = {
     label: 'Deflazione / Japanification',
     emoji: '🧊',
     desc: 'Inflazione negativa, tassi zero o negativi, crescita stagnante. Scenario Giappone 1990-2020. Le obbligazioni sono le star, le azioni vanno laterali per decenni, l\'oro è inerte, la liquidità perde valore in termini reali.',
-    color: '#0097a7',
+    color: '#1a73e8',
     bg: 'rgba(0,151,167,.08)',
     border: 'rgba(0,151,167,.4)',
     eqMult: 0.5, obMult: 1.2, goldMult: 0.5,
@@ -707,7 +722,7 @@ const ECO_SCENARIOS = {
     label: 'Rialzo Tassi',
     emoji: '📊',
     desc: 'Banche centrali alzano i tassi rapidamente (tipo 2022-2023). Le obbligazioni a lungo termine crollano, le azioni growth soffrono, le obbligazioni brevi e la liquidità rendono di più. Il contesto peggiore per il 60/40 tradizionale.',
-    color: '#00897b',
+    color: '#5d4037',
     bg: 'rgba(0,137,123,.08)',
     border: 'rgba(0,137,123,.4)',
     eqMult: 0.75, obMult: 0.4, goldMult: 0.8,
@@ -750,18 +765,17 @@ let state = {
       { ac: 'ob_glob_agg',   pct: 40 },
     ]
   },
-  fxHedge: false,        // se true, copertura cambio attiva (costo ~0.3%/a)
-  fxVol: 0.085,          // volatilità storica EUR/USD ~8.5%/a (1999-2024)
-  fxHedgeCost: 0.003,    // costo annuo della copertura valutaria ~0.3%
-  capeAdj: true,         // se true: baseline + scostamento da CAPE/yield live (metodo delta coerente)
-  // Glide path tra due strategie complete (vedi getGlideSlots). sideA = strategia
-  // di partenza (età ageStart, tipicamente aggressiva), sideB = arrivo (ageEnd).
-  // k = esponente di curvatura (1=lineare, 2=convesso/de-risking accelerato).
+  // GLIDE PATH: transizione continua tra due strategie (sideA→sideB) per età.
+  // k = curvatura (1=lineare, 2=convesso/de-risking accelerato vicino alla meta).
   glide: {
     sideA: { type: 'preset', ref: 'ec_glob_9060' },
     sideB: { type: 'preset', ref: 'golden_butterfly' },
     ageStart: 30, ageEnd: 65, k: 2,
   },
+  fxHedge: false,        // se true, copertura cambio attiva (costo ~0.3%/a)
+  fxVol: 0.085,          // volatilità storica EUR/USD ~8.5%/a (1999-2024)
+  fxHedgeCost: 0.003,    // costo annuo della copertura valutaria ~0.3%
+  capeAdj: true,         // se true: baseline + scostamento da CAPE/yield live (metodo delta coerente)
 };
 let stateB = { portfolio: 'eq50', ter: .20, pac: -1 };
 let decState = { portfolio: 'eq60', strategy: 'inflation', startPortfolio: 500000, withdrawal: 20000, years: 30, inflation: 2.0, ter: .20, ecoScenario: null, ecoTiming: 'early', seq: { on: false, severity: 'moderate', timing: 'early', mode: 'single' } };
@@ -788,7 +802,6 @@ function pct(v, dec = 1) { return (v * 100).toFixed(dec) + '%'; }
 
 function getLCWeight(age) { return Math.max(.20, Math.min(.80, .80 - Math.max(0, (age - 20)) / 50 * .60)); }
 
-// ══════════════════════════════════════════════════════════════
 // GLIDE PATH — transizione continua tra DUE strategie complete
 // ══════════════════════════════════════════════════════════════
 // Generalizza il lifecycle (che interpola solo la quota azionaria) a:
@@ -860,12 +873,19 @@ function strategyToSlots(side) {
 // k < 1  → CONCAVO: de-rischia presto (rising-equity glidepath di Pfau-Kitces
 //          se A e B sono invertiti). Tutta la letteratura è coperta da un param.
 function getGlideAlpha(age, ageStart, ageEnd, k) {
+  // FIX 2026-07-04 (import glide): nell'originale la formula era alpha = t^k, che
+  // CONTRADDICE il proprio commento e la finanza: con k=2 a meta orizzonte alpha=0.25,
+  // cioe' DE-RISK PRECOCE, mentre k>1 dovrebbe voler dire 'resta aggressivo a lungo,
+  // poi de-rischia rapidamente vicino alla meta' (coerente col rischio di sequenza:
+  // il capitale esposto e' massimo e il tempo di recupero minimo negli ultimi anni).
+  // Formula corretta: alpha = 1 - (1-t)^k. Ora k=1 lineare, k>1 resta aggressivo a
+  // lungo (de-risk tardivo), k<1 de-rischia presto (rising-equity di Pfau-Kitces se
+  // A e B sono invertiti). Estremi invariati: alpha=1 a ageStart, alpha=0 a ageEnd.
   if (ageStart === ageEnd) return age <= ageStart ? 1 : 0;
-  const lo = Math.min(ageStart, ageEnd), hi = Math.max(ageStart, ageEnd);
   let t = (age - ageEnd) / (ageStart - ageEnd); // 1 @ ageStart, 0 @ ageEnd
   t = Math.max(0, Math.min(1, t));
   const kk = (k == null || k <= 0) ? 1 : k;
-  return Math.pow(t, kk);
+  return 1 - Math.pow(1 - t, kk);
 }
 
 // Slot interpolati α·A + (1−α)·B all'età data. Unione delle asset class
@@ -919,6 +939,7 @@ function getGlideParams(age) {
   return p;
 }
 
+
 function getEquityWeight(port, age) {
   if (port === 'lifecycle') return getLCWeight(age);
   if (port === 'glide') return getGlideParams(age).eq;
@@ -941,6 +962,52 @@ function getCashWeight(port, age) {
   return m[port] ?? 0;
 }
 
+// Quota Small Cap Value del portafoglio (sottoinsieme della quota azionaria eqW).
+// Questa frazione usa la serie storica REALE (spread Fama-French su mercato) nel
+// bootstrap/backtest, invece del proxy "si comporta come il mercato".
+// Preset: solo 'larry' (15%). Custom: somma degli slot eq_small_value.
+function getSmallValueWeight(port) {
+  if (port === 'custom') return calcCustomParams().scvW || 0;
+  const m = { larry: .15 };
+  return m[port] ?? 0;
+}
+
+// Quota Momentum del portafoglio (sottoinsieme della quota azionaria eqW).
+// Usa il contributo storico REALE β·WML (Fama-French) invece del proxy di mercato.
+// Nessun preset usa il fattore Momentum: solo portafogli custom (slot fat_momentum).
+function getMomentumWeight(port) {
+  if (port === 'custom') return calcCustomParams().momW || 0;
+  return 0;
+}
+
+// Quota REITs del portafoglio (sottoinsieme di eqW). Usa la serie di rendimento
+// REITS reale (asset class con ciclo proprio), non un contributo sul mercato.
+// Nessun preset usa REITs come asset dedicato: solo portafogli custom.
+function getReitsWeight(port) {
+  if (port === 'custom') return calcCustomParams().reitsW || 0;
+  return 0;
+}
+
+// Quota Mercati Emergenti del portafoglio (sottoinsieme di eqW). Usa la serie di
+// rendimento EM reale (asset class con dinamica propria), non un contributo sul mercato.
+// Nessun preset usa EM come asset dedicato: solo portafogli custom.
+function getEmWeight(port) {
+  if (port === 'custom') return calcCustomParams().emW || 0;
+  // Il Larry Portfolio include 7,5% di Mercati Emergenti: usa la serie reale (come lo
+  // Small Value 15%), non il proxy del mercato sviluppato.
+  const m = { larry: .075 };
+  return m[port] ?? 0;
+}
+
+// Quote dei fattori Fama-French 5 (valore/qualità/investment/size), sottoinsiemi di eqW.
+// Ritorna un oggetto {fat_valore, fat_qualita, fat_investment, fat_size}; tutti 0 fuori dal custom.
+// Nessun preset usa questi fattori: solo portafogli custom.
+function getFactorWeights(port) {
+  const empty = { fat_valore: 0, fat_qualita: 0, fat_investment: 0, fat_size: 0, fat_low_vol: 0 };
+  if (port === 'custom') return calcCustomParams().ff5W || empty;
+  return empty;
+}
+
 // ── Beta di crash per categoria di asset (sequence risk) ──────────────────────
 // Quanto ciascuna categoria si muove durante un crash AZIONARIO severo, espresso
 // come frazione del crollo azionario (1.0 = crolla come le azioni; 0 = neutro;
@@ -961,6 +1028,70 @@ function getCashWeight(port, age) {
 // Beta deliberatamente prudenti: migliorano il realismo (commodity e carry NON
 // sono più trattati come rifugi) senza sovrastimare il danno né creare fragilità.
 const CRASH_BETA = { commodity: 0.35, carry: 0.45, trend: -0.20, commCarry: 0.10 };
+
+// ── Beta di crash specifici per fattore/asset class (sequence risk) ───────────
+// Calibrati su evidenza storica reale (FF/NAREIT/AQR 1979-2024, EUR).
+// Esprimono quante volte il β-azionario generico (1.0) subisce quel segmento.
+//   REITs       1.15  → crisi immobiliare 2008: −52% vs −45% mercato; crisi di liquidità
+//   EM          1.20  → crisi asiatica '97, 2008: più volatili e meno liquidi
+//   SCV         1.15  → small cap illiquide, spread bid/ask esplodono in crisi
+//   Momentum    0.75  → regge in crash brusco; MA soffre momentum crash nel rimbalzo
+//                        (viene gestito come "meno difensivo del valore atteso")
+//   Low Vol     0.55  → difensivo certificato: β_mkt=0.70 per costruzione
+//   Qualità     0.65  → bilanci solidi, cash flow stabili → scudo parziale
+//   Valore      1.05  → value trap nei crash; correlato a ciclo economico
+//   Size (SMB)  1.10  → small cap, stesso razionale di SCV senza il value tilt
+//   Investment  0.90  → CMA: aziende conservative, leggermente difensive
+// Nota: i pesi fattoriali sono quote dell'equity totale (cw.eq). La formula
+// sottrae la quota fattoriale dal bucket equity generico e la riassegna col
+// beta corretto, lasciando il totale della quota azionaria invariato.
+const FACTOR_CRASH_BETA = {
+  reits:          1.15,
+  eq_em:          1.20,
+  eq_small_value: 1.15,
+  fat_momentum:   0.75,
+  fat_low_vol:    0.55,
+  fat_qualita:    0.65,
+  fat_valore:     1.05,
+  fat_size:       1.10,
+  fat_investment: 0.90,
+};
+
+// Calcola il crash rate azionario pesato per composizione fattoriale.
+// cw = output di getCrashWeights(); sev = eqCR * severityFactor (già negativo).
+// Restituisce solo la componente azionaria+fattoriale; commodity/carry/trend/bond
+// vengono sommati esternamente come prima.
+function calcFactorCrashRate(cw, sev) {
+  // Quota azionaria generica: togliere le quote fattoriali con beta proprio
+  const scvW   = cw.scvW   || 0;
+  const reitsW = cw.reitsW || 0;
+  const emW    = cw.emW    || 0;
+  const momW   = cw.momW   || 0;
+  const ff5    = cw.ff5W   || {};
+  const valW   = ff5.fat_valore     || 0;
+  const qualW  = ff5.fat_qualita    || 0;
+  const invW   = ff5.fat_investment || 0;
+  const sizeW  = ff5.fat_size       || 0;
+  const lvW    = ff5.fat_low_vol    || 0;
+
+  // Somma di tutte le quote con beta specifico (non devono superare cw.eq)
+  const factorTotal = Math.min(cw.eq,
+    scvW + reitsW + emW + momW + valW + qualW + invW + sizeW + lvW);
+  const genericEqW = Math.max(0, cw.eq - factorTotal);
+
+  return sev * (
+      genericEqW                              * 1.00
+    + scvW   * FACTOR_CRASH_BETA.eq_small_value
+    + reitsW * FACTOR_CRASH_BETA.reits
+    + emW    * FACTOR_CRASH_BETA.eq_em
+    + momW   * FACTOR_CRASH_BETA.fat_momentum
+    + valW   * FACTOR_CRASH_BETA.fat_valore
+    + qualW  * FACTOR_CRASH_BETA.fat_qualita
+    + invW   * FACTOR_CRASH_BETA.fat_investment
+    + sizeW  * FACTOR_CRASH_BETA.fat_size
+    + lvW    * FACTOR_CRASH_BETA.fat_low_vol
+  );
+}
 
 // IRR money-weighted del piano di accumulo fino all'anno targetIdx.
 // data = array di project() con {invested, value}. Flussi: t=0 capitale iniziale,
@@ -1000,36 +1131,48 @@ function planIRR(data, targetIdx) {
 function getCrashWeights(port, age) {
   let eq, trendW = 0, carryW = 0, commodW = 0, goldW = 0, cashW = 0, commCarryW = 0;
   let obExplicitCustom;
-  if (port === 'custom' || port === 'glide') {
-    const cp = port === 'glide' ? getGlideParams(age) : calcCustomParams();
+  // Quote fattoriali (sottoinsiemi di eq) con beta di crash proprio: servono a
+  // calcFactorCrashRate per differenziare il drawdown (REITs/EM più profondi,
+  // LowVol/Qualità difensivi). Senza esporle qui, la differenziazione resta inerte.
+  let scvW = 0, momW = 0, reitsW = 0, emW = 0, usaW = 0, europaW = 0;
+  let ff5W = { fat_valore: 0, fat_qualita: 0, fat_investment: 0, fat_size: 0, fat_low_vol: 0 };
+  if (port === 'custom') {
+    const cp = calcCustomParams();
     eq = cp.eq; trendW = cp.trendW || 0; carryW = cp.carryW || 0;
     commodW = cp.commodW || 0; goldW = cp.goldW || 0; cashW = cp.cashW || 0;
     commCarryW = cp.commCarryW || 0;
     obExplicitCustom = cp.ob; // bond notional espanso (include la gamba a leva dei composite)
+    scvW = cp.scvW || 0; momW = cp.momW || 0; reitsW = cp.reitsW || 0; emW = cp.emW || 0; usaW = cp.usaW || 0; europaW = cp.europaW || 0;
+    if (cp.ff5W) ff5W = cp.ff5W;
   } else {
     eq = getEquityWeight(port, age);
-    goldW = getGoldWeight(port, age);
-    cashW = getCashWeight(port, age);
+    goldW = getGoldWeight(port);
+    cashW = getCashWeight(port);
     // return_stack ha una quota trend (managed futures) esplicita
     trendW = PORT[port]?.trend || 0;
+    // Preset con asset fattoriali reali (es. Larry: 15% SV + 7.5% EM): deriva le
+    // quote dai getter, così il crash differenziato vale anche per i preset.
+    scvW = (typeof getSmallValueWeight === 'function') ? getSmallValueWeight(port) : 0;
+    momW = (typeof getMomentumWeight === 'function') ? getMomentumWeight(port) : 0;
+    reitsW = (typeof getReitsWeight === 'function') ? getReitsWeight(port) : 0;
+    emW = (typeof getEmWeight === 'function') ? getEmWeight(port) : 0;
+    if (typeof getFactorWeights === 'function') { const fw = getFactorWeights(port); if (fw) ff5W = fw; }
   }
   // Esposizione difensiva: per i portafogli a leva (efficient core, return
   // stacking) usa il peso obbligazionario ESPLICITO (es. 0.60 notional), non il
   // residuo 1−eq che collasserebbe la leva. La somma può superare 1: corretto,
   // il crash agisce sulle esposizioni notional.
-  const obExplicit = (port === 'custom' || port === 'glide') ? obExplicitCustom : PORT[port]?.ob;
+  const obExplicit = (port !== 'custom') ? PORT[port]?.ob : obExplicitCustom;
   const defensive = (obExplicit ?? Math.max(0, 1 - eq - trendW - carryW - commodW - commCarryW - goldW - cashW)) + goldW + cashW;
-  return { eq, trendW, carryW, commodW, commCarryW, defensive };
+  return { eq, trendW, carryW, commodW, commCarryW, defensive, scvW, momW, reitsW, emW, ff5W, usaW, europaW };
 }
 
 // ── Calcola parametri blended del portafoglio custom ──────────
-// slotsOverride (opzionale): array di slot { ac, pct } da usare al posto di
-// state.customPortfolio.slots. Serve al glide path, che costruisce slot
-// interpolati per età senza toccare lo stato. Se omesso → comportamento
-// identico a prima (legge lo stato), quindi tutte le chiamate esistenti
-// restano invariate.
 function calcCustomParams(slotsOverride) {
   // ── 1. Filtra slot validi e normalizza i pesi ─────────────────
+  // GLIDE: slotsOverride permette di calcolare i parametri su slot interpolati per
+  // età (glide path) senza mutare state.customPortfolio. Retrocompatibile: se assente
+  // legge il custom come prima (tutte le chiamate esistenti restano identiche).
   const { slots, total, finCostTotal } = expandCustomSlots(slotsOverride ?? state.customPortfolio?.slots);
 
   // ── 2. Rendimento atteso ponderato e beta inflazione ──────────
@@ -1038,6 +1181,15 @@ function calcCustomParams(slotsOverride) {
   // otherFullW: servono SOLO per modellare il comportamento in crisi (crash beta),
   // non alterano la classificazione fiscale (otherFullW resta invariato).
   let trendW = 0, carryW = 0, commodW = 0, commCarryW = 0;
+  let obVolSum = 0; // somma pesata vol×peso dei bond → volatilità media bond (per scaling duration nel backtest storico)
+  const bondMix = {}; // peso per serie bond reale (per scadenza) → backtest/bootstrap con dati storici veri
+  let usaW = 0, europaW = 0; // quote azionarie regionali (serie reali USA/Europa)
+  let scvW = 0; // quota Small Cap Value (sottoinsieme di eqW): usa serie storica reale (spread su mercato)
+  let momW = 0; // quota Momentum (sottoinsieme di eqW): usa contributo reale β·WML su mercato
+  let reitsW = 0; // quota REITs (sottoinsieme di eqW): usa serie di rendimento REITS propria (non spread)
+  let emW = 0; // quota Mercati Emergenti (sottoinsieme di eqW): usa serie di rendimento EM propria
+  // Quote dei fattori Fama-French 5 (sottoinsiemi di eqW): usano contributi reali β·fattore.
+  const ff5W = { fat_valore: 0, fat_qualita: 0, fat_investment: 0, fat_size: 0, fat_low_vol: 0 };
   for (const sl of slots) {
     const ac = ASSET_CLASSES[sl.ac];
     if (!ac) continue;
@@ -1061,8 +1213,33 @@ function calcCustomParams(slotsOverride) {
     if (ac.isEq)        eqW   += w;
     else if (ac.isGold) goldW += w;
     else if (ac.isCash) cashW += w;
-    else if (ac.cat === 'ob_usa' || ac.cat === 'ob_eu' || ac.cat === 'ob_glob') obW += w; // obblig. governative → 12,5%
+    else if (ac.cat === 'ob_usa' || ac.cat === 'ob_eu' || ac.cat === 'ob_glob') { obW += w; obVolSum += w * (ac.vol || 0.057); // obblig. governative; vol pesata (fallback duration)
+      // Traccia il peso per serie storica reale per scadenza (backtest/bootstrap usano dati veri)
+      const _BSM = { ob_usa_st:'HIST_USB_2Y', ob_usa_it:'HIST_USB_5Y', ob_usa_lt:'HIST_USB_10Y', ob_usa_ult:'HIST_USB_30Y', ob_eu_st:'HIST_EUB_2Y', ob_eu_it:'HIST_EUB_5Y', ob_eu_lt:'HIST_EUB_10Y', ob_eu_ult:'HIST_EUB_30Y', ob_glob_gov:'HIST_GOV_GLOBAL', ob_glob_agg:'HIST_AGG_GLOBAL', ob_infl:'HIST_INFL_LINKED' };
+      const _bs = _BSM[sl.ac];
+      if (_bs) { bondMix[_bs] = (bondMix[_bs] || 0) + w; } else { bondMix._agg = (bondMix._agg || 0) + w; }
+    }
     else                otherFullW += w;          // trend/carry/commodities/reit/factor → 26% (redditi diversi)
+    // Small Cap Value: sottoinsieme di eqW (resta in eqW per fisco/categoria),
+    // tracciato a parte per usare la serie storica reale nel bootstrap/backtest.
+    if (sl.ac === 'eq_small_value') scvW += w;
+    if (sl.ac === 'fat_momentum') momW += w;
+    if (sl.ac === 'reits') reitsW += w;
+    if (sl.ac === 'eq_em') emW += w;
+    if (sl.ac === 'eq_usa') usaW += w;
+    if (sl.ac === 'eq_europa') europaW += w;
+    if (ff5W.hasOwnProperty(sl.ac)) ff5W[sl.ac] += w;
+    // Multi-Fattore: composizione VIVA in 5 fattori reali equipesati (Val+Mom+Qual+LowVol+CMA).
+    // Espanso qui invece di avere una serie propria, così resta sempre coerente coi
+    // singoli fattori (qualunque ricalibrazione futura si propaga automaticamente).
+    if (sl.ac === 'fat_multifat') {
+      const e = w / 5;
+      momW += e;                    // Momentum
+      ff5W.fat_valore     += e;     // Valore
+      ff5W.fat_qualita    += e;     // Qualità
+      ff5W.fat_low_vol    += e;     // Bassa Volatilità
+      ff5W.fat_investment += e;     // Investment (CMA)
+    }
     // Categorizzazione per crash beta (non altera eqW/obW/otherFullW)
     if (ac.cat === 'trend')      trendW  += w;
     else if (sl.ac === 'fat_carry_comm') commCarryW += w; // commodity carry: regge nei risk-off (beta crash basso)
@@ -1130,8 +1307,16 @@ function calcCustomParams(slotsOverride) {
     volStress: sigmaStressFx,      // vol in regime di crisi (FX vol amplificata)
     volNoFx: sigma,                // vol senza componente FX (riferimento)
     eq:   eqW, ob: obW2, gold: goldW, cash: cashW,
+    obVolW: obW > 0 ? obVolSum / obW : 0.057,  // volatilità media pesata dei bond (per duration nel backtest)
+    bondMix: bondMix,
+    usaW: usaW, europaW: europaW,  // composizione bond per serie storica reale (per scadenza)
     goldW, cashW, otherFullW,
     trendW, carryW, commodW, commCarryW,        // pesi per categoria (modellazione crash/sequence risk)
+    scvW,                                        // quota Small Cap Value (serie storica reale)
+    momW,                                        // quota Momentum (contributo reale β·WML)
+    reitsW,                                      // quota REITs (serie di rendimento propria)
+    emW,                                         // quota Mercati Emergenti (serie propria)
+    ff5W,                                        // quote fattori FF5 (valore/qualità/investment/size)
     realRet:  Math.max(0, muNet - 0.021),
     inflBeta,
     ter:  terW,                    // TER pesato suggerito (ETF tipici)
@@ -1172,9 +1357,16 @@ function getRate(key, scenario, year, startAge) {
     return _applyFx(normalR, vol, fxExpLC);
   }
 
-  if (key === 'custom') { const cp = calcCustomParams(); return cp[scenario] ?? cp.normal; }
+  if (key === 'glide') {
+    // GLIDE: parametri interpolati per età dal motore (getGlideParams -> calcCustomParams
+    // sugli slot blendati). I valori includono già FX/leva/composizione, coerenti con
+    // accumulo/backtest. L'età evolve durante il decumulo (startAge+year), quindi il
+    // portafoglio continua a de-rischiare anche in fase di prelievo.
+    const gp = getGlideParams(startAge + year);
+    return gp[scenario] ?? gp.normal;
+  }
 
-  if (key === 'glide') { const cp = getGlideParams(startAge + year); return cp[scenario] ?? cp.normal; }
+  if (key === 'custom') { const cp = calcCustomParams(); return cp[scenario] ?? cp.normal; }
 
   const p = PORT[key];
   if (!p) return 0.055;
@@ -1200,9 +1392,7 @@ function getRate(key, scenario, year, startAge) {
 // e si aggiunge il delta. In regime normale delta=0 quindi identico a getRate().
 function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const ecoSel = ECO_SCENARIOS[ecoKey];
-  const p = (portKey === 'custom') ? calcCustomParams()
-          : (portKey === 'glide') ? getGlideParams(startAge + year)
-          : PORT[portKey];
+  const p = portKey === 'custom' ? calcCustomParams() : PORT[portKey];
   if (!p || !ecoSel) return 0.05;
   // Rispetta la finestra temporale (early/mid/late) se fornita, altrimenti usa la durata
   const inRegime = ecoWin
@@ -1211,7 +1401,7 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
   const eco = inRegime ? ecoSel : NORMAL_ECO;
 
   // FX cost coerente con getRate()
-  const fxExpPort = (portKey === 'custom' || portKey === 'glide')
+  const fxExpPort = portKey === 'custom'
     ? (p.fxExposure ?? p.fxExp ?? 0)
     : (PORT[portKey]?.fxExp ?? 0);
   const fxCostEco = (!!state.fxHedge && fxExpPort > 0) ? fxExpPort * state.fxHedgeCost : 0;
@@ -1230,20 +1420,18 @@ function getRateEco(portKey, ecoKey, year, startAge, ecoWin) {
 
   // Portafogli predefiniti e custom
   // muNormal e la fonte di verita: coincide con getRate() in regime normale.
-  const muNormal = (portKey === 'custom' || portKey === 'glide')
+  const muNormal = portKey === 'custom'
     ? (p.normal ?? p.normalR ?? 0.055)
     : (PORT[portKey]?.normal ?? 0.055);
 
   // Pesi nominali del portafoglio (possono sommare >1 per portafogli a leva)
   const eqW   = Math.max(0, p.eq   ?? getEquityWeight(portKey, startAge + year));
-  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey, startAge + year));
-  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey, startAge + year));
+  const goldW = Math.max(0, p.gold ?? getGoldWeight(portKey));
+  const cashW = Math.max(0, p.cash ?? getCashWeight(portKey));
   const obW   = Math.max(0, p.ob   ?? Math.max(0, 1 - eqW - goldW - cashW));
   // Trend following (return stacking): diversificatore. Reagisce ai regimi in
   // modo simile all'oro (crisis alpha nelle crisi prolungate); usa goldMult.
-  // Per custom/glide il peso trend è p.trendW (sottocategoria crash); per i
-  // preset a trend esplicito (return_stack) è p.trend.
-  const trendW = Math.max(0, p.trend ?? p.trendW ?? 0);
+  const trendW = Math.max(0, p.trend ?? 0);
   // Normalizza i pesi a 1 per calcolare i contributi relativi al delta di regime.
   // Per portafogli a leva (wSum > 1) questo rispecchia la sensibilita relativa
   // di ciascuna asset class al ciclo economico, senza amplificare il delta.
@@ -1278,7 +1466,6 @@ function getPortfolioVol(portKey, age) {
     return _addFxVol(baseVol, eq * 0.85);
   }
   if (portKey === 'custom') return calcCustomParams().vol; // già include FX vol
-  if (portKey === 'glide')  return getGlideParams(age).vol; // già include FX vol
   const p = PORT[portKey];
   return _addFxVol(p?.vol ?? 0.10, p?.fxExp ?? 0);
 }
@@ -1319,8 +1506,8 @@ function hasAnyActivePac() {
 function blendedTaxRate(age) {
   // Clamp equity a [0,1] per il calcolo dell'aliquota blended
   // (la leva implicita nei portafogli efficient core non aumenta l'aliquota fiscale)
-  if (state.portfolio === 'custom' || state.portfolio === 'glide') {
-    const cp = state.portfolio === 'glide' ? getGlideParams(age) : calcCustomParams();
+  if (state.portfolio === 'custom') {
+    const cp = calcCustomParams();
     const eqW    = Math.max(0, Math.min(1, cp.eq   ?? 0));
     const obW    = Math.max(0, cp.ob    ?? 0);
     const goldW  = Math.max(0, cp.goldW ?? 0);
@@ -1477,14 +1664,16 @@ function project(scenario, withSeq, terOverride = null, portOverride = null) {
     const severityFactor = idx === 0 ? 1.0 : idx === 1 ? 0.65 : 0.45; // diminishing severity
     const hasCrash = getCrashYear(seq.timing, years) >= 0;
     const acw = hasCrash ? getEquityWeight(portKey, age + cy) : 0;
-    // Crash rate per categoria: equity crollo pieno; commodity/carry partecipano
-    // (beta>0); trend fa crisis alpha (beta<0); difensivo (bond/gold/cash) → rally.
+    // Crash rate per categoria: equity con beta fattoriale specifico; commodity/carry
+    // partecipano (beta>0); trend fa crisis alpha (beta<0); difensivo → rally.
+    // calcFactorCrashRate() sostituisce sev*cw.eq con pesi differenziati per asset
+    // (REITs/EM/SCV più profondi; LowVol/Qualità difensivi; Momentum intermedio).
     let crRate;
     if (hasCrash) {
       const cw = getCrashWeights(portKey, age + cy);
       const sev = eqCR * severityFactor;
       crRate =
-          sev * cw.eq
+          calcFactorCrashRate(cw, sev)
         + sev * CRASH_BETA.commodity * cw.commodW
         + sev * CRASH_BETA.carry     * cw.carryW
         + sev * CRASH_BETA.commCarry * (cw.commCarryW || 0)
@@ -1493,7 +1682,15 @@ function project(scenario, withSeq, terOverride = null, portOverride = null) {
     } else {
       crRate = 0;
     }
-    const cuf = acw > 0 ? Math.pow(Math.pow(1 / (1 + eqCR * severityFactor), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1;
+    // FIX 2026-07-04: il catch-up di recovery era calcolato sul crash EQUITY PIENO
+    // (eqCR*sf) qualunque fosse il mix: per portafogli a bassa quota azionaria il
+    // danno effettivo (crRate, attenuato da difensivi in rally) era piccolo ma il
+    // rimbalzo quinquennale restava dimensionato sul -20/-35/-50% pieno → per
+    // eq30/GB/All-Seasons un crash 'severe' finiva MEGLIO di uno 'mild' (monotonia
+    // severita' invertita). Ora il portafoglio recupera la frazione RECOVERY_CATCHUP
+    // del danno che HA SUBITO (crRate mix-aware); se crRate>=0 (quota difensiva in
+    // rally domina) non c'e' nulla da recuperare -> cuf=1.
+    const cuf = (acw > 0 && crRate < 0) ? Math.pow(Math.pow(1 / (1 + crRate), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1;
     crashMap[cy] = { rate: crRate, cuf, acw, severityFactor };
   });
 
@@ -1521,11 +1718,12 @@ function project(scenario, withSeq, terOverride = null, portOverride = null) {
       r = crashInfo.rate - dynPenalty;
     } else if (inRecovery) {
       const cy = inRecovery;
+      // FIX 2026-07-04: cuf ora e' mix-aware (v. costruzione crashMap) -> il rimbalzo
+      // si applica all'intero portafoglio; baseR e' gia' scenario- e mix-dipendente.
+      // Il vecchio split eq/ob applicava il catch-up equity pieno alla quota azionaria,
+      // sovradimensionando il rimbalzo dei portafogli bilanciati.
       const baseR = getRate(portKey, scenario, y, age);
-      const rebEqR = (1 + baseR) * crashMap[cy].cuf - 1;
-      const cEqW = getEquityWeight(portKey, age + y);
-      const rebObR = scenario === 'best' ? .04 : scenario === 'normal' ? .03 : .01;
-      r = rebEqR * cEqW + rebObR * (1 - cEqW);
+      r = (1 + baseR) * crashMap[cy].cuf - 1;
       isRebound = true;
     } else {
       r = getRate(portKey, scenario, y, age);
@@ -1619,24 +1817,24 @@ function runMontecarlo() {
   const acw = crashYear > 0 ? getEquityWeight(portfolio, age + crashYear) : 0;
   const eqCR = SEQ_RATES[seq.severity] ?? -0.35;
   const acr = eqCR * acw + BOND_RALLY_RATE * (1 - acw);
-  const cuf = acw > 0 ? Math.pow(Math.pow(1 / (1 + eqCR), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1;
+  const cuf = (acw > 0 && acr < 0) ? Math.pow(Math.pow(1 / (1 + acr), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1; // FIX 2026-07-04: mix-aware (v. project)
   
   // Build crash map for multi-crash
   const crashMap = {};
   crashYearsList.forEach((cy, idx) => {
     const sf = idx === 0 ? 1.0 : idx === 1 ? 0.65 : 0.45;
     const cw2 = getEquityWeight(portfolio, age + cy);
-    // Crash rate per categoria (coerente con project)
+    // Crash rate per categoria (coerente con project), con beta fattoriali specifici
     const cwCat = getCrashWeights(portfolio, age + cy);
     const sev2 = eqCR * sf;
     const cr2 =
-        sev2 * cwCat.eq
+        calcFactorCrashRate(cwCat, sev2)
       + sev2 * CRASH_BETA.commodity * cwCat.commodW
       + sev2 * CRASH_BETA.carry     * cwCat.carryW
       + sev2 * CRASH_BETA.commCarry * (cwCat.commCarryW || 0)
       + sev2 * CRASH_BETA.trend     * cwCat.trendW
       + BOND_RALLY_RATE             * cwCat.defensive;
-    const cuf2 = cw2 > 0 ? Math.pow(Math.pow(1 / (1 + eqCR * sf), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1;
+    const cuf2 = (cw2 > 0 && cr2 < 0) ? Math.pow(Math.pow(1 / (1 + cr2), 1 / RECOVERY_YEARS), RECOVERY_CATCHUP) : 1; // FIX 2026-07-04: mix-aware (v. project)
     crashMap[cy] = { rate: cr2, cuf: cuf2, acw: cw2, sf };
   });
 
@@ -1660,19 +1858,11 @@ function runMontecarlo() {
         const cy = inRecovery;
         // FIX #S1: usa getRate() per il rendimento corretto del portafoglio scelto
         // invece del 7% hardcoded — coerente con project() deterministico
+        // FIX 2026-07-04: cuf mix-aware applicato all'intero portafoglio (coerente
+        // con project); sostituisce lo split eq/ob (FIX #S1/#MC1) che sovradimensionava
+        // il rimbalzo dei bilanciati e invertiva la monotonia di severita'.
         const baseR = getRate(portfolio, 'normal', y, age);
-        const boR   = (1 + baseR) * crashMap[cy].cuf - 1;
-        const cEqW  = getEquityWeight(portfolio, curAge);
-        // Rendimento bond in recovery: derivato dal rendimento base del portafoglio.
-        // FIX #MC1: clamp bidirezionale [-5%, +15%] per evitare valori anomali
-        // quando cEqW → 0 (portafogli quasi-obbligazionari: divisione per valore piccolo)
-        // o quando baseR è negativo in scenario pessimistico.
-        // Se cEqW = 0 (ob100) → usa baseR direttamente come rebObR.
-        const obBaseR = cEqW > 0.01
-          ? Math.max(-0.05, Math.min(0.15, baseR * (1 - cEqW) / cEqW))
-          : baseR;
-        const rebObR  = obBaseR;
-        r = boR * cEqW + rebObR * (1 - cEqW);
+        r = (1 + baseR) * crashMap[cy].cuf - 1;
       } else {
         // Gaussiano log-normale corretto: per ottenere CAGR medio = μ_geometrico
         // occorre campionare dalla media ARITMETICA = μ + σ²/2 (correzione di Itō).
@@ -2884,7 +3074,8 @@ function simulateDecumulo(sc) {
       const sf = idx === 0 ? 1.0 : idx === 1 ? 0.65 : 0.45;
       const cw = getCrashWeights(port, decStartAge + cy);
       const sev = eqCRdec * sf;
-      decCrashMap[cy] = sev * cw.eq
+      decCrashMap[cy] =
+          calcFactorCrashRate(cw, sev)
         + sev * CRASH_BETA.commodity * cw.commodW
         + sev * CRASH_BETA.carry     * cw.carryW
         + sev * CRASH_BETA.commCarry * (cw.commCarryW || 0)
@@ -2968,52 +3159,90 @@ function runDecumuloHistorical() {
   const terRateM = ter / 100 / 12;
 
   // Gate: i preset con leva / managed futures (efficient core, return stacking) e i
-  // custom con trend/carry non hanno serie storica coerente in HIST_MONTHLY (solo
-  // azioni/obbligazioni/oro). Simularli falserebbe rischio e decorrelazione.
+  // custom con asset senza serie storica propria in HIST_MONTHLY non sono backtestabili.
+  // HIST_MONTHLY contiene solo 3 colonne: azioni sviluppate (MSCI World), obbligazioni
+  // aggregate e oro. REITs, Small Cap Value, fattoriali, trend/carry, emergenti e
+  // asset a leva verrebbero simulati con proxy scorretti → risultati fuorvianti.
   const DEC_HIST_SKIP = { ec_us_9060: 1, ec_glob_9060: 1, return_stack: 1 };
-  // Per "Mia allocazione" il decumulo usa state.customPortfolio.slots: passa QUEGLI
-  // slot esplicitamente, altrimenti la funzione ispezionerebbe il contesto del
-  // Simulatore (che può essere su glide) invece dell'allocazione realmente usata.
-  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function'
-    && customPortfolioIsNonBacktestable(state.customPortfolio?.slots || []);
-  // Glide nel decumulo: la composizione è CONGELATA al Lato B (de-risking finale,
-  // perché decAge ≥ ageEnd). È quindi un'allocazione fissa: backtestabile sul piano
-  // storico SE il Lato B non contiene leva/trend/carry e il glide è già concluso a
-  // pensionamento. Altrimenti serve il modello dinamico (Monte Carlo).
-  let glideNonBT = false;
-  if (port === 'glide') {
-    const decAge0 = state.age + state.years;
-    const g = state.glide;
-    const inTransition = g && decAge0 < g.ageEnd;
-    const sideBslots = (g && typeof strategyToSlots === 'function') ? strategyToSlots(g.sideB) : [];
-    const sideBleveraged = typeof customPortfolioIsNonBacktestable === 'function'
-      ? customPortfolioIsNonBacktestable(sideBslots) : true;
-    glideNonBT = sideBleveraged || inTransition;
-  }
+  const customNonBT = port === 'custom' && typeof customPortfolioIsNonBacktestable === 'function' && customPortfolioIsNonBacktestable();
+  // GLIDE: il decumulo STORICO su singola sequenza non e' adatto al glide path -- la
+  // composizione cambia ogni anno (e i lati possono includere leva/managed futures
+  // senza serie mensile propria). Il Monte Carlo parametrico gestisce invece il glide
+  // correttamente. Blocco esplicativo come per efficient core / return stacking.
+  const glideNonBT = port === 'glide';
   if (DEC_HIST_SKIP[port] || customNonBT || glideNonBT) {
     const lbl = (typeof getPortLabel === 'function') ? getPortLabel(port) : port;
-    const isGlide = port === 'glide';
-    const g = state.glide;
-    const decAge0 = state.age + state.years;
-    const msg = isGlide
-      ? ((g && decAge0 < g.ageEnd)
-          ? `Backtest storico non disponibile: il tuo pensionamento (età ${decAge0}) cade prima della fine del Glide Path (età ${g.ageEnd}), quindi la composizione è ancora in transizione tra Lato A e Lato B. Il backtester usa pesi fissi e non puo modellare il ribilanciamento dinamico. Usa il Monte Carlo Avanzato.`
-          : `Backtest storico non disponibile: il Lato B del Glide Path include leva (Efficient Core), Trend Following o Carry, asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato.`)
-      : customNonBT
-        ? `Backtest storico non disponibile per "${lbl}": il portafoglio custom include Trend Following / Managed Futures, Carry o Efficient Core (leva), asset privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`
-        : `Backtest storico non disponibile per "${lbl}": questa strategia usa leva o managed futures, privi di serie storica coerente nel dataset 1970-2024. Usa il Monte Carlo Avanzato con un modello parametrico.`;
-    const err = new Error(msg);
+    const err = new Error(`Backtest storico non disponibile per "${lbl}": HIST_MONTHLY contiene solo azioni sviluppate (MSCI World), obbligazioni e oro. I portafogli con REITs, Small Cap Value, Fattoriali, Trend Following, Carry, Mercati Emergenti, Efficient Core (leva) o Return Stacking non hanno serie storica mensile propria — simularli userebbe proxy scorretti. Usa il Monte Carlo Avanzato con modello parametrico (Gaussiano, GARCH o Regime-Switching).`);
+    if (port === 'glide') err.message = 'Il decumulo storico su singola sequenza non e\' disponibile per il Glide Path: la sua composizione cambia ogni anno (de-risking) e i lati possono includere leva. Usa il Monte Carlo Avanzato, che simula correttamente la transizione per eta.';
     err.decHistBlocked = true;
-    err.isGlide = isGlide;
     throw err;
   }
 
-  // Pesi del portafoglio (per glide: composizione del Lato B all'età di pensionamento)
+  // Pesi del portafoglio
   const decAge = state.age + state.years;
   const eqW = getEquityWeight(port, decAge);
-  const goldW = getGoldWeight(port, decAge);
-  const cashW = getCashWeight(port, decAge);
+  const goldW = getGoldWeight(port);
+  const cashW = getCashWeight(port);
   const obW = Math.max(0, 1 - eqW - goldW - cashW);
+
+  // ── SERIE REALI nel decumulo storico (coerenza con backtest/crisis/bootstrap) ──
+  // Preset con realMix (Golden Butterfly, Permanent) → composizione reale per scadenza/regione.
+  // Custom → bond per scadenza (bondMix) e azioni USA/Europa (usaW/europaW) dalle serie reali.
+  // Tutto con fallback difensivo all'aggregato: se un helper non è disponibile, usa row[0/1/2].
+  let _decRealMix = null, _decBondMix = null, _decUsaW = 0, _decEuropaW = 0, _decObWtot = 0, _decObDurK = 1.0;
+  try {
+    if (port !== 'custom' && typeof PORT !== 'undefined' && PORT[port] && PORT[port].realMix) {
+      _decRealMix = PORT[port].realMix;
+    } else if (port === 'custom' && typeof calcCustomParams === 'function') {
+      const _cp = calcCustomParams();
+      _decBondMix = _cp.bondMix || null;
+      _decUsaW = _cp.usaW || 0;
+      _decEuropaW = _cp.europaW || 0;
+      _decObDurK = Math.max(0.5, Math.min(1.8, Math.sqrt((_cp.obVolW || 0.057) / 0.057)));
+      if (_decBondMix) { for (const k in _decBondMix) _decObWtot += _decBondMix[k]; }
+    }
+  } catch (e) { _decRealMix = null; _decBondMix = null; }
+  // Rendimento del portafoglio del mese (indice assoluto) con serie reali; null → usa aggregato.
+  function _decRealMixRet(mi) {
+    if (!_decRealMix) return null;
+    const HH = HIST_MONTHLY[mi]; let r = 0;
+    if (_decRealMix.eqUsa && typeof eqUsaReturnAt === 'function') { const u = eqUsaReturnAt(mi); r += _decRealMix.eqUsa * (u !== null ? u : HH[0]); }
+    if (_decRealMix.eqEuropa && typeof eqEuropeReturnAt === 'function') { const e2 = eqEuropeReturnAt(mi); r += _decRealMix.eqEuropa * (e2 !== null ? e2 : HH[0]); }
+    if (_decRealMix.eqWorld) r += _decRealMix.eqWorld * HH[0];
+    if (_decRealMix.scv) r += _decRealMix.scv * HH[0];
+    if (_decRealMix.em && typeof HIST_EM !== 'undefined') { const ei = mi - (typeof EM_START !== 'undefined' ? EM_START : 216); r += _decRealMix.em * (ei >= 0 && ei < HIST_EM.length ? HIST_EM[ei] : HH[0]); }
+    if (_decRealMix.gold) r += _decRealMix.gold * HH[2];
+    if (_decRealMix.cash) r += _decRealMix.cash * 0.002;
+    if (_decRealMix.bond) { for (const key in _decRealMix.bond) { const w = _decRealMix.bond[key]; const br = (typeof bondSeriesReturnAt === 'function') ? bondSeriesReturnAt(key, mi) : null; r += w * (br !== null ? br : HH[1]); } }
+    return r;
+  }
+  // Rendimento bond del mese per custom (serie reali per scadenza); null → aggregato.
+  function _decBondRet(mi) {
+    if (!_decBondMix || _decObWtot <= 0) return null;
+    let acc = 0;
+    for (const key in _decBondMix) {
+      const w = _decBondMix[key];
+      if (key === '_agg') { acc += w * (0.00466 + _decObDurK * (HIST_MONTHLY[mi][1] - 0.00466)); }
+      else { const br = (typeof bondSeriesReturnAt === 'function') ? bondSeriesReturnAt(key, mi) : null; acc += w * (br !== null ? br : HIST_MONTHLY[mi][1]); }
+    }
+    return acc / _decObWtot;
+  }
+  // Rendimento azionario del mese per custom con quote regionali USA/Europa reali.
+  // eqW è la quota azionaria totale; usaW/europaW sono sotto-quote (pesi sul totale portafoglio).
+  // Ritorna il rendimento della SOLA parte azionaria (da moltiplicare per eqW nel loop).
+  function _decEqRet(mi, eqRetAgg) {
+    if ((_decUsaW <= 0 && _decEuropaW <= 0) || eqW <= 1e-9) return eqRetAgg;
+    // frazioni regionali dentro la quota azionaria
+    const fUsa = Math.min(1, _decUsaW / eqW);
+    const fEu  = Math.min(1, _decEuropaW / eqW);
+    const fWorld = Math.max(0, 1 - fUsa - fEu);
+    let r = fWorld * eqRetAgg;
+    if (fUsa > 0 && typeof eqUsaReturnAt === 'function') { const u = eqUsaReturnAt(mi); r += fUsa * (u !== null ? u : eqRetAgg); }
+    else if (fUsa > 0) r += fUsa * eqRetAgg;
+    if (fEu > 0 && typeof eqEuropeReturnAt === 'function') { const e2 = eqEuropeReturnAt(mi); r += fEu * (e2 !== null ? e2 : eqRetAgg); }
+    else if (fEu > 0) r += fEu * eqRetAgg;
+    return r;
+  }
 
   // Anni di partenza disponibili (servono Y anni di dati dopo)
   const totalYearsAvail = Math.floor(HIST_MONTHLY.length / 12);
@@ -3041,7 +3270,18 @@ function runDecumuloHistorical() {
         const row = calibrateHistRow(HIST_MONTHLY[idx]);
         const eqR = row[0], obR = row[1], goldR = row[2];
         const cashR = 0.002; // ~2.4% annuo cash
-        const portR = eqW*eqR + obW*obR + goldW*goldR + cashW*cashR - terRateM;
+        let portR;
+        const _rmR = _decRealMixRet(idx);
+        if (_rmR !== null) {
+          // Preset con composizione reale (Golden Butterfly, Permanent): rendimento già completo
+          portR = _rmR - terRateM;
+        } else {
+          // Custom o preset standard: azionario regionale + bond per scadenza reali (con fallback)
+          const _eqReg = _decEqRet(idx, eqR);
+          const _obReal = _decBondRet(idx);
+          const _obUse = (_obReal !== null) ? _obReal : obR;
+          portR = eqW*_eqReg + obW*_obUse + goldW*goldR + cashW*cashR - terRateM;
+        }
         // Prelievo a metà mese: cap_dopo = (cap - wd/2)(1+r) - wd/2
         cap = Math.max(0, (cap - monthlyWd/2) * (1 + portR) - monthlyWd/2);
         yearRet *= (1 + portR);
@@ -3203,17 +3443,8 @@ function runDecHistorical() {
         </div>`;
       document.getElementById('decHistResults').innerHTML = html;
     } catch (e) {
-      if (e.decHistBlocked) {
-        const icon = e.isGlide ? '⤵' : '⚡';
-        document.getElementById('decHistResults').innerHTML =
-          `<div style="background:rgba(230,138,0,.07);border:1px solid rgba(230,138,0,.30);border-radius:6px;padding:16px 20px;line-height:1.7">` +
-          `<div style="font-size:13px;font-weight:700;color:#b8860b;margin-bottom:6px">${icon} Backtest storico non disponibile</div>` +
-          `<div style="font-size:12.5px;color:var(--text2)">${e.message}</div>` +
-          `</div>`;
-      } else {
-        document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
-        console.error(e);
-      }
+      document.getElementById('decHistResults').innerHTML = `<div class="info-box" style="color:var(--red)">Errore: ${e.message}</div>`;
+      console.error(e);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '📅 Esegui Backtest Storico'; }
     }
@@ -3374,13 +3605,24 @@ function buildValuationDashboard(portKey) {
 function updatePortDetailBox() {
   const isCustom = state.portfolio === 'custom';
   const isGlide  = state.portfolio === 'glide';
-  const p = isCustom ? calcCustomParams() : PORT[state.portfolio];
+  const p = isCustom ? calcCustomParams() : isGlide ? getGlideParams(state.age) : PORT[state.portfolio];
   const builder = document.getElementById('customBuilder');
-  const glideB  = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', isCustom);
-  if (glideB)  glideB.classList.toggle('visible', isGlide);
+  const gBuilder = document.getElementById('glideBuilder');
+  if (gBuilder) gBuilder.classList.toggle('visible', isGlide);
   if (isCustom) { renderCustomBuilder(); return; }
-  if (isGlide)  { renderGlideBuilder(); return; }
+  if (isGlide)  {
+    // FIX 2026-07-04: svuota il box descrittivo prima di rendere il builder glide.
+    // Senza questo, il contenuto del portafoglio precedentemente selezionato (es. la
+    // strategia A pura come 80/20) restava visibile SOTTO il builder, mostrando due set
+    // di numeri diversi e discordanti nella stessa schermata (i parametri di eq80 invece
+    // di quelli del glide interpolato all'età corrente). Il builder glide ha già il
+    // proprio riepilogo completo (equity/vol/rendimento a età corrente).
+    const _pdb = document.getElementById('portDetailBox');
+    if (_pdb) _pdb.innerHTML = '';
+    renderGlideBuilder();
+    return;
+  }
   if (!p) { document.getElementById('portDetailBox').innerHTML = ''; return; }
   const bd = (state.portfolio !== 'custom' && PORT[state.portfolio]?.breakdown)
     ? Object.entries(PORT[state.portfolio].breakdown).map(([k,v])=>`<span style="background:var(--bg);border:1px solid var(--border2);padding:2px 8px;border-radius:4px;font-size:11.5px;font-family:'DM Mono',monospace"><strong>${v}</strong> ${k}</span>`).join(' '):'';
@@ -3455,7 +3697,7 @@ function renderCustomBuilder() {
       <div class="custom-slot">
         <select class="custom-select" onchange="updCustomAc(${i},this.value)">
           <option value="">— Seleziona asset class —</option>
-          ${Object.entries(ASSET_CLASSES).map(([k,v])=>`<option value="${k}"${sl.ac===k?' selected':''}>${v.emoji} ${v.label}</option>`).join('')}
+          ${buildAcOptions(sl.ac)}
         </select>
         <input class="custom-pct-input" type="number" min="0" max="100" step="5" value="${sl.pct}" placeholder="%" onchange="updCustomPct(${i},+this.value)">
         <span style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">%</span>
@@ -3486,276 +3728,302 @@ function renderCustomBuilder() {
       <button class="gbtn" onclick="resetCustomPreset('carry_mix')" title="Carry Bond + FX Carry + Commodity Carry + Azioni + Bond">Carry Mix</button>
     </div>
     <div class="info-box" style="font-size:11.5px">
-      <strong>Dati:</strong> mu = rendimento nominale forward-looking (10-20a), σ = volatilità storica 1970-2024. Fonti: DMS Yearbook 2024, dati Federal Reserve (FRED), Banche Centrali, letteratura accademica (Fama-French, Jegadeesh-Titman, Carhart). La volatilità usa una matrice di correlazione semplificata tra categorie (es. ρ(az,bond)≈−0.05, ρ(az,oro)≈0.05) — risultato più realistico della semplice media ponderata.
+      <strong>Dati:</strong> mu = rendimento nominale forward-looking (10-20a), σ = volatilità storica 1970-2025. Fonti: DMS Yearbook 2024, dati Federal Reserve (FRED), Banche Centrali, letteratura accademica (Fama-French, Jegadeesh-Titman, Carhart). La volatilità usa una matrice di correlazione semplificata tra categorie (es. ρ(az,bond)≈−0.05, ρ(az,oro)≈0.05) — risultato più realistico della semplice media ponderata.
     </div>`;
 }
 
-// ══════════════════════════════════════════════════════════════
-// GLIDE PATH BUILDER (UI)
-// ══════════════════════════════════════════════════════════════
-// Preset selezionabili come estremi del glide (etichette brevi per il menu).
+// ── Helper unificato: restituisce parametri portafoglio (custom o PORT) ──────
+// Usato da tutti i moduli che prima accedevano direttamente a PORT[key].
+// Per 'custom' chiama calcCustomParams(); per gli altri restituisce PORT[key].
+
+// ── Glide Path builder (essenziale) ───────────────────────────
+// UI minimale e robusta: strategia A (partenza, aggressiva), strategia B (arrivo,
+// conservativa), eta inizio/fine, curvatura k. Delega tutto il calcolo al motore
+// (getGlideParams -> calcCustomParams). Nessun dato/motore proprio.
 const GLIDE_PRESET_OPTIONS = [
   ['eq100','100% Azioni'], ['eq80','80/20'], ['eq60','60/40'], ['eq50','50/50'],
   ['eq40','40/60'], ['eq20','20/80'], ['ob100','100% Obblig.'],
-  ['golden_butterfly','🦋 Golden Butterfly'], ['permanent','🏛️ Permanent'],
-  ['all_seasons','🌤️ All Seasons'], ['larry','📐 Larry'], ['global_market','🗺️ Global Market'],
-  ['ec_us_9060','⚡ Eff.Core 90/60 US'], ['ec_glob_9060','⚡ Eff.Core 90/60 Glob'],
-  ['return_stack','🔀 Return Stacking'],
+  ['golden_butterfly','Golden Butterfly'], ['permanent','Permanent'],
+  ['all_seasons','All Seasons'], ['larry','Larry'], ['global_market','Global Market'],
+  ['ec_us_9060','Eff.Core 90/60 US'], ['ec_glob_9060','Eff.Core 90/60 Glob'],
+  ['return_stack','Return Stacking'],
 ];
-
-// Genera il path SVG della curva α(età) e la quota azionaria effettiva lungo il glide.
-function _glideCurveSVG() {
-  const g = state.glide; if (!g) return '';
-  // Dimensioni generose: più alta per separare le due curve e leggere i valori.
-  // padT alzato a 22 (era 14): quando il valore iniziale coincide col tetto della
-  // scala sinistra (caso frequente: l'azionario di partenza è spesso il massimo
-  // del range), l'etichetta in grassetto sopra il punto aveva pochissimo respiro.
-  const W = 460, H = 168, padL = 42, padR = 46, padT = 22, padB = 26;
-  const plotW = W - padL - padR;
-  const plotH = H - padT - padB;
-  const aMin = Math.min(g.ageStart, g.ageEnd), aMax = Math.max(g.ageStart, g.ageEnd);
-  const span = Math.max(1, aMax - aMin);
-  const xOf = age => padL + (age - aMin) / span * plotW;
-
-  const ages   = []; for (let a = aMin; a <= aMax; a++) ages.push(a);
-  const params = ages.map(a => getGlideParams(a));
-  const eqs    = params.map(p => Math.max(0, p.eq     ?? 0));
-  const mus    = params.map(p => Math.max(0, p.normal ?? 0));
-
-  // Scala sinistra: Az% (0 → eqScale arrotondato al 10% superiore)
-  const eqMax   = Math.max(0.01, ...eqs);
-  const eqScale = Math.ceil(eqMax * 10) / 10;
-  const yOfEq   = eq => padT + (1 - eq / eqScale) * plotH;
-
-  // Scala destra: μ% (0 → muScale arrotondato al 2% superiore)
-  const muMax   = Math.max(0.01, ...mus);
-  const muScale = Math.ceil(muMax * 50) / 50;
-  const yOfMu   = mu => padT + (1 - mu / muScale) * plotH;
-
-  const ptEq = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfEq(eqs[i]).toFixed(1)}`).join(' ');
-  const ptMu = ages.map((a, i) => `${xOf(a).toFixed(1)},${yOfMu(mus[i]).toFixed(1)}`).join(' ');
-
-  // Area riempita sotto la curva azionaria (fill semitrasparente)
-  const fillPts = `${xOf(aMin).toFixed(1)},${(padT + plotH).toFixed(1)} ` + ptEq + ` ${xOf(aMax).toFixed(1)},${(padT + plotH).toFixed(1)}`;
-
-  // Griglia orizzontale 3 livelli con label asse sinistro
-  const gridLines = [0, 0.5, 1].map(f => {
-    const y   = padT + (1 - f) * plotH;
-    const lbl = Math.round(f * eqScale * 100) + '%';
-    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(padL+plotW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--border2)" stroke-width="1"/>` +
-           `<text x="${(padL-4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--text3)" font-family="DM Mono" text-anchor="end">${lbl}</text>`;
-  }).join('');
-
-  // Label asse destro μ% — viola, NON verde: il verde è già "Lato B" altrove
-  // nel builder (header, radio, pallino di arrivo). Usarlo anche per μ creava
-  // due significati diversi sovrapposti sullo stesso colore.
-  const muLabels = [0, 0.5, 1].map(f => {
-    const mu = f * muScale;
-    const y  = padT + (1 - f) * plotH;
-    return `<text x="${(padL+plotW+4).toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.85">${(mu*100).toFixed(1)}%</text>`;
-  }).join('');
-
-  // Tick età asse X
-  const xTicks = [aMin, Math.round((aMin+aMax)/2), aMax]
-    .map(a => `<text x="${xOf(a).toFixed(1)}" y="${H-5}" font-size="8.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">${a}a</text>`)
-    .join('');
-
-  // Marcatore "oggi": se l'età attuale impostata nel Simulatore cade dentro al
-  // range del glide e non coincide con l'inizio, la mostriamo come riferimento —
-  // il glide può partire da un'età diversa da quella corrente (proiezione storica
-  // o ipotesi futura), ed è utile capire subito "dove sono io" sulla curva.
-  let todayMarker = '';
-  const todayAge = Math.round(state.age);
-  if (todayAge > aMin && todayAge < aMax) {
-    const xT = xOf(todayAge);
-    todayMarker = `<line x1="${xT.toFixed(1)}" y1="${padT.toFixed(1)}" x2="${xT.toFixed(1)}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--text3)" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"/>` +
-      `<text x="${xT.toFixed(1)}" y="${(padT-7).toFixed(1)}" font-size="7.5" fill="var(--text3)" font-family="DM Mono" text-anchor="middle">oggi ${todayAge}a</text>`;
-  }
-
-  // ── Callout valori di inizio e fine direttamente sulle curve ────────────────
-  // Curva azionaria: valore iniziale (punto blu) + valore finale (punto verde)
-  const eqStart = eqs[0], eqEnd = eqs[eqs.length - 1];
-  const muStart = mus[0], muEnd = mus[mus.length - 1];
-
-  const xS = xOf(aMin), xE = xOf(aMax);
-  const yEqS = yOfEq(eqStart), yEqE = yOfEq(eqEnd);
-  const yMuS = yOfMu(muStart), yMuE = yOfMu(muEnd);
-
-  // Punto intermedio: senza un riferimento a metà percorso la "Curvatura k" —
-  // il parametro che lo slider qui sotto fa effettivamente variare — non è
-  // leggibile sul grafico, solo nei due estremi (che k non altera). Un piccolo
-  // marker discreto rende visibile quanto la curva si scosta dalla linea retta.
-  const aMid = Math.round((aMin + aMax) / 2);
-  const eqMid = eqs[aMid - aMin];
-  const xMid = xOf(aMid), yEqMid = yOfEq(eqMid);
-  const midMarker = aMid > aMin && aMid < aMax
-    ? `<circle cx="${xMid.toFixed(1)}" cy="${yEqMid.toFixed(1)}" r="2.5" fill="var(--blue)" opacity="0.55"/>` +
-      `<text x="${xMid.toFixed(1)}" y="${(yEqMid-7).toFixed(1)}" font-size="8" font-weight="600" fill="var(--blue)" font-family="DM Mono" text-anchor="middle" opacity="0.75">${Math.round(eqMid*100)}%</text>`
-    : '';
-
-  // Label valore Az% inizio (sopra il punto, asse sin.)
-  const lblEqStart = `<text x="${(xS+6).toFixed(1)}" y="${(yEqS-6).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="start">${Math.round(eqStart*100)}%</text>`;
-  // Label valore Az% fine (a sinistra del punto, per non uscire dal box)
-  const lblEqEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yEqE-7).toFixed(1)}" font-size="9" font-weight="700" fill="var(--blue)" font-family="DM Mono" text-anchor="end">${Math.round(eqEnd*100)}%</text>`;
-
-  // Label valore μ inizio/fine — viola, coerente col titolo e con la linea tratteggiata
-  const lblMuStart = `<text x="${(xS+6).toFixed(1)}" y="${(yMuS+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="start" opacity="0.9">${(muStart*100).toFixed(1)}%</text>`;
-  const lblMuEnd   = `<text x="${(xE-6).toFixed(1)}" y="${(yMuE+12).toFixed(1)}" font-size="8.5" font-weight="600" fill="var(--purple)" font-family="DM Mono" text-anchor="end" opacity="0.9">${(muEnd*100).toFixed(1)}%</text>`;
-
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="display:block">
-    ${gridLines}${muLabels}${xTicks}${todayMarker}
-    <polygon points="${fillPts}" fill="var(--blue)" opacity="0.07"/>
-    <polyline points="${ptMu}" fill="none" stroke="var(--purple)" stroke-width="1.8" stroke-dasharray="6 3" opacity="0.7"/>
-    <polyline points="${ptEq}" fill="none" stroke="var(--blue)"  stroke-width="2.8"/>
-    ${midMarker}
-    <circle cx="${xS.toFixed(1)}" cy="${yEqS.toFixed(1)}" r="4" fill="var(--blue)"/>
-    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="4" fill="var(--blue)" opacity="0.7"/>
-    <circle cx="${xE.toFixed(1)}" cy="${yEqE.toFixed(1)}" r="3" fill="var(--green)"/>
-    ${lblEqStart}${lblEqEnd}${lblMuStart}${lblMuEnd}
-  </svg>`;
-}
-
-function _glideSideHTML(which) {
-  const g = state.glide;
-  const side = which === 'a' ? g.sideA : g.sideB;
-  const isCustom = side.type === 'custom';
-  const opts = GLIDE_PRESET_OPTIONS.map(([k, lbl]) =>
-    `<option value="${k}"${!isCustom && side.ref === k ? ' selected' : ''}>${lbl}</option>`).join('');
-  const label = which === 'a' ? 'A — Partenza (giovane)' : 'B — Arrivo (meta)';
-  const emoji = which === 'a' ? '🚀' : '🛡️';
-
-  let body;
-  if (!isCustom) {
-    body = `<select class="glide-select" onchange="setGlideSideRef('${which}',this.value)">${opts}</select>`;
-  } else {
-    // Mini-builder INDIPENDENTE per questo lato (slot propri, non condivisi col custom).
-    const slots = side.slots || [];
-    const total = slots.reduce((s, sl) => s + (+sl.pct || 0), 0);
-    const totalOk = Math.abs(total - 100) < 0.5;
-    const acOptions = Object.entries(ASSET_CLASSES).map(([k, v]) => ({ k, lbl: `${v.emoji} ${v.label}` }));
-    const rows = slots.map((sl, i) => `
-      <div class="glide-slot">
-        <select class="glide-slot-select" onchange="updGlideSlotAc('${which}',${i},this.value)">
-          <option value="">— asset —</option>
-          ${acOptions.map(o => `<option value="${o.k}"${sl.ac === o.k ? ' selected' : ''}>${o.lbl}</option>`).join('')}
-        </select>
-        <input class="glide-slot-pct" type="number" min="0" max="100" step="5" value="${sl.pct}" onchange="updGlideSlotPct('${which}',${i},+this.value)">
-        <button class="dbtn glide-slot-del" onclick="delGlideSlot('${which}',${i})">✕</button>
-      </div>`).join('');
-    body = `
-      <div class="glide-slots">${rows || '<div style="font-size:11px;color:var(--text3);padding:4px 0">Nessun asset. Aggiungine uno o importa.</div>'}</div>
-      <div class="glide-slot-total ${totalOk ? 'ok' : total < 100 ? 'warn' : 'err'}">
-        ${total.toFixed(1)}% ${totalOk ? '✅' : total < 100 ? '⚠️ −' + (100 - total).toFixed(0) + '%' : '❌ +' + (total - 100).toFixed(0) + '%'}
+// Mini-builder inline per il lato custom (A o B): righe asset+peso indipendenti.
+function _glideSideCustomBuilder(which) {
+  const side = _glideSideObj(which);
+  if (side.type !== 'custom') return '';
+  const slots = side.slots || [];
+  const tot = slots.reduce((s, sl) => s + (+sl.pct || 0), 0);
+  const totColor = Math.abs(tot - 100) < 0.5 ? 'var(--green)' : 'var(--orange)';
+  const rows = slots.map((sl, i) => `
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:5px">
+      <select onchange="updGlideSlotAc('${which}',${i},this.value)" style="flex:1;min-width:0;padding:5px 7px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:'DM Mono',monospace">
+        <option value="">— asset —</option>
+        ${buildAcOptions(sl.ac)}
+      </select>
+      <input type="number" min="0" max="100" step="5" value="${sl.pct}" onchange="updGlideSlotPct('${which}',${i},+this.value)" style="width:60px;padding:5px 7px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:'DM Mono',monospace" placeholder="%">
+      <button onclick="delGlideSlot('${which}',${i})" title="Rimuovi" style="width:26px;height:28px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--red);cursor:pointer;font-size:14px;line-height:1">×</button>
+    </div>`).join('');
+  return `
+    <div style="margin-top:8px;padding:10px;background:var(--bg2,rgba(120,120,140,.06));border:1px dashed var(--border2);border-radius:7px">
+      <div style="font-size:10.5px;color:var(--text3);font-weight:600;margin-bottom:6px;font-family:'DM Mono',monospace">🔧 COMPOSIZIONE CUSTOM — LATO ${which.toUpperCase()}</div>
+      ${rows}
+      <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+        <button onclick="addGlideSlot('${which}')" style="padding:4px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--blue);cursor:pointer;font-size:11.5px;font-family:'DM Mono',monospace">+ asset</button>
+        <button onclick="normalizeGlideSide('${which}')" style="padding:4px 10px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text2);cursor:pointer;font-size:11.5px;font-family:'DM Mono',monospace">normalizza a 100%</button>
+        <span style="margin-left:auto;font-size:11.5px;font-family:'DM Mono',monospace;color:${totColor};font-weight:600">tot ${tot.toFixed(0)}%</span>
       </div>
-      <div class="glide-slot-actions">
-        <button class="gbtn" onclick="addGlideSlot('${which}')">+ Asset</button>
-        <button class="gbtn" onclick="normalizeGlideSide('${which}')" title="Riporta i pesi a somma 100%">⚖️ 100%</button>
-        <button class="gbtn" onclick="importGlideSideFromCustom('${which}')" title="Copia la composizione dal builder Custom del Simulatore">⤵ Da Custom</button>
-      </div>`;
-  }
-
-  return `<div class="glide-side ${which}">
-    <div class="glide-side-hd">${emoji} ${label}</div>
-    <div class="glide-radio">
-      <button class="${!isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','preset')">Preset</button>
-      <button class="${isCustom ? 'active' : ''}" onclick="setGlideSideType('${which}','custom')">Custom proprio</button>
-    </div>
-    ${body}
-  </div>`;
+    </div>`;
 }
-
+function _glideSideSelect(which) {
+  const side = which === 'a' ? state.glide.sideA : state.glide.sideB;
+  const isCustom = side.type === 'custom';
+  const cur = side.ref || 'eq100';
+  const presetOpts = GLIDE_PRESET_OPTIONS.map(([k, l]) =>
+    `<option value="${k}"${(!isCustom && k === cur) ? ' selected' : ''}>${l}</option>`).join('');
+  // Opzione custom: usa gli slot del portafoglio Custom costruito nell'apposita scheda.
+  const nSlots = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0).length;
+  const customOpt = `<option value="__custom__"${isCustom ? ' selected' : ''}>🔧 Il mio Custom${nSlots ? ` (${nSlots} asset)` : ' (vuoto)'}</option>`;
+  return `<select onchange="setGlideSide('${which}', this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">${presetOpts}${customOpt}</select>`;
+}
+function setGlideSide(which, ref) {
+  const side = which === 'a' ? state.glide.sideA : state.glide.sideB;
+  if (ref === '__custom__') {
+    // Custom INDIPENDENTE per lato: ogni lato ha i propri slot, editabili con un mini
+    // builder inline (addGlideSlot/updGlideSlotAc/updGlideSlotPct/delGlideSlot). Se il
+    // lato non aveva ancora slot custom propri, si parte da una copia del portafoglio
+    // Custom globale come punto di partenza comodo (o da uno slot vuoto se anch'esso vuoto).
+    if (!Array.isArray(side.slots) || side.slots.length === 0) {
+      const seed = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0).map(s => ({ ac: s.ac, pct: +s.pct }));
+      side.slots = seed.length ? seed : [{ ac: 'eq_sviluppati', pct: 100 }];
+    }
+    side.type = 'custom'; delete side.ref;
+  } else {
+    side.type = 'preset'; side.ref = ref; // gli slot custom del lato restano memorizzati ma inattivi
+  }
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+// ── Gestione slot custom PER LATO (indipendenti tra A e B) ──────────────
+function _glideSideObj(which) { return which === 'a' ? state.glide.sideA : state.glide.sideB; }
+function addGlideSlot(which) {
+  const s = _glideSideObj(which);
+  if (!Array.isArray(s.slots)) s.slots = [];
+  s.slots.push({ ac: '', pct: 0 });
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function delGlideSlot(which, i) {
+  const s = _glideSideObj(which);
+  s.slots.splice(i, 1);
+  if (!s.slots.length) s.slots.push({ ac: 'eq_sviluppati', pct: 100 });
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function updGlideSlotAc(which, i, ac) {
+  const s = _glideSideObj(which);
+  if (s.slots[i]) s.slots[i].ac = ac;
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function updGlideSlotPct(which, i, pct) {
+  const s = _glideSideObj(which);
+  if (s.slots[i]) s.slots[i].pct = Math.max(0, pct);
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function normalizeGlideSide(which) {
+  const s = _glideSideObj(which);
+  const valid = (s.slots || []).filter(sl => sl.ac && sl.pct > 0);
+  const tot = valid.reduce((a, sl) => a + sl.pct, 0);
+  if (!tot) return;
+  s.slots = valid.map(sl => ({ ...sl, pct: Math.round(sl.pct / tot * 1000) / 10 }));
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function setGlideAge(which, val) {
+  const v = Math.max(18, Math.min(90, +val || 0));
+  if (which === 'start') state.glide.ageStart = v; else state.glide.ageEnd = v;
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
+function setGlideK(val) {
+  state.glide.k = Math.max(0.3, Math.min(4, +val || 1));
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  // ridisegna il builder glide (le modifiche agli slot custom devono apparire subito)
+  // PRIMA di render(): senza questo, lo stato cambiava ma il DOM del builder restava fermo
+  // (es. '+ asset' non mostrava la riga, e attivare custom sul lato B non apriva l'editor).
+  if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
+  render();
+}
 function renderGlideBuilder() {
   const el = document.getElementById('glideBuilder');
   if (!el) return;
   el.classList.add('visible');
   const g = state.glide;
-  // Clamp coerenza età
-  if (g.ageEnd <= g.ageStart) g.ageEnd = g.ageStart + 1;
-  const kLabel = g.k <= 0.85 ? 'concavo (de-risk presto)' : g.k >= 1.6 ? 'convesso (de-risk tardi)' : g.k >= 0.95 && g.k <= 1.05 ? 'lineare' : 'intermedio';
-
-  // Param chips a 3 età rappresentative (inizio, metà, fine)
-  const aMid = Math.round((g.ageStart + g.ageEnd) / 2);
-  const chip = (age) => { const p = getGlideParams(age); return `<span class="custom-param-chip" title="Età ${age}">${age}a · Az <strong>${(p.eq*100).toFixed(0)}%</strong> · μ <strong>${(p.normal*100).toFixed(1)}%</strong> · σ <strong>${(p.vol*100).toFixed(0)}%</strong>${p.goldW>0.005?` · Oro <strong>${(p.goldW*100).toFixed(0)}%</strong>`:''}</span>`; };
-
-  document.getElementById('portDetailBox').innerHTML = `
-    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Parametri interpolati lungo il glide (transizione A→B):</div>
-    <div class="custom-params">${chip(g.ageStart)}${chip(aMid)}${chip(g.ageEnd)}</div>`;
-
+  const pNow = getGlideParams(state.age);
+  const a = getGlideAlpha(state.age, g.ageStart, g.ageEnd, g.k);
+  const kLabel = g.k < 0.95 ? 'de-risk precoce' : g.k > 1.05 ? 'de-risk tardivo (sequenza)' : 'lineare';
+  // Avviso se un lato punta a un Custom vuoto: il glide usa un fallback ma il risultato
+  // non riflette le intenzioni dell'utente finche' non popola il portafoglio Custom.
+  const _emptyCustom = ['sideA', 'sideB'].filter(k => g[k]?.type === 'custom' && !(g[k].slots || []).some(s => s.ac && s.pct > 0));
+  const _emptyWarn = _emptyCustom.length
+    ? `<div style="margin:8px 0;padding:8px 10px;background:var(--orange-dim,rgba(230,145,30,.12));border:1px solid rgba(230,145,30,.35);border-radius:6px;font-size:11.5px;color:var(--text2)">⚠️ ${_emptyCustom.length === 2 ? 'Entrambi i lati Custom sono vuoti' : 'Un lato Custom e vuoto'}. Aggiungi almeno un asset con i controlli qui sotto, altrimenti quel lato non ha effetto.</div>`
+    : '';
+  // ── Grafico glide esaustivo: aree impilate della composizione (equity/obbligazioni/
+  // oro/cash) + curva volatilità sovrapposta, lungo l'orizzonte con asse età reale.
+  // Mostra la TRANSIZIONE completa A→B, non solo l'equity. Con la leva (Efficient Core)
+  // l'esposizione totale supera 100% e il grafico lo riflette (asse fino a 150%).
+  const GW = 480, GH = 190, GML = 34, GMR = 10, GMT = 12, GMB = 22;
+  const plotW = GW - GML - GMR, plotH = GH - GMT - GMB;
+  const gAges = [];
+  const gStep = Math.max(1, Math.round((g.ageEnd - g.ageStart) / 40));
+  for (let ag = g.ageStart; ag <= g.ageEnd; ag += gStep) gAges.push(ag);
+  if (gAges[gAges.length - 1] !== g.ageEnd) gAges.push(g.ageEnd);
+  const gData = gAges.map(ag => {
+    const p = getGlideParams(ag);
+    return { age: ag, eq: p.eq || 0, ob: p.ob || 0, gold: p.goldW || p.gold || 0, cash: p.cashW || p.cash || 0, vol: p.vol || 0 };
+  });
+  // scala Y: se c'è leva l'esposizione totale (eq+ob+gold+cash) supera 1 → asse fino a 1.5
+  const maxExpo = Math.max(1, ...gData.map(d => d.eq + d.ob + d.gold + d.cash));
+  const yTop = maxExpo > 1.02 ? 1.5 : 1.0;
+  const maxVol = Math.max(0.01, ...gData.map(d => d.vol));
+  const xOf = (ag) => GML + (g.ageEnd > g.ageStart ? (ag - g.ageStart) / (g.ageEnd - g.ageStart) : 0) * plotW;
+  const yOf = (v) => GMT + plotH - (v / yTop) * plotH;      // per le aree (esposizione)
+  const yVol = (v) => GMT + plotH - (v / (maxVol * 1.15)) * plotH; // per la volatilità (scala propria)
+  // aree impilate: costruisco i poligoni cumulativi (cash in basso, poi oro, ob, equity in cima)
+  const layerDefs = [
+    { key: 'cash', color: 'var(--text3)',  label: 'Liquidità' },
+    { key: 'gold', color: '#d4a017',        label: 'Oro' },
+    { key: 'ob',   color: 'var(--blue)',    label: 'Obbligazioni' },
+    { key: 'eq',   color: 'var(--green)',   label: 'Azioni' },
+  ];
+  let cum = gData.map(() => 0);
+  const areas = layerDefs.map(layer => {
+    const lower = cum.slice();
+    const upper = gData.map((d, i) => lower[i] + d[layer.key]);
+    cum = upper;
+    const top = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(upper[i]).toFixed(1)}`).join(' ');
+    const bot = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(lower[i]).toFixed(1)}`).reverse().join(' ');
+    return `<polygon points="${top} ${bot}" fill="${layer.color}" fill-opacity="0.72" stroke="none"/>`;
+  }).join('');
+  const volLine = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yVol(d.vol).toFixed(1)}`).join(' ');
+  const curX = xOf(state.age);
+  // griglia Y e label
+  const yTicks = yTop > 1 ? [0, 0.5, 1.0, 1.5] : [0, 0.25, 0.5, 0.75, 1.0];
+  const gridY = yTicks.map(t => `<line x1="${GML}" y1="${yOf(t).toFixed(1)}" x2="${GML + plotW}" y2="${yOf(t).toFixed(1)}" stroke="var(--border)" stroke-width="0.5"/><text x="${GML - 4}" y="${(yOf(t) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text3)" font-family="'DM Mono',monospace">${(t * 100).toFixed(0)}%</text>`).join('');
+  // label X (età): start, corrente, end
+  const xLabelsAges = [g.ageStart, g.ageEnd];
+  if (state.age > g.ageStart && state.age < g.ageEnd) xLabelsAges.push(state.age);
+  const gridX = xLabelsAges.map(ag => `<text x="${xOf(ag).toFixed(1)}" y="${GH - 6}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="'DM Mono',monospace">${ag}</text>`).join('');
   el.innerHTML = `
-    <div class="sec-label" style="margin-bottom:12px">⤵ Glide Path — transizione tra due strategie</div>
-    <div class="glide-sides">${_glideSideHTML('a')}${_glideSideHTML('b')}</div>
-    <div class="glide-curve-wrap">
-      <div class="glide-curve-title">Quota azionaria effettiva lungo l'età (— blu) · rendimento atteso <span style="text-transform:none">μ</span> del blend (- - viola)</div>
-      ${_glideCurveSVG()}
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:10px">
+      Transizione continua da una strategia <strong>A</strong> (partenza) a una strategia <strong>B</strong> (arrivo) lungo l'orizzonte. Quota azionaria, leva, composizione, fiscalita e FX vengono interpolate per eta. A ${state.age} anni sei al <strong>${(a * 100).toFixed(0)}%</strong> sulla strategia A. Ogni lato puo essere un preset oppure un portafoglio <strong>Custom</strong> indipendente, che costruisci direttamente qui sotto (A e B sono separati: puoi interpolare tra due composizioni su misura completamente diverse).
     </div>
-    <div class="glide-controls">
-      <div class="glide-ctl">
-        <label>Età inizio <span class="val">${g.ageStart}</span></label>
-        <input type="range" min="18" max="70" step="1" value="${g.ageStart}" oninput="setGlideAge('start',+this.value)">
+    ${_emptyWarn}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">STRATEGIA A (partenza)</div>
+        ${_glideSideSelect('a')}
+        ${_glideSideCustomBuilder('a')}
       </div>
-      <div class="glide-ctl">
-        <label>Età meta <span class="val">${g.ageEnd}</span></label>
-        <input type="range" min="25" max="90" step="1" value="${g.ageEnd}" oninput="setGlideAge('end',+this.value)">
-      </div>
-      <div class="glide-ctl">
-        <label>Curvatura k=<span class="val">${(+g.k).toFixed(2)}</span> · ${kLabel}</label>
-        <input type="range" min="0.4" max="3" step="0.1" value="${g.k}" oninput="setGlideK(+this.value)">
-        <div class="glide-shape-btns">
-          <button class="${g.k>=0.95&&g.k<=1.05?'active':''}" onclick="setGlideK(1)">Lineare</button>
-          <button class="${g.k>=1.9&&g.k<=2.1?'active':''}" onclick="setGlideK(2)">Convesso (k2)</button>
-          <button class="${g.k>=0.55&&g.k<=0.75?'active':''}" onclick="setGlideK(0.65)">Concavo</button>
-        </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">STRATEGIA B (arrivo)</div>
+        ${_glideSideSelect('b')}
+        ${_glideSideCustomBuilder('b')}
       </div>
     </div>
-    <div class="info-box" style="font-size:11.5px">
-      <strong>Come funziona:</strong> ad ogni età il portafoglio è una miscela α·A + (1−α)·B. Tutte le proprietà (quota azionaria, leva, composizione, fiscalità, FX) sono interpolate insieme. <strong>k&gt;1</strong> (convesso) mantiene la strategia aggressiva più a lungo e de-rischia rapidamente verso la meta — coerente col rischio di sequenza, massimo negli ultimi anni. Il backtest storico non è disponibile (strategia forward-looking); usa <strong>Simulatore</strong> e <strong>Monte Carlo</strong>.
-      <div style="margin-top:7px;padding-top:7px;border-top:1px solid var(--border2);color:var(--text3)">
-        ⚠️ La transizione assume <strong>ribilanciamento senza attriti</strong>: non sono simulati i costi fiscali (plusvalenze da vendita) né le commissioni del de-risking. In un conto ordinario vendere azioni per comprare obbligazioni realizza plusvalenze tassabili; il costo reale dipende dal regime fiscale, dalla base di costo e da quanto avviene tramite nuovi versamenti. In contenitori previdenziali (es. PIP) o de-rischiando con i versamenti, questo costo si riduce molto.
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">ETA INIZIO</div>
+        <input type="number" value="${g.ageStart}" min="18" max="90" onchange="setGlideAge('start', this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
       </div>
-    </div>`;
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">ETA FINE</div>
+        <input type="number" value="${g.ageEnd}" min="18" max="90" onchange="setGlideAge('end', this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">CURVATURA k</div>
+        <input type="number" value="${g.k}" min="0.3" max="4" step="0.1" onchange="setGlideK(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
+      </div>
+    </div>
+    <div style="margin-bottom:10px">
+      <svg viewBox="0 0 ${GW} ${GH}" width="100%" style="max-width:${GW}px;height:auto;overflow:visible;display:block">
+        ${gridY}
+        ${areas}
+        <polyline points="${volLine}" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-dasharray="4,2"/>
+        <line x1="${curX.toFixed(1)}" y1="${GMT}" x2="${curX.toFixed(1)}" y2="${GMT + plotH}" stroke="var(--purple)" stroke-width="1.5"/>
+        <circle cx="${curX.toFixed(1)}" cy="${GMT - 2}" r="3" fill="var(--purple)"/>
+        <text x="${xOf(g.ageStart).toFixed(1)}" y="${GMT - 3}" text-anchor="start" font-size="9" font-weight="700" fill="var(--text2)" font-family="'DM Mono',monospace">A</text>
+        <text x="${xOf(g.ageEnd).toFixed(1)}" y="${GMT - 3}" text-anchor="end" font-size="9" font-weight="700" fill="var(--text2)" font-family="'DM Mono',monospace">B</text>
+        ${gridX}
+        <text x="${GML}" y="${GH - 6}" text-anchor="start" font-size="8.5" fill="var(--text3)" font-family="'DM Mono',monospace" opacity="0.7">età →</text>
+      </svg>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;font-size:10.5px;font-family:'DM Mono',monospace;color:var(--text3)">
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--green);opacity:.72;border-radius:2px"></span>Azioni</span>
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--blue);opacity:.72;border-radius:2px"></span>Obbligazioni</span>
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#d4a017;opacity:.72;border-radius:2px"></span>Oro</span>
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--text3);opacity:.72;border-radius:2px"></span>Liquidità</span>
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:12px;height:0;border-top:1.8px dashed var(--red)"></span>Volatilità</span>
+        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:12px;height:0;border-top:1.5px solid var(--purple)"></span>età ${state.age}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--text3);margin-top:3px">Composizione del portafoglio per età (aree, ${yTop > 1 ? 'somma >100% = leva' : 'somma 100%'}) · volatilità (linea rossa, scala relativa) · k=${g.k} (${kLabel}).</div>
+    </div>
+    <div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px">
+      Allocazione a ${state.age} anni: equity <strong>${(pNow.eq * 100).toFixed(0)}%</strong> · vol <strong>${(pNow.vol * 100).toFixed(1)}%</strong> · rend. atteso <strong>${(pNow.normal * 100).toFixed(1)}%/a</strong>${pNow.leverage > 1.01 ? ` · leva <strong>${pNow.leverage.toFixed(2)}x</strong>` : ''}
+    </div>
+    ${(() => {
+      // FX del glide all'età corrente (interpolato): badge + toggle hedging, coerente
+      // col box dei preset. Senza questo, passando a glide si perdeva la possibilità di
+      // attivare la copertura valutaria (il box descrittivo viene svuotato).
+      const fxExp = (typeof getFxExposure === 'function') ? getFxExposure('glide', state.age) : 0;
+      if (fxExp <= 0.01) return '';
+      const _hedged = !!state.fxHedge;
+      const hedgedTxt = _hedged ? '<span style="color:var(--green)">hedged ✓</span>' : 'unhedged';
+      const badge = `<span style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-family:'DM Mono',monospace;font-weight:600;color:var(--purple);background:var(--purple-dim);border:1px solid rgba(147,52,230,.3);padding:2px 8px;border-radius:4px" onclick="toggleFxHedge()" title="Esposizione cambio EUR/USD a questa età. Click per attivare/disattivare hedging">💱 FX ${(fxExp*100).toFixed(0)}% ${hedgedTxt}</span>`;
+      const note = _hedged
+        ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Copertura attiva: costo ~−${(fxExp * state.fxHedgeCost * 100).toFixed(2)}%/a. L'esposizione FX diminuisce con l'età man mano che il glide de-rischia.</div>`
+        : `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Esposizione cambio EUR/USD non coperta: vol. aggiuntiva ~${(fxExp * state.fxVol * 100).toFixed(1)}%/a a questa età. Clicca 💱 per l'hedging.</div>`;
+      return `<div style="margin-top:8px">${badge}${note}</div>`;
+    })()}`;
 }
 
-// ── Handlers del glide builder ───────────────────────────────────────────────
-function _afterGlideChange(){ if (typeof _glideCache!=='undefined') _glideCache.sig=null; renderGlideBuilder(); syncPresetTer('glide'); updateRetInfo(); updateSeqDesc(); render(); }
-function _glideSide(which){ return which==='a' ? state.glide.sideA : state.glide.sideB; }
-function setGlideSideType(which, type){
-  const side = _glideSide(which);
-  if (type==='custom'){
-    side.type='custom';
-    // Mantieni gli slot già definiti per questo lato; se assenti, seed sensato
-    // (NON copia automaticamente dal builder condiviso: i due lati sono indipendenti).
-    if (!Array.isArray(side.slots) || !side.slots.length) {
-      side.slots = which==='a'
-        ? [{ac:'eq_sviluppati',pct:80},{ac:'ob_glob_agg',pct:20}]
-        : [{ac:'eq_sviluppati',pct:30},{ac:'ob_glob_agg',pct:50},{ac:'gold',pct:20}];
-    }
-  } else {
-    side.type='preset'; if(!side.ref) side.ref = which==='a'?'ec_glob_9060':'golden_butterfly';
-  }
-  _afterGlideChange();
-}
-function setGlideSideRef(which, ref){ const side=_glideSide(which); side.type='preset'; side.ref=ref; _afterGlideChange(); }
-// Editor slot per-lato (indipendente dal builder custom condiviso)
-function updGlideSlotAc(which, i, ac){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].ac=ac; _afterGlideChange(); } }
-function updGlideSlotPct(which, i, pct){ const s=_glideSide(which); if(s.slots&&s.slots[i]){ s.slots[i].pct=Math.max(0,pct||0); _afterGlideChange(); } }
-function addGlideSlot(which){ const s=_glideSide(which); if(!Array.isArray(s.slots)) s.slots=[]; s.slots.push({ac:'',pct:0}); _afterGlideChange(); }
-function delGlideSlot(which, i){ const s=_glideSide(which); if(s.slots){ s.slots.splice(i,1); if(!s.slots.length) s.slots.push({ac:'eq_sviluppati',pct:100}); _afterGlideChange(); } }
-function normalizeGlideSide(which){ const s=_glideSide(which); const arr=(s.slots||[]).filter(sl=>sl.ac&&sl.pct>0); const t=arr.reduce((a,sl)=>a+sl.pct,0); if(!t) return; s.slots=arr.map(sl=>({...sl,pct:Math.round(sl.pct/t*1000)/10})); _afterGlideChange(); }
-function importGlideSideFromCustom(which){ const s=_glideSide(which); const src=(state.customPortfolio?.slots||[]).filter(sl=>sl.ac&&sl.pct>0); if(!src.length){ alert('Il builder Custom del Simulatore è vuoto. Configura prima un\'allocazione nella scheda Custom.'); return; } s.type='custom'; s.slots=src.map(sl=>({...sl})); _afterGlideChange(); }
-function setGlideAge(which, v){ if(which==='start') state.glide.ageStart=v; else state.glide.ageEnd=v; if(state.glide.ageEnd<=state.glide.ageStart){ if(which==='start') state.glide.ageStart=state.glide.ageEnd-1; else state.glide.ageEnd=state.glide.ageStart+1; } _afterGlideChange(); }
-function setGlideK(v){ state.glide.k=Math.max(0.4,Math.min(3,v)); _afterGlideChange(); }
-
-// ── Helper unificato: restituisce parametri portafoglio (custom o PORT) ──────
-// Usato da tutti i moduli che prima accedevano direttamente a PORT[key].
-// Per 'custom' chiama calcCustomParams(); per gli altri restituisce PORT[key].
 function getPortParams(portKey) {
   if (portKey === 'custom') return calcCustomParams();
-  if (portKey === 'glide')  return getGlideParams(state.age); // params @ età corrente
   // Per portafogli predefiniti, restituisce una copia con best/normal/worst
   // aggiustati per FX hedging — così updateRetInfo mostra valori coerenti con render()
   const p = PORT[portKey];
   if (!p) return null;
   if (portKey === 'lifecycle') return p; // lifecycle non ha best/normal/worst fissi
+  if (portKey === 'glide') return getGlideParams(state.age); // glide: parametri interpolati per eta (per Excel/report)
   const fxExp   = p.fxExp ?? 0;
   const fxHedged = !!state.fxHedge;
   const fxCost   = fxHedged ? fxExp * state.fxHedgeCost : 0;
@@ -3773,7 +4041,6 @@ function getPortParams(portKey) {
 // ── Label portafoglio (anche per 'custom') ────────────────────────────────────
 function getPortLabel(portKey) {
   if (portKey === 'custom') return '🔧 Custom';
-  if (portKey === 'glide')  return '⤵ Glide Path';
   return PORT[portKey]?.label ?? portKey;
 }
 
@@ -3783,7 +4050,7 @@ function getPortLabel(portKey) {
 // Per gli altri: usa PORT[key].fxExp
 function getFxExposure(portKey, age) {
   if (portKey === 'custom') return calcCustomParams().fxExposure ?? 0;
-  if (portKey === 'glide')  return getGlideParams(age ?? state.age).fxExposure ?? 0;
+  if (portKey === 'glide') return getGlideParams(age ?? state.age).fxExposure ?? 0;
   if (portKey === 'lifecycle') {
     const eq = getLCWeight(age ?? state.age);
     return eq * 0.85 + (1 - eq) * 0.05; // equity ~85% USD, bond ~5%
@@ -3808,17 +4075,6 @@ function getFxAdjustment(portKey, age) {
 const PRESET_TER = { "eq100": 0.18, "eq80": 0.18, "eq60": 0.17, "eq50": 0.16, "eq40": 0.15, "eq20": 0.13, "ob100": 0.12, "lifecycle": 0.18, "golden_butterfly": 0.20, "permanent": 0.20, "all_seasons": 0.25, "larry": 0.30, "global_market": 0.22, "ec_us_9060": 0.20, "ec_glob_9060": 0.25, "return_stack": 0.55 };
 function syncPresetTer(portKey) {
   if (portKey === 'custom') return; // il custom ha il suo sync dedicato
-  if (portKey === 'glide') {
-    // TER del glide = TER blendato sugli slot interpolati all'età corrente.
-    const cp = getGlideParams(state.age);
-    const t = Math.round((cp.ter ?? 0.20) * 100) / 100;
-    state.ter = t;
-    const sl = document.getElementById('sTer');
-    const lb = document.getElementById('lTer');
-    if (sl) sl.value = t;
-    if (lb) lb.textContent = t.toFixed(2) + '%';
-    return;
-  }
   const t = PRESET_TER[portKey];
   if (t === undefined) return;
   state.ter = t;
@@ -3846,6 +4102,41 @@ function syncCustomTer() {
 function addCustomSlot(){ state.customPortfolio.slots.push({ac:'',pct:0}); renderCustomBuilder(); syncCustomTer(); render(); }
 function delCustomSlot(i){ state.customPortfolio.slots.splice(i,1); if(!state.customPortfolio.slots.length) state.customPortfolio.slots.push({ac:'eq_world',pct:100}); renderCustomBuilder(); syncCustomTer(); render(); }
 function updCustomAc(i,ac){ state.customPortfolio.slots[i].ac=ac; renderCustomBuilder(); syncCustomTer(); render(); }
+
+// Costruisce le <option> del builder raggruppate per categoria in <optgroup>.
+// Niente emoji: la distinzione visiva è data dalle intestazioni native dei gruppi,
+// stile terminale finanziario. I gruppi seguono un ordine logico (azioni → fattori
+// → obbligazioni → reali → carry/trend → liquidità → strategie a leva).
+function buildAcOptions(selectedAc) {
+  const GROUPS = [
+    { label: 'Azioni',                test: (k,v) => v.cat === 'eq' && !v.isComposite },
+    { label: 'Fattori / Smart Beta',  test: (k,v) => v.cat === 'fat' },
+    { label: 'Obbligazioni',          test: (k,v) => typeof v.cat === 'string' && v.cat.indexOf('ob') === 0 },
+    { label: 'Beni reali (oro, materie prime)', test: (k,v) => v.cat === 'real' },
+    { label: 'Strategie alternative (carry, trend)', test: (k,v) => v.cat === 'carry' || v.cat === 'trend' },
+    { label: 'Liquidità',             test: (k,v) => v.cat === 'cash' },
+    { label: 'Strategie a leva (Efficient Core)', test: (k,v) => v.isComposite === true },
+  ];
+  const entries = Object.entries(ASSET_CLASSES);
+  const used = new Set();
+  let html = '';
+  for (const g of GROUPS) {
+    const items = entries.filter(([k,v]) => !used.has(k) && g.test(k,v));
+    if (!items.length) continue;
+    items.forEach(([k]) => used.add(k));
+    html += `<optgroup label="${g.label}">`;
+    html += items.map(([k,v]) => `<option value="${k}"${selectedAc===k?' selected':''}>${v.emoji} ${v.label}</option>`).join('');
+    html += `</optgroup>`;
+  }
+  // eventuali asset non classificate (fallback di sicurezza)
+  const orphans = entries.filter(([k]) => !used.has(k));
+  if (orphans.length) {
+    html += `<optgroup label="Altro">`;
+    html += orphans.map(([k,v]) => `<option value="${k}"${selectedAc===k?' selected':''}>${v.emoji} ${v.label}</option>`).join('');
+    html += `</optgroup>`;
+  }
+  return html;
+}
 function updCustomPct(i,pct){ state.customPortfolio.slots[i].pct=Math.max(0,pct); renderCustomBuilder(); syncCustomTer(); render(); }
 function normalizeCustom(){ const s=state.customPortfolio.slots.filter(sl=>sl.ac&&sl.pct>0); const t=s.reduce((acc,sl)=>acc+sl.pct,0); if(!t) return; state.customPortfolio.slots=s.map(sl=>({...sl,pct:Math.round(sl.pct/t*1000)/10})); renderCustomBuilder(); syncCustomTer(); render(); }
 
@@ -3862,17 +4153,18 @@ function toggleFxHedge() {
   render();
 }
 function resetCustomPreset(key){
-  // Preset extra non presenti in PRESET_SLOTS (specifici del builder custom)
-  const extra = {
+  const p = {
+    eq60:         [{ac:'eq_sviluppati',pct:60},{ac:'ob_glob_agg',pct:40}],
+    all_seasons:  [{ac:'eq_sviluppati',pct:30},{ac:'ob_usa_ult',pct:40},{ac:'ob_usa_it',pct:15},{ac:'gold',pct:7.5},{ac:'commodities',pct:7.5}],
+    permanent:    [{ac:'eq_sviluppati',pct:25},{ac:'ob_usa_ult',pct:25},{ac:'gold',pct:25},{ac:'cash',pct:25}],
+    larry:        [{ac:'eq_small_value',pct:15},{ac:'eq_europa',pct:7.5},{ac:'eq_em',pct:7.5},{ac:'ob_usa_it',pct:70}],
     global:       [{ac:'eq_sviluppati',pct:55},{ac:'ob_glob_agg',pct:45}],
     inflaz:       [{ac:'eq_sviluppati',pct:30},{ac:'ob_infl',pct:30},{ac:'gold',pct:20},{ac:'commodities',pct:20}],
     multifat:     [{ac:'fat_multifat',pct:70},{ac:'ob_glob_agg',pct:20},{ac:'gold',pct:10}],
     trend_div:    [{ac:'eq_sviluppati',pct:40},{ac:'fat_trend',pct:25},{ac:'ob_glob_gov',pct:25},{ac:'gold',pct:10}],
     carry_mix:    [{ac:'fat_carry_bond',pct:25},{ac:'fat_carry_fx',pct:20},{ac:'fat_carry_comm',pct:15},{ac:'eq_sviluppati',pct:25},{ac:'ob_glob_agg',pct:15}],
   };
-  // PRESET_SLOTS è la fonte di verità condivisa con il glide path.
-  const src = extra[key] ?? PRESET_SLOTS[key];
-  if(src){state.customPortfolio.slots=src.map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
+  if(p[key]){state.customPortfolio.slots=p[key].map(s=>({...s}));renderCustomBuilder();syncCustomTer();render();}
 }
 
 
@@ -4031,29 +4323,26 @@ bindDecSlider('sDecY', 'lDecY', 'years', v => v + ' anni');
 bindDecSlider('sDecTer', 'lDecTer', 'ter', v => v.toFixed(2) + '%');
 bindDecSlider('sDecI', 'lDecI', 'inflation', v => v.toFixed(1) + '%');
 
-document.getElementById('decAllocBtns').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; decState.portfolio = b.dataset.k; document.querySelectorAll('#decAllocBtns .gbtn').forEach(x => x.classList.remove('a-blue')); b.classList.add('a-blue'); 
+document.getElementById('decAllocBtns').onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return;
+  // "__sim__" = usa il portafoglio ATTUALMENTE selezionato nel Simulatore (glide, custom
+  // o preset), non il custom fisso. Cosi' "Mia allocazione" segue davvero la scelta fatta
+  // nel Simulatore: se hai scelto Glide Path, il decumulo usa il glide e continua a
+  // de-rischiare verso la strategia B man mano che l'eta avanza in fase di prelievo.
+  const resolved = b.dataset.k === '__sim__' ? (state.portfolio || 'eq60') : b.dataset.k;
+  decState.portfolio = resolved;
+  document.querySelectorAll('#decAllocBtns .gbtn').forEach(x => x.classList.remove('a-blue')); b.classList.add('a-blue');
   const decAllocWarn = document.getElementById('decAllocWarn');
   if (decAllocWarn) {
     const slots = (state.customPortfolio?.slots || []).filter(s => s.ac && s.pct > 0);
-    if (b.dataset.k === 'glide') {
-      // Il decumulo usa il Glide Path all'età di pensionamento (state.age + state.years).
-      // Poiché quell'età è ≥ ageEnd, il glide è clampato al LATO B (de-risking finale).
-      const g = state.glide;
-      const decAge = state.age + state.years;
-      const sideLbl = s => s && (s.type === 'custom' ? 'allocazione custom'
-        : (typeof getPortLabel === 'function' ? getPortLabel(s.ref) : (s && s.ref)) || (s && s.ref));
+    const glideEmpty = resolved === 'glide' && ['sideA','sideB'].some(k => state.glide?.[k]?.type === 'custom' && !(state.glide[k].slots || []).some(s => s.ac && s.pct > 0));
+    if (b.dataset.k === '__sim__' && resolved === 'custom' && slots.length === 0) {
       decAllocWarn.style.display = 'block';
-      if (g && decAge < g.ageEnd) {
-        decAllocWarn.innerHTML = `⚠️ Il tuo pensionamento (età ${decAge}) cade <strong>prima</strong> della fine del Glide Path (età ${g.ageEnd}). Il decumulo congela la composizione all'età ${decAge} — una <strong>miscela A/B ancora in transizione</strong>, non il Lato B finale. Per modellare il de-risking che prosegue durante il decumulo, usa il <strong>Monte Carlo Avanzato</strong>.`;
-      } else {
-        decAllocWarn.innerHTML = `✓ Decumulo del <strong>Lato B</strong> del Glide Path (${sideLbl(g && g.sideB)}), la composizione di de-risking raggiunta a fine accumulo (età ${g ? g.ageEnd : decAge}). È l'allocazione corretta da prelevare in pensione. <span style="color:var(--text3)">La composizione resta fissa: il glide ha già completato la transizione.</span>`;
-      }
-    } else if (b.dataset.k === 'custom' && state.portfolio === 'glide') {
+      decAllocWarn.innerHTML = '⚠️ Nel Simulatore hai scelto "Allocazione personalizzata" ma non hai impostato asset. Vai al Simulatore, configura il Custom, poi torna qui.';
+    } else if (b.dataset.k === '__sim__' && resolved === 'glide') {
       decAllocWarn.style.display = 'block';
-      decAllocWarn.innerHTML = '⚠️ Hai il <strong>Glide Path</strong> attivo nel Simulatore, ma questa scheda usa l\'Allocazione Custom (pesi fissi del builder), <strong>non</strong> il Lato B del glide. Se vuoi decumulare la composizione di de-risking del lifecycle, scegli il bottone <strong>⤵ Glide Path (Lato B)</strong> qui sopra.';
-    } else if (b.dataset.k === 'custom' && slots.length === 0) {
-      decAllocWarn.style.display = 'block';
-      decAllocWarn.innerHTML = '⚠️ Non hai ancora configurato un\'allocazione personalizzata nella scheda Simulatore. Vai al Simulatore, scegli "Allocazione personalizzata" e imposta gli asset, poi torna qui.';
+      decAllocWarn.innerHTML = glideEmpty
+        ? '⚠️ Il Glide Path del Simulatore ha un lato Custom vuoto. Completalo nel Simulatore, poi torna qui.'
+        : '✓ Stai usando il Glide Path del Simulatore. Durante il decumulo il portafoglio continua la transizione verso la strategia B (arrivo) man mano che l\'età avanza. Nota: il decumulo storico su singola sequenza non è disponibile per il Glide Path — usa il Monte Carlo Avanzato.';
     } else {
       decAllocWarn.style.display = 'none';
     }
@@ -4159,12 +4448,10 @@ document.getElementById('allocBtns').onclick = e => {
   document.querySelectorAll('#allocBtns .gbtn').forEach(x => x.classList.remove('a-blue'));
   b.classList.add('a-blue');
   const builder = document.getElementById('customBuilder');
-  const glideB = document.getElementById('glideBuilder');
   if (builder) builder.classList.toggle('visible', b.dataset.k === 'custom');
-  if (glideB) glideB.classList.toggle('visible', b.dataset.k === 'glide');
-  if (b.dataset.k === 'custom') syncCustomTer();
-  else syncPresetTer(b.dataset.k);
-  if (b.dataset.k === 'glide') renderGlideBuilder();
+  const gBuilder = document.getElementById('glideBuilder');
+  if (gBuilder) gBuilder.classList.toggle('visible', b.dataset.k === 'glide');
+  if (b.dataset.k === 'custom') syncCustomTer(); else syncPresetTer(b.dataset.k);
   updateRetInfo(); updatePortDetailBox(); updateSeqDesc(); render();
 };
 
@@ -4336,7 +4623,6 @@ function saveStateToLS() {
       activeEcoScenario: state.activeEcoScenario, ecoTiming: state.ecoTiming,
       fxHedge: !!state.fxHedge, fxVol: state.fxVol, fxHedgeCost: state.fxHedgeCost,
       capeAdj: state.capeAdj !== false,
-      glide: state.glide,  // config glide path (lati A/B, età, curvatura k)
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snap));
     localStorage.setItem(LS_KEYB, JSON.stringify({ portfolio: stateB.portfolio, ter: stateB.ter, pac: stateB.pac }));
@@ -4371,20 +4657,6 @@ function loadStateFromLS() {
     state.fxHedge       = !!snap.fxHedge;
     state.fxVol         = n(snap.fxVol, 0.085);    state.fxHedgeCost   = n(snap.fxHedgeCost, 0.003);
     state.capeAdj       = snap.capeAdj !== false; // default true se non presente
-    // Ripristina config glide path (con validazione difensiva)
-    if (snap.glide && typeof snap.glide === 'object') {
-      const gg = snap.glide;
-      const validSide = s => s && (s.type === 'preset' ? typeof s.ref === 'string'
-                                  : (s.type === 'custom' && Array.isArray(s.slots)));
-      if (validSide(gg.sideA) && validSide(gg.sideB)
-          && Number.isFinite(+gg.ageStart) && Number.isFinite(+gg.ageEnd) && Number.isFinite(+gg.k)) {
-        state.glide = {
-          sideA: gg.sideA, sideB: gg.sideB,
-          ageStart: +gg.ageStart, ageEnd: Math.max(+gg.ageStart + 1, +gg.ageEnd),
-          k: Math.max(0.4, Math.min(3, +gg.k)),
-        };
-      }
-    }
     if (snap.seq) {
       state.seq.on       = !!snap.seq.on;
       state.seq.severity = snap.seq.severity || 'moderate';
@@ -4631,39 +4903,6 @@ async function exportExcel() {
       });
       wsCustom = XLSX.utils.aoa_to_sheet([hdrAC, ...rowsAC]);
       wsCustom['!cols'] = [30,10,14,14,14,10,30].map(w=>({wch:w}));
-    } else if (portfolio === 'glide' && state.glide) {
-      // Foglio Glide Path: composizione e parametri interpolati a età rappresentative.
-      const g = state.glide;
-      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : (getPortLabel ? getPortLabel(side.ref)||side.ref : side.ref);
-      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
-      const headRows = [
-        ['GLIDE PATH — transizione tra due strategie'],
-        ['Strategia A (partenza, età '+g.ageStart+')', sideLabel(g.sideA)],
-        ['Strategia B (arrivo, età '+g.ageEnd+')', sideLabel(g.sideB)],
-        ['Curvatura k', (+g.k).toFixed(2) + (g.k>1.05?' (convesso)':g.k<0.95?' (concavo)':' (lineare)')],
-        [''],
-        ['Età', 'Azionario (%)', 'Obblig. (%)', 'Oro (%)', 'Cash (%)', 'μ atteso (%/a)', 'σ (%/a)', 'TER (%)', 'FX (%)', 'Aliquota fiscale (%)'],
-      ];
-      const ageRows = [];
-      for (let a = g.ageStart; a <= g.ageEnd; a++) {
-        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
-        const p = getGlideParams(a);
-        const tax = (typeof blendedTaxRate==='function') ? blendedTaxRate(a)*100 : '';
-        ageRows.push([
-          a,
-          (p.eq*100).toFixed(0),
-          (p.ob*100).toFixed(0),
-          (p.goldW*100).toFixed(0),
-          (p.cashW*100).toFixed(0),
-          (p.normal*100).toFixed(2),
-          (p.vol*100).toFixed(1),
-          (p.ter).toFixed(2),
-          ((p.fxExposure||0)*100).toFixed(0),
-          tax!==''?tax.toFixed(1):'',
-        ]);
-      }
-      wsCustom = XLSX.utils.aoa_to_sheet([...headRows, ...ageRows]);
-      wsCustom['!cols'] = [8,13,12,10,10,14,10,10,8,18].map(w=>({wch:w}));
     }
 
     // ── 4. Monte Carlo (se già eseguito) ────────────────────────
@@ -4876,9 +5115,25 @@ async function exportExcel() {
           ['Volatilità σ (%/a)', (qVol * 100).toFixed(1) + '%'],
           ['Sharpe ratio (RF=2.5%)', sharpe.toFixed(3)],
           ['TER (%)', qTer.toFixed(2) + '%'],
-          ['', ''],
-          ['── VaR/CVaR (perdita massima attesa in €) ──', ''],
         ];
+        // Diversificazione (da matrice di correlazione) — scopo informativo
+        try {
+          if (typeof _analyzePortfolioCorr === 'function') {
+            const _ca = _analyzePortfolioCorr();
+            if (_ca && !_ca.single && typeof _ca.avgCorr === 'number') {
+              const _verdict = _ca.avgCorr < 0.3 ? 'Eccellente' : _ca.avgCorr < 0.5 ? 'Buona' : _ca.avgCorr < 0.7 ? 'Moderata' : 'Bassa';
+              infoRows.push(['Correlazione media pesata', _ca.avgCorr.toFixed(2) + ' (' + _verdict + ')']);
+              infoRows.push(['Punteggio diversificazione', Math.round(_ca.divScore * 100) + '/100']);
+              if (_ca.bestDiv && _ca.bestDiv[0]) {
+                const _lbl = (k) => (ASSET_CLASSES[k] ? ASSET_CLASSES[k].label : k);
+                const _p = _ca.bestDiv[0];
+                infoRows.push(['Coppia piu diversificante', _lbl(_p.a) + ' / ' + _lbl(_p.b) + ' (rho ' + _p.rho.toFixed(2) + ')']);
+              }
+            }
+          }
+        } catch (e) { /* analisi correlazioni non disponibile */ }
+        infoRows.push(['', '']);
+        infoRows.push(['── VaR/CVaR (perdita massima attesa in €) ──', '']);
         wsQuant = XLSX.utils.aoa_to_sheet([
           ...infoRows.map(r => [r[0], r[1], '', '', '', '', '', '']),
           ['', '', '', '', '', '', '', ''],
@@ -4930,42 +5185,35 @@ async function exportExcel() {
       }
     } catch (e) { console.warn('Skip foglio Decumulo Storico:', e.message); }
 
-    // ── Foglio FX e Stress (per portfolio custom o glide) ──
+    // ── Foglio FX e Stress (solo per portfolio custom) ──
     let wsFx = null;
-    if (portfolio === 'custom' || portfolio === 'glide') {
-      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
+    if (portfolio === 'custom') {
+      const cp = calcCustomParams();
       if (cp) {
-        const ageNote = portfolio === 'glide' ? ' (all\'età corrente '+state.age+')' : '';
         const fxRows = [
-          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS'+ageNote+' ──', ''],
+          ['── ESPOSIZIONE CAMBIO E REGIME DI STRESS ──', ''],
           ['', ''],
-          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(1) + '%'],
+          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(1) + '%'],
           ['Hedging valutario attivo', cp.fxHedged ? 'SI' : 'NO'],
-          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '0%'],
+          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '0%'],
           ['', ''],
           ['── VOLATILITA NEI DUE REGIMI ──', ''],
-          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
+          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX, regime normale)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol in regime di stress (correlazioni -> 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
-          ['Vol aggiuntiva da FX', ((cp.fxAddVol||0) * 100).toFixed(2) + '%'],
+          ['Vol in regime di stress (correlazioni -> 1)', (cp.volStress * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
+          ['Vol aggiuntiva da FX', (cp.fxAddVol * 100).toFixed(2) + '%'],
           ['', ''],
           ['── PARAMETRI BLENDED ──', ''],
           ['Rendimento atteso (μ)', (cp.normal * 100).toFixed(2) + '%/a'],
           ['Best case', (cp.best * 100).toFixed(2) + '%/a'],
           ['Worst case', (cp.worst * 100).toFixed(2) + '%/a'],
-          ['Beta inflazione', (cp.inflBeta!=null?cp.inflBeta:0).toFixed(3)],
+          ['Beta inflazione', cp.inflBeta.toFixed(3)],
           ['TER medio suggerito', cp.ter.toFixed(2) + '%'],
-          ['Rendimento reale (μ - infl 2.1%)', ((cp.realRet!=null?cp.realRet:(cp.normal-0.021)) * 100).toFixed(2) + '%'],
+          ['Rendimento reale (μ - infl 2.1%)', (cp.realRet * 100).toFixed(2) + '%'],
         ];
-        if (portfolio === 'glide') {
-          fxRows.push(['', '']);
-          fxRows.push(['── NOTA GLIDE PATH ──', '']);
-          fxRows.push(['I parametri sopra sono all\'età '+state.age+'. Variano nel tempo:', '']);
-          fxRows.push(['vedi foglio "Glide Path" per la traiettoria completa.', '']);
-        }
         wsFx = XLSX.utils.aoa_to_sheet(fxRows);
-        wsFx['!cols'] = [{ wch: 46 }, { wch: 18 }];
+        wsFx['!cols'] = [{ wch: 42 }, { wch: 18 }];
       }
     }
 
@@ -4977,7 +5225,7 @@ async function exportExcel() {
     if (wsCS)     XLSX.utils.book_append_sheet(wb, wsCS,     'Stress Test Macro');
     if (wsDecHist) XLSX.utils.book_append_sheet(wb, wsDecHist, 'Decumulo Storico');
     if (wsQuant)  XLSX.utils.book_append_sheet(wb, wsQuant,  'Quant Analytics');
-    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, portfolio === 'glide' ? 'Glide Path' : 'Portfolio Custom');
+    if (wsCustom) XLSX.utils.book_append_sheet(wb, wsCustom, 'Portfolio Custom');
     if (wsFx)     XLSX.utils.book_append_sheet(wb, wsFx,     'FX & Stress Vol');
 
     const fname = `report_patrimoniale_${new Date().toISOString().slice(0,10)}.xlsx`;
@@ -5087,8 +5335,13 @@ async function generatePDF() {
       doc.setTextColor(0, 0, 0);
     };
     const chkPB = (n = 18) => { if (y + n > 275) { doc.addPage(); pN++; y = 20; miniHdr(); } };
+    const _secPages = []; // [titolo, pagina] di ogni sezione — per l'indice two-pass
     const sHdr = (t, col = BLU) => {
-      chkPB(14); doc.setFillColor(...col); doc.rect(ML, y, CW, 7.5, 'F');
+      chkPB(14);
+      // pagina REALE dal motore jsPDF: il contatore manuale pN va fuori sincrono
+      // quando autoTable inserisce page-break automatici nelle tabelle lunghe
+      _secPages.push({ t: String(t), p: (doc.internal.getCurrentPageInfo ? doc.internal.getCurrentPageInfo().pageNumber : pN) });
+      doc.setFillColor(...col); doc.rect(ML, y, CW, 7.5, 'F');
       doc.setFontSize(9.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...WHT);
       doc.text(pdfSafe(String(t)).toUpperCase(), ML + 3, y + 5.3); y += 11;
       doc.setTextColor(0, 0, 0);
@@ -5189,34 +5442,24 @@ async function generatePDF() {
       (crossAge ? `Il punto di crossover (rendita netta annua >= PAC) viene raggiunto a ${crossAge} anni.` : `Nell'orizzonte analizzato non si raggiunge il punto di crossover rendita >= PAC.`)
     );
 
-    // Indice del documento
-    subHdr('Indice del Report');
-    const toc = [
-      '1.  Configurazione del Piano',
-      '2.  Metodologia di Calcolo',
-      '3.  Proiezioni Multi-Scenario (Base / Best / Worst)',
-      '4.  Evoluzione Patrimoniale Anno per Anno',
-      '5.  Distribuzione Monte Carlo (1.000 simulazioni)',
-      '5b. A/B Confronto Portafogli',
-      '6.  Scenari Economici Multi-Regime',
-      '7.  Sequence of Returns Risk',
-      '7b. Backtesting Storico — Dati Storici 1970-2024',
-      '7c. Sequence Risk Multiplo — Crash Singolo / Doppio / Triplo',
-      '7d. Stress Test Macro Storici — Path Mensile Ricostruito (6 crisi)',
-      '7e. Piano di Decumulo (Strategia Prelievi)',
-      '8.  Fiscalita, Costi e Erosione Reale',
-      '8b. Analisi Fiscalita IT Comparata (4 Regimi)',
-      ...(window.liveMarketData?.cape_sp500 ? ['8c. Valutazioni Live & Stress Test CAPE (Bogle)'] : []),
-      '9.  Glossario dei Termini Tecnici',
-      '10. Note Legali e Limiti del Modello',
-    ];
-    doc.setFontSize(8.7); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 64, 67);
-    toc.forEach(l => { chkPB(5); doc.text(pdfSafe(l), ML + 4, y); y += 4.6; });
-    doc.setTextColor(0,0,0); y += 2;
+    // FIX 2026-07-04: l'indice statico era disallineato dalle sezioni reali (voci 7e/8c
+    // errate, 5c/8c/8d/8g assenti). Ora l'indice e' generato a fine documento (pagina 2,
+    // two-pass via insertPage) dai titoli REALI registrati da sHdr, con numeri di pagina:
+    // coerenza garantita per costruzione anche quando le sezioni condizionali cambiano.
+    doc.setFontSize(8.7); doc.setFont('helvetica', 'italic'); doc.setTextColor(95, 99, 104);
+    doc.text(pdfSafe('Indice completo del report a pagina 2.'), ML, y); y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(0,0,0);
 
     callout('AVVISO LEGALE',
       'Documento a finalita esclusivamente informative ed educative. Non costituisce consulenza finanziaria, fiscale o legale, ne sollecitazione all\'investimento. Le proiezioni sono basate su ipotesi semplificate e NON garantiscono rendimenti futuri. I rendimenti passati non sono indicativi di quelli futuri. Prima di qualsiasi decisione, consulta un consulente finanziario indipendente abilitato.',
       ORG
+    );
+
+    callout('COME LEGGERE QUESTO REPORT (3 regole)',
+      '1) Il numero che conta e\' il VALORE REALE NETTO (potere d\'acquisto di oggi, dopo tasse e inflazione), non il nominale lordo che appare piu\' grande. ' +
+      '2) Il futuro non e\' un numero ma un intervallo: la forchetta Monte Carlo p10-p90 (sez. 5) misura l\'incertezza, e nessuno scenario e\' una previsione. ' +
+      '3) Se leggi una sola pagina, leggi la \'Lettura Ragionata dei Tuoi Risultati\' in fondo al report: interpreta questi numeri in linguaggio semplice, e il Glossario (sez. 9) spiega ogni termine tecnico.',
+      TEAL
     );
 
     // ─────────── 1. CONFIGURAZIONE ───────────
@@ -5239,6 +5482,18 @@ async function generatePDF() {
     });
     y = doc.lastAutoTable.finalY + 5;
     narrative(`Descrizione portafoglio. ${portMeta.desc || 'Composizione bilanciata di asset class diversificate.'}`);
+
+    // Diversificazione (da analisi correlazioni) — scopo informativo
+    try {
+      if (typeof _analyzePortfolioCorr === 'function') {
+        const _ca = _analyzePortfolioCorr();
+        if (_ca && !_ca.single && typeof _ca.avgCorr === 'number') {
+          const _verdict = _ca.avgCorr < 0.3 ? 'Eccellente' : _ca.avgCorr < 0.5 ? 'Buona' : _ca.avgCorr < 0.7 ? 'Moderata' : 'Bassa';
+          const _divPct = Math.round(_ca.divScore * 100);
+          narrative(`Diversificazione del portafoglio. Correlazione media pesata tra le asset class: ${_ca.avgCorr.toFixed(2)} (${_verdict}). Punteggio di diversificazione: ${_divPct}/100. Valori piu bassi indicano asset meno correlati, quindi una migliore capacita di assorbire gli shock di mercato. Dato a scopo informativo, non costituisce raccomandazione di investimento.`);
+        }
+      }
+    } catch (e) { /* analisi correlazioni non disponibile, si prosegue */ }
 
     // Allocazione asset (mostra sempre se disponibile)
     if (portMeta.eq != null || portMeta.ob != null || portMeta.gold != null || portMeta.cash != null) {
@@ -5419,9 +5674,9 @@ async function generatePDF() {
           student: 'Il modello t-Student introduce le "code grasse" (fat tails): eventi estremi piu frequenti di quanto preveda la distribuzione normale. Cattura meglio i crash improvvisi che la gaussiana standard tende a sottostimare.',
           garch: 'Il modello GARCH simula la volatilita variabile nel tempo: i periodi turbolenti tendono a raggrupparsi (volatility clustering), come osservato nei mercati reali. Dopo un grande movimento ne seguono altri, in entrambe le direzioni.',
           regime: 'Il modello Regime-Switching alterna stati di mercato distinti (calmo / turbolento) con probabilita di transizione calibrate, riproducendo l\'alternanza storica tra fasi tranquille e fasi di crisi.',
-          bootstrap: 'Il Block Bootstrap campiona blocchi di 12 mesi contigui dai rendimenti storici reali 1970-2024 (azioni MSCI World Net EUR, obbligazioni Euro Aggregate, oro in EUR). I crash storici (1973, 1987, 2000-02, 2008-09, 2022) entrano nella simulazione con la loro sequenza reale, senza alcuna assunzione sulla forma della distribuzione. E il modello piu fedele alla storia per portafogli con azioni e oro.',
+          bootstrap: 'Il Block Bootstrap campiona blocchi di 12 mesi contigui dai rendimenti storici reali 1970-2025 (azioni MSCI World Net EUR, obbligazioni Euro Aggregate, oro in EUR). I crash storici (1973, 1987, 2000-02, 2008-09, 2022) entrano nella simulazione con la loro sequenza reale, senza alcuna assunzione sulla forma della distribuzione. E il modello piu fedele alla storia per portafogli con azioni e oro.',
           gaussian: 'Il modello gaussiano standard assume rendimenti distribuiti normalmente attorno alla media attesa.',
-          bootstrap5y: 'Il Block Bootstrap a 5 anni campiona blocchi di 60 mesi contigui dai dati storici reali 1970-2024, preservando la persistenza pluriennale: le correlazioni tra asset e con l\'inflazione restano quelle realmente osservate lungo un ciclo intero (un crash e il suo recupero arrivano agganciati, come nella storia). E il campione piu fedele del rischio di sequenza reale su orizzonti lunghi.'
+          bootstrap5y: 'Il Block Bootstrap a 5 anni campiona blocchi di 60 mesi contigui dai dati storici reali 1970-2025, preservando la persistenza pluriennale: le correlazioni tra asset e con l\'inflazione restano quelle realmente osservate lungo un ciclo intero (un crash e il suo recupero arrivano agganciati, come nella storia). E il campione piu fedele del rischio di sequenza reale su orizzonti lunghi.'
         };
         const mdl = adv.model || 'student';
         chkPB(40);
@@ -5575,9 +5830,9 @@ async function generatePDF() {
 
     // ─────────── 7b. BACKTESTING STORICO ───────────
     doc.addPage(); pN++; y = 20; miniHdr();
-    sHdr('7b — Backtesting Storico — Dati Storici 1970-2024', [0, 150, 167]);
+    sHdr('7b — Backtesting Storico — Dati Storici 1970-2025', [0, 150, 167]);
     narrative(
-      'Il backtesting usa 660 rendimenti mensili storici 1970-2024, ancorati anno per anno alle serie ufficiali in EUR (azioni MSCI World Net EUR, obbligazioni Euro Aggregate, oro LBMA); la granularita mensile e una ricostruzione coerente con il totale annuo reale. ' +
+      'Il backtesting usa 672 rendimenti mensili storici 1970-2025 REALI in EUR (azioni MSCI World Net EUR, obbligazioni Euro Aggregate, oro EUR): sono le serie mensili vere degli indici, non ricostruzioni. ' +
       'Il portafoglio e il PAC mensile attuali del simulatore vengono applicati a 10 periodi storici diversi, includendo le correlazioni dinamiche: ' +
       'in anni di drawdown azionario > 15% le correlazioni tra asset class si alzano verso la matrice di stress, come osservato empiricamente. ' +
       'Il CAGR nominale include dividendi e cedole (total return). Le ultime osservazioni disponibili coprono fino a dicembre 2024.'
@@ -5683,11 +5938,11 @@ async function generatePDF() {
     );
 
     // ─────────── 7d. STRESS TEST MACRO STORICI ───────────
-    sHdr('7d \u2014 Stress Test Macro Storici \u2014 Path Mensile Ricostruito', [183, 28, 28]);
+    sHdr('7d \u2014 Stress Test Macro Storici \u2014 Path Mensile Reale (6 crisi)', [183, 28, 28]);
     narrative(
-      'Simulazione del percorso mensile preciso del portafoglio attuale durante le 6 principali crisi macro 1970-2024. ' +
+      'Simulazione del percorso mensile preciso del portafoglio attuale durante le 6 principali crisi macro 1970-2025, sulle serie mensili reali degli indici. ' +
       'A differenza del backtesting PAC (piani con versamenti), questa analisi usa uno snapshot del capitale iniziale senza contributi aggiuntivi. ' +
-      'I rendimenti mensili provengono da HIST_MONTHLY (ancorati a MSCI World Net EUR, Bloomberg Euro Aggregate, oro LBMA in EUR). TER applicato mensilmente. ' +
+      'I rendimenti mensili sono le serie reali degli indici in EUR (MSCI World Net, Bloomberg Euro Aggregate, oro), mese per mese. TER applicato mensilmente. ' +
       'I pesi sono quelli attuali: Az.' + Math.round(getEquityWeight(btPortKeyPDF, age)*100) + '% ' +
       'Ob.' + Math.round(Math.max(0, 1 - getEquityWeight(btPortKeyPDF,age) - getGoldWeight(btPortKeyPDF) - getCashWeight(btPortKeyPDF))*100) + '% ' +
       'Au.' + Math.round(getGoldWeight(btPortKeyPDF)*100) + '% ' +
@@ -5924,7 +6179,7 @@ async function generatePDF() {
     // ─────────── 8b. DECUMULO STORICO (Trinity-style) ───────────
     try {
       const dh = runDecumuloHistorical();
-      sHdr('8c — Decumulo su Sequenze Storiche Reali (1970-2024)', [255, 152, 0]);
+      sHdr('8c — Decumulo su Sequenze Storiche Reali (1970-2025)', [255, 152, 0]);
       narrative(
         'Test di robustezza piu severo del Monte Carlo: ripercorre il piano di prelievo su tutti gli anni di partenza disponibili ' +
         'usando i rendimenti mensili storici REALI calibrati e l\'inflazione effettiva di ogni anno. Incorpora oil shock 1973, ' +
@@ -5977,70 +6232,24 @@ async function generatePDF() {
       );
     } catch (e) { /* skip if not available */ }
 
-    // ─────────── 8c-bis. GLIDE PATH (transizione tra strategie) ───────────
-    if (portfolio === 'glide' && state.glide) {
-      const g = state.glide;
-      const sideLabel = side => side.type==='custom' ? 'Custom proprio' : ((typeof getPortLabel==='function'?getPortLabel(side.ref):side.ref)||side.ref);
-      sHdr('8c — Glide Path: transizione tra due strategie', [26, 115, 232]);
-      narrative(
-        `Il portafoglio Glide Path transiziona gradualmente dalla strategia A (${sideLabel(g.sideA)}, ` +
-        `all'eta ${g.ageStart}) alla strategia B (${sideLabel(g.sideB)}, all'eta ${g.ageEnd}). ` +
-        `Ad ogni eta il portafoglio e una miscela delle due, con tutte le proprieta (quota azionaria, leva, ` +
-        `composizione, fiscalita, FX) interpolate insieme. Curvatura k=${(+g.k).toFixed(2)} ` +
-        `(${g.k>1.05?'convesso: de-risking concentrato verso la meta, coerente col rischio di sequenza':g.k<0.95?'concavo: de-risking anticipato':'lineare'}).`
-      );
-      const aMid = Math.round((g.ageStart + g.ageEnd)/2);
-      const glideRows = [];
-      for (let a = g.ageStart; a <= g.ageEnd; a++) {
-        if (a !== g.ageStart && a !== aMid && a !== g.ageEnd && (a - g.ageStart) % 5 !== 0) continue;
-        const p = getGlideParams(a);
-        const tax = (typeof blendedTaxRate==='function') ? (blendedTaxRate(a)*100).toFixed(1)+'%' : '';
-        glideRows.push([
-          a + 'a',
-          (p.eq*100).toFixed(0)+'%',
-          (p.ob*100).toFixed(0)+'%',
-          (p.goldW*100).toFixed(0)+'%',
-          (p.normal*100).toFixed(2)+'%',
-          (p.vol*100).toFixed(1)+'%',
-          tax,
-        ]);
-      }
-      doc.autoTable({
-        startY: y,
-        head: [['Eta', 'Azioni', 'Obblig.', 'Oro', 'μ atteso', 'σ', 'Aliq. fisc.']],
-        body: glideRows,
-        styles: { fontSize: 8, cellPadding: 2.2 },
-        headStyles: { fillColor: [26, 115, 232], textColor: WHT, fontStyle: 'bold', fontSize: 7.5 },
-        columnStyles: { 0:{fontStyle:'bold'}, 4:{halign:'right'}, 5:{halign:'right'}, 6:{halign:'right'} },
-        margin: { left: ML, right: MR },
-      });
-      y = doc.lastAutoTable.finalY + 4;
-      const _glLev = (typeof customPortfolioIsNonBacktestable==='function') && customPortfolioIsNonBacktestable();
-      callout('Nota sul Glide Path',
-        'I parametri evolvono con l\'eta: la scheda mostra eta rappresentative (inizio, meta, fine e ogni 5 anni). ' +
-        (_glLev ? 'Una delle due strategie usa leva o managed futures: il backtest storico non e disponibile (strategia forward-looking). Usa Simulatore e Monte Carlo. ' : '') +
-        'Il rischio di sequenza e massimo negli ultimi anni prima della meta, quando il capitale esposto e maggiore.',
-        [26, 115, 232]);
-    }
-
     // ─────────── 8c. FX HEDGING & STRESS VOL ───────────
-    if (portfolio === 'custom' || portfolio === 'glide') {
-      const cp = portfolio === 'glide' ? getGlideParams(state.age) : calcCustomParams();
-      if (cp && ((cp.fxExposure||0) > 0.05 || cp.volStress)) {
-        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress'+(portfolio==='glide'?' (eta '+state.age+')':''), [156, 39, 176]);
+    if (portfolio === 'custom') {
+      const cp = calcCustomParams();
+      if (cp && (cp.fxExposure > 0.05 || cp.volStress)) {
+        sHdr('8d — Esposizione Cambio e Vol in Regime di Stress', [156, 39, 176]);
         narrative(
           'Per un investitore in euro, l\'esposizione a valute estere (USD, GBP, JPY) ' +
           'introduce un secondo rischio: la volatilita del cambio EUR/USD (~8.5%/a storica). ' +
           'In regime di crisi, le correlazioni fra asset rischiosi salgono verso 1, riducendo i benefici della diversificazione.'
         );
         const fxRows = [
-          ['Esposizione FX (% non-EUR)', ((cp.fxExposure||0) * 100).toFixed(0) + '%'],
+          ['Esposizione FX (% non-EUR)', (cp.fxExposure * 100).toFixed(0) + '%'],
           ['Hedging valutario', cp.fxHedged ? 'ATTIVO' : 'NON ATTIVO'],
-          ['Costo annuo hedging', cp.fxHedged ? ((cp.fxCost||0) * 100).toFixed(3) + '%' : '—'],
-          ['Vol portafoglio (senza FX)', ((cp.volNoFx||cp.vol) * 100).toFixed(2) + '%'],
+          ['Costo annuo hedging', cp.fxHedged ? (cp.fxCost * 100).toFixed(3) + '%' : '—'],
+          ['Vol portafoglio (senza FX)', (cp.volNoFx * 100).toFixed(2) + '%'],
           ['Vol portafoglio (incluso FX)', (cp.vol * 100).toFixed(2) + '%'],
-          ['Vol portafoglio in stress (correlazioni → 1)', ((cp.volStress||cp.vol) * 100).toFixed(2) + '%'],
-          ['Amplificazione vol in stress', cp.volStress?('+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'):'n/d'],
+          ['Vol portafoglio in stress (correlazioni → 1)', (cp.volStress * 100).toFixed(2) + '%'],
+          ['Amplificazione vol in stress', '+' + (((cp.volStress - cp.vol) / cp.vol) * 100).toFixed(0) + '%'],
         ];
         doc.autoTable({
           startY: y,
@@ -6482,7 +6691,7 @@ async function generatePDF() {
       '(3) La fiscalita e modellata in modo semplificato: non include imposta di bollo, eventuali aliquote estere, o regimi previdenziali specifici. ' +
       '(4) L\'inflazione e applicata in modo uniforme; la realta puo includere shock localizzati su specifiche categorie di spesa. ' +
       '(5) I costi di ribilanciamento, spread e commissioni di trading non sono inclusi. ' +
-      '(6) I dati storici 1970-2024 hanno totali annuali ancorati alle serie ufficiali in EUR (MSCI World Net EUR, Bloomberg Euro Aggregate, oro LBMA), ma la granularita mensile e una ricostruzione illustrativa, non una serie certificata dai fornitori degli indici.'
+      '(6) I dati storici 1970-2025 sono le serie mensili reali degli indici in EUR (MSCI World Net EUR e regioni, Bloomberg, oro, EM, gov globale, linker, aggregato globale, commodities), verificate mese per mese contro le fonti; l\'inflazione per i valori reali e quella euro (CPI Germania pre-1999 + HICP area euro). Le curve obbligazionarie per scadenza e i fattori sono derivati da dati istituzionali/accademici reali (FRED, Bundesbank, Kenneth French, AQR).'
     );
     const discFull = doc.splitTextToSize(
       'AVVERTENZA IMPORTANTE — Questo report ha finalita esclusivamente educative e informative. Non costituisce consulenza finanziaria, di investimento, fiscale o legale, ne sollecitazione all\'acquisto/vendita di strumenti finanziari. I rendimenti, le proiezioni e le simulazioni sono ipotetici e basati su assunzioni semplificate: NON rappresentano una garanzia di risultati futuri. I rendimenti passati non sono indicativi di quelli futuri. Gli investimenti comportano rischi, inclusa la perdita totale o parziale del capitale. Prima di investire, consultare un consulente finanziario indipendente abilitato (in Italia: iscritto all\'albo OCF) e leggere attentamente i KIID/KID degli strumenti considerati. L\'autore e i fornitori del software declinano ogni responsabilita per decisioni assunte sulla base del presente documento.',
@@ -6499,6 +6708,31 @@ async function generatePDF() {
     doc.setFontSize(7.5); doc.setFont('helvetica', 'italic'); doc.setTextColor(...GRAY);
     doc.text(pdfSafe(`Report generato da Suite Patrimoniale Pro v3 — ${new Date().toISOString().slice(0, 10)} — Pagine totali: ${pN}`), ML, Math.min(y, 285));
 
+    // ── Indice reale two-pass (pagina 2) + numerazione pagine ──────────────
+    doc.insertPage(2); doc.setPage(2);
+    let _ty = 24;
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(...DARK);
+    doc.text('Indice del Report', ML, _ty); _ty += 3;
+    doc.setDrawColor(...BLU); doc.setLineWidth(0.5); doc.line(ML, _ty, ML + 42, _ty); _ty += 7;
+    doc.setFontSize(8.7); doc.setFont('helvetica', 'normal'); doc.setTextColor(60, 64, 67);
+    _secPages.forEach(sec => {
+      if (_ty > 278) return; // guardia: l'indice resta in una pagina
+      const pg = sec.p >= 2 ? sec.p + 1 : sec.p; // insertPage(2) shifta le pagine successive
+      const lbl = pdfSafe(sec.t);
+      doc.text(lbl, ML + 2, _ty);
+      doc.text(String(pg), ML + CW - 2, _ty, { align: 'right' });
+      const _x0 = ML + 4 + doc.getTextWidth(lbl), _x1 = ML + CW - 9;
+      if (_x1 > _x0) { doc.setLineDashPattern([0.4, 1.3], 0); doc.setDrawColor(185, 190, 195); doc.setLineWidth(0.2); doc.line(_x0, _ty - 1, _x1, _ty - 1); doc.setLineDashPattern([], 0); }
+      _ty += 5.1;
+    });
+    doc.setTextColor(0, 0, 0); doc.setDrawColor(0);
+    const _totP = doc.getNumberOfPages();
+    for (let _i = 1; _i <= _totP; _i++) {
+      doc.setPage(_i);
+      doc.setFontSize(7.3); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 153, 156);
+      doc.text('Pagina ' + _i + ' di ' + _totP, ML + CW, 291.5, { align: 'right' });
+    }
+    doc.setTextColor(0, 0, 0);
     doc.save(`report-patrimoniale-pro-${age}-${endAge}anni.pdf`);
     btn.textContent = '✅ Scaricato!';
     setTimeout(() => { btn.textContent = '📄 Scarica Report PDF'; btn.disabled = false; }, 3000);
@@ -6536,12 +6770,6 @@ if (state.portfolio === 'custom') {
   if (builder) builder.classList.add('visible');
   renderCustomBuilder();
   syncCustomTer();
-}
-if (state.portfolio === 'glide') {
-  const glideB = document.getElementById('glideBuilder');
-  if (glideB) glideB.classList.add('visible');
-  renderGlideBuilder();
-  syncPresetTer('glide');
 }
 
 // Riallinea decStrategy buttons
