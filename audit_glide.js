@@ -12,7 +12,7 @@ const probe = `
 let pass=0,fail=0,msgs=[];
 const ok=(cd,l,d)=>{if(cd)pass++;else{fail++;msgs.push('FAIL '+l+(d?' -- '+d:''));}};
 const fin=x=>typeof x==='number'&&isFinite(x);
-render=()=>{}; renderDecumulo=()=>{}; renderGlideBuilder=renderGlideBuilder||(()=>{});
+render=()=>{}; renderDecumulo=()=>{}; renderGlideBuilder=()=>{}; updatePortDetailBox=()=>{}; renderCustomBuilder=()=>{};
 
 // ══════ A. DINAMICITÀ A→B in ogni scheda ══════
 const G={sideA:{type:'preset',ref:'eq80'},sideB:{type:'preset',ref:'golden_butterfly'},ageStart:30,ageEnd:65,k:2};
