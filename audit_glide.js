@@ -62,9 +62,16 @@ ok(decOk,'[DECUMULO] parametrico glide senza NaN');
 // de-risking continua nel decumulo (glide fino a 75)
 const dEq65=getGlideParams(65).eq, dEq70=getGlideParams(70).eq;
 ok(dEq65>dEq70,'[DECUMULO] continua transizione verso B durante il prelievo (65>70)',(dEq65*100).toFixed(0)+'>'+(dEq70*100).toFixed(0));
-// decumulo STORICO bloccato per glide
+// decumulo STORICO: disponibile per glide senza leva (composizione aggiornata ogni anno),
+// bloccato se un lato ha leva/managed futures (stesso criterio degli altri gate)
+let histOk=true; try{ const hr=runDecumuloHistorical(); histOk=isFinite(hr.successRate); }catch(e){ histOk=false; }
+ok(histOk,'[DECUMULO] storico disponibile per glide senza leva (80/20 -> GB)');
+const _gSave=JSON.stringify(state.glide);
+state.glide={sideA:{type:'preset',ref:'ec_glob_9060'},sideB:{type:'preset',ref:'golden_butterfly'},ageStart:30,ageEnd:65,k:2};
+if(typeof _glideCache!=='undefined')_glideCache.sig=null;
 let histBlocked=false; try{ runDecumuloHistorical(); }catch(e){ histBlocked=!!e.decHistBlocked; }
-ok(histBlocked,'[DECUMULO] storico single-sequence BLOCCATO per glide (redirige a MC)');
+ok(histBlocked,'[DECUMULO] storico BLOCCATO per glide con leva (redirige a MC)');
+state.glide=JSON.parse(_gSave); if(typeof _glideCache!=='undefined')_glideCache.sig=null;
 
 // ══════ D. FISCALITÀ e PENSIONE: indipendenti (corretto) ══════
 ok(typeof calcPensione==='function' && typeof calcTaxOnSell==='function','[FISC/PENS] funzioni indipendenti dal portafoglio (corretto by design)');
