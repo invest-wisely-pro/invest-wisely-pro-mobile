@@ -3401,6 +3401,7 @@ function runDecumuloHistorical() {
   const _initDrawH = Math.max(0, w0 - ((pl && pl.startIdx === 0) ? pl.inpsStart + pl.fpStart : 0));
   for (const startYr of startYears) {
     const plCur = pl ? { inps: pl.inpsStart, fp: pl.fpStart } : null;
+    let _cumInfl = 1; // inflazione storica cumulata dall'anno di partenza
     const startIdx = (startYr - 1970) * 12;
     let cap = sP, wd = w0, prevYearRet = null;
     let survived = true, exhaustYear = null;
@@ -3442,6 +3443,7 @@ function runDecumuloHistorical() {
       // Inflazione storica reale dell'anno
       const histInfl = (HIST_INFLATION[startYr + yi] ?? 2.5) / 100;
       const inflRate = histInfl; // usa sempre inflazione storica per realismo
+      _cumInfl *= (1 + inflRate);
 
       // Adatta prelievo per anno successivo (strategia)
       let nextWd = wd;
@@ -3465,6 +3467,7 @@ function runDecumuloHistorical() {
       survived,
       exhaustYear,
       finalCap: Math.round(cap),
+      finalCapReal: Math.round(cap / _cumInfl), // stesso capitale in euro dell'anno di partenza
       annualEndCap,
       maxDrawdown: maxDrawdownArr(annualEndCap),
     });
@@ -3516,6 +3519,8 @@ function runDecHistorical() {
       const median = sorted[Math.floor(sorted.length/2)];
       const p10 = sorted[Math.floor(sorted.length*0.10)];
       const p90 = sorted[Math.floor(sorted.length*0.90)];
+      const sortedR = [...r.results].sort((a,b) => (a.finalCapReal||0) - (b.finalCapReal||0));
+      const medianR = sortedR[Math.floor(sortedR.length/2)];
 
       // Identifica anni famosi nel dataset
       const famousYears = [1970, 1973, 1980, 1987, 1990, 2000, 2008];
@@ -3531,9 +3536,10 @@ function runDecHistorical() {
             <div style="font-size:10.5px;color:var(--text3);margin-top:3px">${r.nSurvived}/${r.nTotal} anni di partenza</div>
           </div>
           <div class="dec-stat">
-            <div class="dec-stat-label">Capitale Finale Mediano</div>
+            <div class="dec-stat-label">Capitale finale mediano (nominale)</div>
             <div class="dec-stat-value" style="color:var(--blue)">${fmt(median?.finalCap || 0)}</div>
             <div style="font-size:10.5px;color:var(--text3);margin-top:3px">P10: ${fmt(p10?.finalCap || 0)} · P90: ${fmt(p90?.finalCap || 0)}</div>
+            <div style="font-size:10.5px;color:var(--text3)">In euro dell'anno di partenza: ${fmt(medianR?.finalCapReal || 0)}</div>
           </div>
           <div class="dec-stat">
             <div class="dec-stat-label">Worst Year (peggior partenza)</div>
@@ -3563,7 +3569,8 @@ function runDecHistorical() {
               <th style="text-align:left">Anno Start</th>
               <th style="text-align:left">Evento</th>
               <th>Esito</th>
-              <th>Capitale Finale</th>
+              <th>Capitale finale (nominale)</th>
+              <th title="Stesso capitale riportato al potere d'acquisto dell'anno di partenza con l'inflazione storica">In euro di partenza</th>
               <th>Calo Max Capitale</th>
             </tr></thead>
             <tbody>
@@ -3584,6 +3591,7 @@ function runDecHistorical() {
                   <td>${evtName}</td>
                   <td>${status}</td>
                   <td>${fmt(x.finalCap)}</td>
+                  <td>${fmt(x.finalCapReal || 0)}</td>
                   <td><span class="neg">${(x.maxDrawdown*100).toFixed(0)}%</span></td>
                 </tr>`;
               }).join('')}
@@ -5375,12 +5383,13 @@ async function exportExcel() {
     try {
       const dh = runDecumuloHistorical();
       if (dh && dh.results && dh.results.length > 0) {
-        const hdrDH = ['Anno Inizio Decumulo', 'Sopravvive?', 'Capitale Finale (€)', 'Anno Esaurimento', 'Calo Max Capitale % (mercato+prelievi)'];
+        const hdrDH = ['Anno Inizio Decumulo', 'Sopravvive?', 'Capitale Finale nominale (€)', 'Capitale Finale in euro di partenza (€)', 'Anno Esaurimento', 'Calo Max Capitale % (mercato+prelievi)'];
         const sorted = [...dh.results].sort((a, b) => a.startYear - b.startYear);
         const rowsDH = sorted.map(x => [
           x.startYear,
           x.survived ? 'SI' : 'NO',
           x.finalCap,
+          x.finalCapReal || 0,
           x.exhaustYear || '',
           (x.maxDrawdown * 100).toFixed(1) + '%',
         ]);
@@ -5395,6 +5404,7 @@ async function exportExcel() {
           ['Capitale finale mediano', sortedByCap[Math.floor(N * 0.5)]?.finalCap || 0, '', '', ''],
           ['Capitale finale P10 (peggiore)', sortedByCap[Math.floor(N * 0.10)]?.finalCap || 0, '', '', ''],
           ['Capitale finale P90 (migliore)', sortedByCap[Math.floor(N * 0.90)]?.finalCap || 0, '', '', ''],
+          ['Capitale finale mediano in euro di partenza', [...dh.results].sort((a, b) => (a.finalCapReal || 0) - (b.finalCapReal || 0))[Math.floor(N * 0.5)]?.finalCapReal || 0, '', '', ''],
           ['Worst start year', dh.worstStart ? dh.worstStart.startYear : 'Nessun fail', '', '', ''],
           ['', '', '', '', ''],
           ['── DETTAGLIO PER ANNO DI PARTENZA ──', '', '', '', ''],
@@ -6403,7 +6413,7 @@ async function generatePDF() {
       const famous = famousYrs.map(y => dh.results.find(x => x.startYear === y)).filter(Boolean);
       doc.autoTable({
         startY: y,
-        head: [['Anno Start', 'Evento Storico', 'Esito', 'Capitale Finale', 'Max DD %']],
+        head: [['Anno Start', 'Evento Storico', 'Esito', 'Capitale finale (nominale)', 'In euro di partenza', 'Max DD %']],
         body: famous.map(x => {
           const evts = { 1970: 'Pre oil shock', 1973: 'Oil shock + stagflazione', 1980: 'Volcker disinflazione',
                          1987: 'Black Monday', 1990: 'Bolla Giappone', 2000: 'Dot-com bust', 2008: 'Crisi finanziaria' };
@@ -6412,6 +6422,7 @@ async function generatePDF() {
             evts[x.startYear] || '',
             x.survived ? 'Successo' : `Fallito anno ${x.exhaustYear}`,
             fmt(x.finalCap),
+            fmt(x.finalCapReal || 0),
             (x.maxDrawdown * 100).toFixed(0) + '%',
           ];
         }),
@@ -6420,13 +6431,14 @@ async function generatePDF() {
         columnStyles: {
           2: { fontStyle: 'bold' },
           3: { halign: 'right' },
-          4: { halign: 'right', textColor: RED, fontStyle: 'bold' },
+          4: { halign: 'right' },
+          5: { halign: 'right', textColor: RED, fontStyle: 'bold' },
         },
         margin: { left: ML, right: MR },
       });
       y = doc.lastAutoTable.finalY + 4;
       narrative(
-        `Statistiche aggregate: capitale finale mediano ${fmt(median?.finalCap || 0)}, ` +
+        `Statistiche aggregate: capitale finale mediano ${fmt(median?.finalCap || 0)} nominali (${fmt(([...dh.results].sort((a, b) => (a.finalCapReal || 0) - (b.finalCapReal || 0))[Math.floor(dh.results.length * 0.5)]?.finalCapReal) || 0)} in euro dell'anno di partenza), ` +
         `P10 ${fmt(p10?.finalCap || 0)}, P90 ${fmt(p90?.finalCap || 0)}. ` +
         'Confronto: il Trinity Study (1998) trova circa il 95% di sopravvivenza con prelievo del 4% su un 60/40 a 30 anni. Questo simulatore usa dati, periodo e valuta diversi (serie in euro 1970-2025): i risultati sono confrontabili come ordine di grandezza, non sovrapponibili.'
       );
