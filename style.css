@@ -982,3 +982,84 @@ tbody tr:hover{background:var(--bg2)}
 
 .corr-roll-btn{font-size:11px;padding:5px 10px;cursor:pointer}
 .corr-roll-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ── Glide path: interfaccia dedicata ─────────────────────────────────────── */
+#allocBtns .gbtn[data-k="glide"]{border-color:rgba(147,52,230,.5);color:var(--purple);font-weight:700}
+#allocBtns .gbtn[data-k="glide"].a-blue{background:var(--purple);border-color:var(--purple);color:#fff}
+.gp-intro{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;margin:4px 0 10px;padding:10px 14px;background:var(--purple-dim);border-radius:var(--radius);font-size:13px;line-height:1.5;color:var(--text)}
+.gp-btn{border:0;border-radius:999px;background:var(--purple);color:#fff;font:600 13px 'DM Sans',sans-serif;padding:8px 16px;cursor:pointer;white-space:nowrap}
+.gp-btn:focus-visible,.gp-rh:focus-visible,.gp-tpl-b:focus-visible,.gp-table summary:focus-visible{outline:2px solid var(--purple);outline-offset:2px}
+#glideBuilder.gp-panel{background:var(--bg);border:1px solid var(--border);border-top:3px solid var(--purple);padding:16px 18px 18px}
+.gp-title{font:700 18px/1.25 'DM Sans',sans-serif;color:var(--text);margin:0 0 4px}
+.gp-sum{font-size:13.5px;line-height:1.55;color:var(--text2);margin:0 0 12px;max-width:66ch}
+.gp-sum b{color:var(--text)}
+.gp-warn{font-size:12.5px;line-height:1.5;color:var(--text);background:var(--orange-dim);border-radius:6px;padding:8px 10px;margin:0 0 10px}
+.gp-chart{display:block;width:100%;height:auto;overflow:visible;user-select:none;-webkit-user-select:none}
+.gp-hit{cursor:ew-resize;touch-action:pan-y}
+.gp-grid{stroke:var(--border2);stroke-width:1}
+.gp-grid-100{stroke:var(--text2);stroke-dasharray:5 4}
+.gp-axis{font:10.5px 'DM Sans',sans-serif;fill:var(--text3)}
+.gp-bracket{fill:none;stroke:var(--purple);stroke-width:1.5}
+.gp-bracket-t{font:600 11.5px 'DM Sans',sans-serif;fill:var(--purple)}
+.gp-eqline{fill:none;stroke:#0f5f27;stroke-width:2}
+.gp-now{stroke:var(--purple);stroke-width:2}
+.gp-now-t{font:700 11px 'DM Sans',sans-serif;fill:var(--purple);paint-order:stroke;stroke:var(--bg);stroke-width:3px}
+.gp-scrub{stroke:var(--text);stroke-width:1.25;stroke-dasharray:3 3;pointer-events:none}
+.gp-scrub-dot{fill:var(--bg);stroke:var(--text);stroke-width:2;pointer-events:none}
+.gp-legend,.gp-chips{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--text2)}
+.gp-legend{margin-top:6px}
+.gp-legend i,.gp-chips i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.gp-note{font-size:12px;line-height:1.5;color:var(--text2);margin:8px 0 0;max-width:72ch}
+.gp-scrubber{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin:14px 0 8px}
+.gp-scrubber label{font-size:13px;font-weight:600;color:var(--text)}
+.gp-scrubber input{flex:1 1 220px;accent-color:var(--purple)}
+.gp-readout{padding:12px 14px;background:var(--bg2);border-radius:var(--radius)}
+.gp-ro-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin-bottom:6px}
+.gp-ro-age{font:700 21px/1.1 'DM Sans',sans-serif;color:var(--text);font-variant-numeric:tabular-nums}
+.gp-ro-phase{font-size:12.5px;color:var(--text2)}
+.gp-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--bg3);margin:6px 0 8px}
+.gp-bar span{display:block;height:100%}
+.gp-chips b,.gp-ro-stats b{color:var(--text);font-variant-numeric:tabular-nums}
+.gp-ro-stats{font-size:12.5px;color:var(--text2);margin-top:6px}
+.gp-sec{font:700 14px 'DM Sans',sans-serif;color:var(--text);margin:22px 0 8px}
+.gp-ends{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.gp-end{padding:12px;border:1px solid var(--border2);border-radius:var(--radius);min-width:0}
+.gp-end-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;font-weight:700;font-size:13.5px;color:var(--text)}
+.gp-end-age{font-weight:600;font-size:12.5px;color:var(--purple)}
+.gp-end-s{font-size:12px;color:var(--text2);line-height:1.45}
+.gp-when{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:10px;font-size:13px;color:var(--text2)}
+.gp-when input{width:62px;padding:6px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font:600 13px 'DM Sans',sans-serif;margin:0 6px}
+.gp-rhs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.gp-rh{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text2);font:600 13px 'DM Sans',sans-serif;cursor:pointer}
+.gp-rh.on{border-color:var(--purple);background:var(--purple-dim);color:var(--purple)}
+.gp-rh-d{font-size:12.5px;line-height:1.5;color:var(--text2);margin:8px 0 0;max-width:72ch}
+.gp-fine{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:12px;color:var(--text3)}
+.gp-fine input{flex:1;accent-color:var(--purple)}
+.gp-fine output{font-variant-numeric:tabular-nums;min-width:52px}
+.gp-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.gp-steps li{padding:0 0 0 12px;border-left:2px solid var(--purple)}
+.gp-steps b{display:block;font:700 17px 'DM Sans',sans-serif;color:var(--text);font-variant-numeric:tabular-nums}
+.gp-steps span{font-size:12px;line-height:1.4;color:var(--text2)}
+.gp-tpl{display:flex;flex-wrap:wrap;gap:8px}
+.gp-tpl-b{padding:7px 12px;border:1px solid var(--border2);border-radius:999px;background:var(--bg);color:var(--text);font:500 12.5px 'DM Sans',sans-serif;cursor:pointer}
+.gp-tpl-b:hover{border-color:var(--purple);color:var(--purple)}
+.gp-table{margin-top:16px;font-size:12.5px}
+.gp-table summary{cursor:pointer;font-weight:600;color:var(--text)}
+.gp-tw{overflow-x:auto;margin-top:8px}
+.gp-table table{border-collapse:collapse;width:100%;min-width:520px;font-variant-numeric:tabular-nums}
+.gp-table th,.gp-table td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--border2);white-space:nowrap}
+.gp-table th:first-child,.gp-table td:first-child{text-align:left}
+.gp-table th{font-weight:600;color:var(--text2)}
+.gp-table tr.now td{background:var(--purple-dim);font-weight:600}
+@media (max-width:560px){.gp-ends{grid-template-columns:1fr}#glideBuilder.gp-panel{padding:14px 12px 16px}.gp-ro-age{font-size:19px}}
+#glideBuilder .gp-table th,#glideBuilder .gp-table td{font-family:'DM Sans',sans-serif;font-size:12.5px;color:var(--text);font-weight:400}
+#glideBuilder .gp-table th{color:var(--text2);font-weight:600}
+#glideBuilder .gp-table tr.now td{font-weight:600}
+
+/* Composizione del portafoglio su telefono: due colonne invece di una. Con 18 pulsanti in
+   colonna il riquadro di configurazione finiva molto in basso. Altezza dei pulsanti invariata. */
+@media (max-width: 480px) {
+  #allocBtns.btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #allocBtns.btn-group .gbtn { width: auto; min-width: 0; padding: 12px 8px; overflow-wrap: anywhere; }
+}
+@media (max-width: 480px) { #allocBtns.btn-group .gbtn[data-k="glide"] { grid-column: 1 / -1; } }

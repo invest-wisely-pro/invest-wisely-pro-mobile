@@ -2142,6 +2142,7 @@ function renderInflation(vN, vW, vBt, inv, years, dN) {
 // RENDER MAIN
 // ══════════════════════════════════════════════════════════════
 function render() {
+  if (typeof renderGlideIntro === 'function') renderGlideIntro();
   const { w, pac, age, years, opt, portfolio, seq, ter } = state;
   const endAge = age + years;
   const txS = blendedTaxRate(age) * 100, txE = blendedTaxRate(endAge) * 100;
@@ -2182,7 +2183,7 @@ function render() {
 
   const te = document.getElementById('terDragContent');
   if (ter === 0) te.innerHTML = `<span style="color:var(--green);font-weight:600">TER = 0%</span> — nessun costo fondo.`;
-  else { const tp = (terDrag / dNT[years].value * 100).toFixed(1); te.innerHTML = `Con TER <strong>${ter.toFixed(2)}%</strong> su ${years} anni: costo stimato <strong style="color:var(--orange)">${fmt(terDrag)}</strong> vs TER 0% (${tp}% del montante — compounding dell'erosione annua)`; }
+  else { const tp = dNT[years].value > 0 ? (terDrag / dNT[years].value * 100).toFixed(1) : '0.0'; /* niente NaN con capitale finale nullo */ te.innerHTML = `Con TER <strong>${ter.toFixed(2)}%</strong> su ${years} anni: costo stimato <strong style="color:var(--orange)">${fmt(terDrag)}</strong> vs TER 0% (${tp}% del montante — compounding dell'erosione annua)`; }
 
   const tI = dN[years].invested, txF = blendedTaxRate(endAge);
   const nB = calcNetNom(vN[years], tI, txF), nP = calcNetNom(vW[years], tI, txF), nO = calcNetNom(vB[years], tI, txF);
@@ -4070,123 +4071,9 @@ function setGlideK(val) {
   if (typeof renderGlideBuilder === 'function' && state.portfolio === 'glide') renderGlideBuilder();
   render();
 }
-function renderGlideBuilder() {
-  const el = document.getElementById('glideBuilder');
-  if (!el) return;
-  el.classList.add('visible');
-  const g = state.glide;
-  const pNow = getGlideParams(state.age);
-  const a = getGlideAlpha(state.age, g.ageStart, g.ageEnd, g.k);
-  const kLabel = g.k < 0.95 ? 'de-risk precoce' : g.k > 1.05 ? 'de-risk tardivo (sequenza)' : 'lineare';
-  // Avviso se un lato punta a un Custom vuoto: il glide usa un fallback ma il risultato
-  // non riflette le intenzioni dell'utente finche' non popola il portafoglio Custom.
-  const _emptyCustom = ['sideA', 'sideB'].filter(k => g[k]?.type === 'custom' && !(g[k].slots || []).some(s => s.ac && s.pct > 0));
-  const _emptyWarn = _emptyCustom.length
-    ? `<div style="margin:8px 0;padding:8px 10px;background:var(--orange-dim,rgba(230,145,30,.12));border:1px solid rgba(230,145,30,.35);border-radius:6px;font-size:11.5px;color:var(--text2)">⚠️ ${_emptyCustom.length === 2 ? 'Entrambi i lati Custom sono vuoti' : 'Un lato Custom e vuoto'}. Aggiungi almeno un asset con i controlli qui sotto, altrimenti quel lato non ha effetto.</div>`
-    : '';
-  // ── Grafico glide esaustivo: aree impilate della composizione (equity/obbligazioni/
-  // oro/cash) + curva volatilità sovrapposta, lungo l'orizzonte con asse età reale.
-  // Mostra la TRANSIZIONE completa A→B, non solo l'equity. Con la leva (Efficient Core)
-  // l'esposizione totale supera 100% e il grafico lo riflette (asse fino a 150%).
-  const GW = 480, GH = 190, GML = 34, GMR = 10, GMT = 12, GMB = 22;
-  const plotW = GW - GML - GMR, plotH = GH - GMT - GMB;
-  const gAges = [];
-  const gStep = Math.max(1, Math.round((g.ageEnd - g.ageStart) / 40));
-  for (let ag = g.ageStart; ag <= g.ageEnd; ag += gStep) gAges.push(ag);
-  if (gAges[gAges.length - 1] !== g.ageEnd) gAges.push(g.ageEnd);
-  const gData = gAges.map(ag => {
-    const p = getGlideParams(ag);
-    return { age: ag, eq: p.eq || 0, ob: p.ob || 0, gold: p.goldW || p.gold || 0, cash: p.cashW || p.cash || 0, vol: p.vol || 0 };
-  });
-  // scala Y: se c'è leva l'esposizione totale (eq+ob+gold+cash) supera 1 → asse fino a 1.5
-  const maxExpo = Math.max(1, ...gData.map(d => d.eq + d.ob + d.gold + d.cash));
-  const yTop = maxExpo > 1.02 ? 1.5 : 1.0;
-  const maxVol = Math.max(0.01, ...gData.map(d => d.vol));
-  const xOf = (ag) => GML + (g.ageEnd > g.ageStart ? (ag - g.ageStart) / (g.ageEnd - g.ageStart) : 0) * plotW;
-  const yOf = (v) => GMT + plotH - (v / yTop) * plotH;      // per le aree (esposizione)
-  const yVol = (v) => GMT + plotH - (v / (maxVol * 1.15)) * plotH; // per la volatilità (scala propria)
-  // aree impilate: costruisco i poligoni cumulativi (cash in basso, poi oro, ob, equity in cima)
-  const layerDefs = [
-    { key: 'cash', color: 'var(--text3)',  label: 'Liquidità' },
-    { key: 'gold', color: '#d4a017',        label: 'Oro' },
-    { key: 'ob',   color: 'var(--blue)',    label: 'Obbligazioni' },
-    { key: 'eq',   color: 'var(--green)',   label: 'Azioni' },
-  ];
-  let cum = gData.map(() => 0);
-  const areas = layerDefs.map(layer => {
-    const lower = cum.slice();
-    const upper = gData.map((d, i) => lower[i] + d[layer.key]);
-    cum = upper;
-    const top = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(upper[i]).toFixed(1)}`).join(' ');
-    const bot = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(lower[i]).toFixed(1)}`).reverse().join(' ');
-    return `<polygon points="${top} ${bot}" fill="${layer.color}" fill-opacity="0.72" stroke="none"/>`;
-  }).join('');
-  const volLine = gData.map((d, i) => `${xOf(d.age).toFixed(1)},${yVol(d.vol).toFixed(1)}`).join(' ');
-  const curX = xOf(state.age);
-  // griglia Y e label
-  const yTicks = yTop > 1 ? [0, 0.5, 1.0, 1.5] : [0, 0.25, 0.5, 0.75, 1.0];
-  const gridY = yTicks.map(t => `<line x1="${GML}" y1="${yOf(t).toFixed(1)}" x2="${GML + plotW}" y2="${yOf(t).toFixed(1)}" stroke="var(--border)" stroke-width="0.5"/><text x="${GML - 4}" y="${(yOf(t) + 3).toFixed(1)}" text-anchor="end" font-size="9" fill="var(--text3)" font-family="'DM Mono',monospace">${(t * 100).toFixed(0)}%</text>`).join('');
-  // label X (età): start, corrente, end
-  const xLabelsAges = [g.ageStart, g.ageEnd];
-  if (state.age > g.ageStart && state.age < g.ageEnd) xLabelsAges.push(state.age);
-  const gridX = xLabelsAges.map(ag => `<text x="${xOf(ag).toFixed(1)}" y="${GH - 6}" text-anchor="middle" font-size="9" fill="var(--text3)" font-family="'DM Mono',monospace">${ag}</text>`).join('');
-  el.innerHTML = `
-    <div style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:10px">
-      Transizione continua da una strategia <strong>A</strong> (partenza) a una strategia <strong>B</strong> (arrivo) lungo l'orizzonte. Quota azionaria, leva, composizione, fiscalita e FX vengono interpolate per eta. A ${state.age} anni sei al <strong>${(a * 100).toFixed(0)}%</strong> sulla strategia A. Ogni lato puo essere un preset oppure un portafoglio <strong>Custom</strong> indipendente, che costruisci direttamente qui sotto (A e B sono separati: puoi interpolare tra due composizioni su misura completamente diverse).
-    </div>
-    ${_emptyWarn}
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">STRATEGIA A (partenza)</div>
-        ${_glideSideSelect('a')}
-        ${_glideSideCustomBuilder('a')}
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">STRATEGIA B (arrivo)</div>
-        ${_glideSideSelect('b')}
-        ${_glideSideCustomBuilder('b')}
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
-      <div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">ETA INIZIO</div>
-        <input type="number" value="${g.ageStart}" min="18" max="90" onchange="setGlideAge('start', this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">ETA FINE</div>
-        <input type="number" value="${g.ageEnd}" min="18" max="90" onchange="setGlideAge('end', this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
-      </div>
-      <div>
-        <div style="font-size:11px;color:var(--text3);font-weight:600;margin-bottom:4px;font-family:'DM Mono',monospace">CURVATURA k</div>
-        <input type="number" value="${g.k}" min="0.3" max="4" step="0.1" onchange="setGlideK(this.value)" style="width:100%;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-size:13px;font-family:'DM Mono',monospace">
-      </div>
-    </div>
-    <div style="margin-bottom:10px">
-      <svg viewBox="0 0 ${GW} ${GH}" width="100%" style="max-width:${GW}px;height:auto;overflow:visible;display:block">
-        ${gridY}
-        ${areas}
-        <polyline points="${volLine}" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-dasharray="4,2"/>
-        <line x1="${curX.toFixed(1)}" y1="${GMT}" x2="${curX.toFixed(1)}" y2="${GMT + plotH}" stroke="var(--purple)" stroke-width="1.5"/>
-        <circle cx="${curX.toFixed(1)}" cy="${GMT - 2}" r="3" fill="var(--purple)"/>
-        <text x="${xOf(g.ageStart).toFixed(1)}" y="${GMT - 3}" text-anchor="start" font-size="9" font-weight="700" fill="var(--text2)" font-family="'DM Mono',monospace">A</text>
-        <text x="${xOf(g.ageEnd).toFixed(1)}" y="${GMT - 3}" text-anchor="end" font-size="9" font-weight="700" fill="var(--text2)" font-family="'DM Mono',monospace">B</text>
-        ${gridX}
-        <text x="${GML}" y="${GH - 6}" text-anchor="start" font-size="8.5" fill="var(--text3)" font-family="'DM Mono',monospace" opacity="0.7">età →</text>
-      </svg>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:4px;font-size:10.5px;font-family:'DM Mono',monospace;color:var(--text3)">
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--green);opacity:.72;border-radius:2px"></span>Azioni</span>
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--blue);opacity:.72;border-radius:2px"></span>Obbligazioni</span>
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:#d4a017;opacity:.72;border-radius:2px"></span>Oro</span>
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:10px;height:10px;background:var(--text3);opacity:.72;border-radius:2px"></span>Liquidità</span>
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:12px;height:0;border-top:1.8px dashed var(--red)"></span>Volatilità</span>
-        <span style="display:inline-flex;align-items:center;gap:3px"><span style="width:12px;height:0;border-top:1.5px solid var(--purple)"></span>età ${state.age}</span>
-      </div>
-      <div style="font-size:10.5px;color:var(--text3);margin-top:3px">Composizione del portafoglio per età (aree, ${yTop > 1 ? 'somma >100% = leva' : 'somma 100%'}) · volatilità (linea rossa, scala relativa) · k=${g.k} (${kLabel}).</div>
-    </div>
-    <div style="font-size:11.5px;color:var(--text3);border-top:1px solid var(--border);padding-top:8px">
-      Allocazione a ${state.age} anni: equity <strong>${(pNow.eq * 100).toFixed(0)}%</strong> · vol <strong>${(pNow.vol * 100).toFixed(1)}%</strong> · rend. atteso <strong>${(pNow.normal * 100).toFixed(1)}%/a</strong>${pNow.leverage > 1.01 ? ` · leva <strong>${pNow.leverage.toFixed(2)}x</strong>` : ''}
-    </div>
-    ${(() => {
+// Blocco copertura valutaria del glide (invariato rispetto alla versione precedente)
+function _glideFxBlock() {
+  return (() => {
       // FX del glide all'età corrente (interpolato): badge + toggle hedging, coerente
       // col box dei preset. Senza questo, passando a glide si perdeva la possibilità di
       // attivare la copertura valutaria (il box descrittivo viene svuotato).
@@ -4199,7 +4086,237 @@ function renderGlideBuilder() {
         ? `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Copertura attiva: costo ~−${(fxExp * state.fxHedgeCost * 100).toFixed(2)}%/a. L'esposizione FX diminuisce con l'età man mano che il glide de-rischia.</div>`
         : `<div style="margin-top:6px;font-size:11px;color:var(--text3)">⚠️ Esposizione cambio EUR/USD non coperta: vol. aggiuntiva ~${(fxExp * state.fxVol * 100).toFixed(1)}%/a a questa età. Clicca 💱 per l'hedging.</div>`;
       return `<div style="margin-top:8px">${badge}${note}</div>`;
-    })()}`;
+    })();
+}
+// ════ GLIDE PATH: interfaccia dedicata ═══════════════════════════════════════
+// Solo presentazione: tutti i numeri vengono da getGlideParams/getGlideAlpha, il motore
+// non cambia. Grafico del percorso con cursore (anche trascinando sul grafico), partenza
+// e arrivo affiancati, ritmo della transizione al posto del parametro k, tappe e tabella.
+const GP_LAYERS = [
+  { key: 'eq',    label: 'Azioni',       color: 'var(--green)' },
+  { key: 'ob',    label: 'Obbligazioni', color: 'var(--blue)' },
+  { key: 'gold',  label: 'Oro',          color: '#c99a06' },
+  { key: 'cash',  label: 'Liquidità',    color: 'var(--text3)' },
+  { key: 'other', label: 'Altro',        color: 'var(--orange)' },
+];
+const GP_RHYTHMS = [
+  { k: 0.5, label: 'Presto',   desc: 'riduce il rischio soprattutto nei primi anni del percorso' },
+  { k: 1,   label: 'Costante', desc: 'sposta la stessa quota verso la strategia di arrivo ogni anno' },
+  { k: 2,   label: 'Tardi',    desc: 'resta aggressivo più a lungo e riduce il rischio negli ultimi anni, quando il capitale è più grande' },
+];
+const GP_TEMPLATES = [
+  { a: 'eq100',        b: 'eq40',             k: 1, label: 'Target date classico',        desc: 'Da 100% azioni a 40/60, a ritmo costante' },
+  { a: 'eq80',         b: 'eq20',             k: 2, label: 'Prudente vicino alla meta',    desc: 'Da 80/20 a 20/80, riducendo il rischio negli ultimi anni' },
+  { a: 'ec_glob_9060', b: 'golden_butterfly', k: 2, label: 'Efficient Core verso Golden Butterfly', desc: 'La configurazione predefinita di questa edizione' },
+];
+let _gpPreviewAge = null;
+
+function _gpComp(age) {
+  const p = getGlideParams(age);
+  const c = { eq: p.eq || 0, ob: p.ob || 0, gold: p.goldW || p.gold || 0, cash: p.cashW || p.cash || 0 };
+  const tot = c.eq + c.ob + c.gold + c.cash;
+  c.other = tot < 0.995 ? 1 - tot : 0;
+  c.expo = tot + c.other;
+  c.mu = p.normal || 0; c.vol = p.vol || 0;
+  return c;
+}
+function _gpSideName(which) {
+  const side = which === 'a' ? state.glide.sideA : state.glide.sideB;
+  if (side.type === 'custom') return 'il tuo Custom';
+  const o = GLIDE_PRESET_OPTIONS.find(([k]) => k === side.ref);
+  return o ? o[1] : side.ref;
+}
+function _gpDomain() {
+  const g = state.glide;
+  const x0 = Math.min(g.ageStart, state.age);
+  const x1 = Math.max(g.ageEnd, state.age + (state.years || 0), x0 + 1);
+  return [x0, x1];
+}
+const _gpPct = v => Math.round(v * 100) + '%';
+// Articolo davanti a una percentuale: l'8%, l'11%, l'18%, l'80%, ma il 40%, il 100%
+const _gpVow = v => { const n = Math.round(v * 100); return n === 1 || n === 11 || n === 18 || String(n)[0] === '8'; };
+const _gpIl = v => (_gpVow(v) ? "l'" : 'il ') + _gpPct(v), _gpAl = v => (_gpVow(v) ? "all'" : 'al ') + _gpPct(v);
+function _gpChips(c) {
+  return GP_LAYERS.filter(l => c[l.key] > 0.005).map(l =>
+    `<span><i style="background:${l.color}"></i>${l.label} <b>${_gpPct(c[l.key])}</b></span>`).join('');
+}
+function _gpBar(c) {
+  const tot = Math.max(1, c.expo);
+  return `<div class="gp-bar" aria-hidden="true">${GP_LAYERS.filter(l => c[l.key] > 0.005).map(l =>
+    `<span style="width:${(c[l.key] / tot * 100).toFixed(2)}%;background:${l.color}"></span>`).join('')}</div>`;
+}
+// Quota della strategia di partenza lungo il percorso (p = 0 inizio, 1 fine): 1 - p^k
+function _gpCurveIcon(k) {
+  const pts = [];
+  for (let i = 0; i <= 20; i++) { const p = i / 20; pts.push(`${(3 + p * 34).toFixed(1)},${(3 + Math.pow(p, k) * 15).toFixed(1)}`); }
+  return `<svg viewBox="0 0 40 21" width="40" height="21" aria-hidden="true"><polyline points="${pts.join(' ')}" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+function _gpReadoutHTML(age) {
+  const g = state.glide, c = _gpComp(age);
+  const phase = age < g.ageStart ? 'prima della transizione: tutto nella strategia di partenza'
+    : age >= g.ageEnd ? 'transizione completata: tutto nella strategia di arrivo'
+    : `transizione ${_gpAl(1 - getGlideAlpha(age, g.ageStart, g.ageEnd, g.k))} verso la strategia di arrivo`;
+  return `<div class="gp-ro-head"><span class="gp-ro-age">${age} anni${age === state.age ? ', oggi' : ''}</span><span class="gp-ro-phase">${phase}</span></div>
+    ${_gpBar(c)}
+    <div class="gp-chips">${_gpChips(c)}</div>
+    <div class="gp-ro-stats">Rendimento atteso <b>${(c.mu * 100).toFixed(1)}%</b> l'anno, volatilità <b>${(c.vol * 100).toFixed(1)}%</b>${c.expo > 1.005 ? `, esposizione totale <b>${_gpPct(c.expo)}</b> (con leva)` : ''}</div>`;
+}
+function glidePreview(age) {
+  const [x0, x1] = _gpDomain();
+  age = Math.max(x0, Math.min(x1, Math.round(+age)));
+  _gpPreviewAge = age;
+  const geo = window._gpGeo; if (!geo) return;
+  const c = _gpComp(age), x = geo.xOf(age).toFixed(1);
+  const L = document.getElementById('gpScrubLine'), Dt = document.getElementById('gpScrubDot');
+  if (L) { L.setAttribute('x1', x); L.setAttribute('x2', x); }
+  if (Dt) { Dt.setAttribute('cx', x); Dt.setAttribute('cy', geo.yOf(c.eq).toFixed(1)); }
+  const ro = document.getElementById('gpReadout'); if (ro) ro.innerHTML = _gpReadoutHTML(age);
+  const sl = document.getElementById('gpSlider'); if (sl && +sl.value !== age) sl.value = age;
+}
+function glideScrub(evt) {
+  const svg = document.getElementById('gpChart'), geo = window._gpGeo;
+  if (!svg || !geo) return;
+  const r = svg.getBoundingClientRect(); if (!r.width) return;
+  glidePreview(geo.ageOf((evt.clientX - r.left) / r.width * geo.W));
+}
+function applyGlideTemplate(i) {
+  const t = GP_TEMPLATES[i]; if (!t) return;
+  [['sideA', t.a], ['sideB', t.b]].forEach(([s, ref]) => { const side = state.glide[s]; side.type = 'preset'; side.ref = ref; });
+  state.glide.k = t.k;
+  if (typeof _glideCache !== 'undefined') _glideCache.sig = null;
+  renderGlideBuilder(); render();
+}
+function activateGlide() { const b = document.querySelector('#allocBtns [data-k="glide"]'); if (b) b.click(); }
+function renderGlideIntro() {
+  const el = document.getElementById('gpIntro'); if (!el) return;
+  if (state.portfolio === 'glide') { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<div class="gp-intro"><span>Questa edizione è costruita attorno al <b>glide path</b>: un portafoglio che cambia composizione con l'età, da una strategia di partenza a una di arrivo.</span><button type="button" class="gp-btn" onclick="activateGlide()">Usa il glide path</button></div>`;
+}
+function renderGlideBuilder() {
+  const el = document.getElementById('glideBuilder');
+  if (!el) return;
+  el.classList.add('visible', 'gp-panel');
+  const g = state.glide;
+  const [x0, x1] = _gpDomain();
+  if (_gpPreviewAge == null || _gpPreviewAge < x0 || _gpPreviewAge > x1) _gpPreviewAge = Math.max(x0, Math.min(x1, state.age));
+  const ages = []; for (let a = x0; a <= x1; a++) ages.push(a);
+  const data = ages.map(a => Object.assign({ age: a }, _gpComp(a)));
+  const cA = _gpComp(g.ageStart), cB = _gpComp(g.ageEnd), cNow = _gpComp(state.age);
+
+  // ── riepilogo in parole
+  const nA = _gpSideName('a'), nB = _gpSideName('b');
+  let sum2;
+  if (state.age >= g.ageEnd) sum2 = `A ${state.age} anni la transizione è già completata: il portafoglio è nella strategia di arrivo, con ${_gpIl(cNow.eq)} in azioni.`;
+  else {
+    const dir = cB.eq < cNow.eq - 0.005 ? 'scenderà' : cB.eq > cNow.eq + 0.005 ? 'salirà' : 'resterà';
+    sum2 = `Oggi, a ${state.age} anni, hai ${_gpIl(cNow.eq)} in azioni; a ${g.ageEnd} anni ${dir} ${_gpAl(cB.eq)}.`;
+  }
+  const emptySides = ['sideA', 'sideB'].filter(k => g[k]?.type === 'custom' && !(g[k].slots || []).some(s => s.ac && s.pct > 0));
+  const emptyWarn = emptySides.length ? `<p class="gp-warn">La strategia ${emptySides.map(k => k === 'sideA' ? 'di partenza' : 'di arrivo').join(' e ')} usa il tuo Custom, che è vuoto: aggiungi almeno un asset qui sotto.</p>` : '';
+
+  // ── grafico del percorso (protagonista)
+  const maxExpo = Math.max(1, ...data.map(d => d.expo));
+  const yTop = maxExpo > 1.02 ? Math.ceil(maxExpo * 4) / 4 : 1;
+  // Disegnato alla larghezza reale del pannello: su telefono i testi restano leggibili invece di
+  // rimpicciolirsi con tutto il grafico (con una larghezza fissa di 640 scendevano a ~6 px).
+  const _cw = el.clientWidth || 0;
+  const W = _cw > 0 ? Math.max(300, Math.min(720, _cw - 36)) : 640;
+  const H = W < 480 ? 236 : 262, ML = 40, MR = 12, MT = 36, MB = 28, PW = W - ML - MR, PH = H - MT - MB;
+  const xOf = a => ML + (a - x0) / (x1 - x0) * PW;
+  const yOf = v => MT + PH - v / yTop * PH;
+  const ageOf = vx => x0 + (Math.max(ML, Math.min(ML + PW, vx)) - ML) / PW * (x1 - x0);
+  window._gpGeo = { W, xOf, yOf, ageOf };
+  let cum = data.map(() => 0);
+  const areas = GP_LAYERS.map(l => {
+    if (!data.some(d => d[l.key] > 0.001)) return '';
+    const lo = cum.slice(), hi = data.map((d, i) => lo[i] + d[l.key]); cum = hi;
+    const top = data.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(hi[i]).toFixed(1)}`).join(' ');
+    const bot = data.map((d, i) => `${xOf(d.age).toFixed(1)},${yOf(lo[i]).toFixed(1)}`).reverse().join(' ');
+    return `<polygon points="${top} ${bot}" fill="${l.color}" fill-opacity="${l.key === 'eq' ? 0.82 : 0.5}"/>`;
+  }).join('');
+  const eqLine = data.map(d => `${xOf(d.age).toFixed(1)},${yOf(d.eq).toFixed(1)}`).join(' ');
+  const yTicks = []; for (let v = 0; v <= yTop + 1e-9; v += 0.5) yTicks.push(v);
+  const grid = yTicks.map(v => `<line x1="${ML}" x2="${ML + PW}" y1="${yOf(v).toFixed(1)}" y2="${yOf(v).toFixed(1)}" class="gp-grid${yTop > 1 && Math.abs(v - 1) < 1e-9 ? ' gp-grid-100' : ''}"/><text x="${ML - 7}" y="${(yOf(v) + 3.5).toFixed(1)}" text-anchor="end" class="gp-axis">${Math.round(v * 100)}%</text>`).join('');
+  const step = (x1 - x0) > 40 || (W < 480 && (x1 - x0) > 20) ? 10 : 5, xt = [];
+  for (let a = Math.ceil(x0 / step) * step; a <= x1; a += step) xt.push(a);
+  const xTicks = xt.map(a => `<text x="${xOf(a).toFixed(1)}" y="${H - 8}" text-anchor="middle" class="gp-axis">${a}</text>`).join('');
+  const xs = xOf(Math.max(x0, g.ageStart)), xe = xOf(Math.min(x1, g.ageEnd));
+  const bracket = `<path d="M${xs.toFixed(1)},${MT - 6} v-6 H${xe.toFixed(1)} v6" class="gp-bracket"/><text x="${((xs + xe) / 2).toFixed(1)}" y="${MT - 17}" text-anchor="middle" class="gp-bracket-t">transizione dai ${g.ageStart} ai ${g.ageEnd} anni</text>`;
+  const xNow = xOf(Math.max(x0, Math.min(x1, state.age)));
+  const nowMark = `<line x1="${xNow.toFixed(1)}" x2="${xNow.toFixed(1)}" y1="${MT}" y2="${MT + PH}" class="gp-now"/><text x="${(xNow + 5).toFixed(1)}" y="${MT + 13}" class="gp-now-t">oggi</text>`;
+  const pa = _gpPreviewAge, pc = _gpComp(pa);
+  const scrub = `<line id="gpScrubLine" x1="${xOf(pa).toFixed(1)}" x2="${xOf(pa).toFixed(1)}" y1="${MT}" y2="${MT + PH}" class="gp-scrub"/><circle id="gpScrubDot" cx="${xOf(pa).toFixed(1)}" cy="${yOf(pc.eq).toFixed(1)}" r="5.5" class="gp-scrub-dot"/>`;
+  const overlay = `<rect x="${ML}" y="${MT}" width="${PW}" height="${PH}" fill="transparent" class="gp-hit" onpointerdown="try{this.setPointerCapture(event.pointerId)}catch(e){};glideScrub(event)" onpointermove="if(event.buttons||event.pointerType==='touch')glideScrub(event)"/>`;
+  const aria = `Glide path: ${_gpPct(cA.eq)} in azioni a ${g.ageStart} anni, ${_gpPct(cB.eq)} a ${g.ageEnd} anni`;
+  const legend = GP_LAYERS.filter(l => data.some(d => d[l.key] > 0.001)).map(l => `<span><i style="background:${l.color}"></i>${l.label}</span>`).join('');
+  const levAges = data.filter(d => d.expo > 1.005);
+  const levSide = cA.expo > 1.005 && cB.expo > 1.005 ? 'le strategie di partenza e di arrivo usano' : cA.expo > 1.005 ? 'la strategia di partenza usa' : 'la strategia di arrivo usa';
+  const levNote = levAges.length ? `<p class="gp-note">Fino a ${levAges[levAges.length - 1].age} anni l'esposizione supera il 100% (al massimo ${_gpPct(Math.max(...levAges.map(d => d.expo)))}) perché ${levSide} la leva. La linea tratteggiata segna il 100%.</p>` : '';
+
+  // ── tappe del percorso
+  const kk = (g.k == null || g.k <= 0) ? 1 : g.k;
+  const midAge = Math.round(g.ageEnd + (1 - Math.pow(0.5, 1 / kk)) * (g.ageStart - g.ageEnd));
+  const below = data.find((d, i) => i > 0 && d.eq < 0.5 && data[i - 1].eq >= 0.5);
+  const steps = [
+    { age: g.ageStart, t: 'Inizia la transizione' },
+    { age: midAge, t: 'Metà strada verso la strategia di arrivo' },
+    ...(below ? [{ age: below.age, t: 'Le azioni scendono sotto il 50%' }] : []),
+    { age: g.ageEnd, t: 'Arrivo: tutto nella strategia finale' },
+  ].sort((a, b) => a.age - b.age);
+
+  // ── ritmo
+  const curR = GP_RHYTHMS.find(r => Math.abs(kk - r.k) < 0.05);
+  const rhythms = GP_RHYTHMS.map(r => { const on = r === curR; return `<button type="button" class="gp-rh${on ? ' on' : ''}" aria-pressed="${on}" onclick="setGlideK(${r.k})">${_gpCurveIcon(r.k)}<span>${r.label}</span></button>`; }).join('');
+  const rhDesc = curR ? `${curR.label}: ${curR.desc}.` : `Ritmo personalizzato: ${kk < 1 ? 'più veloce all\'inizio' : 'più veloce verso la fine'} del percorso.`;
+
+  // ── tabella anno per anno
+  const tAges = [...new Set([x0, ...ages.filter(a => a % 5 === 0), state.age, g.ageStart, g.ageEnd, x1])].filter(a => a >= x0 && a <= x1).sort((a, b) => a - b);
+  const hasGold = data.some(d => d.gold > 0.001), hasCash = data.some(d => d.cash > 0.001), hasOther = data.some(d => d.other > 0.001), hasLev = levAges.length > 0;
+  const tRows = tAges.map(a => { const c = _gpComp(a); return `<tr${a === state.age ? ' class="now"' : ''}><td>${a}${a === state.age ? ' (oggi)' : ''}</td><td>${_gpPct(c.eq)}</td><td>${_gpPct(c.ob)}</td>${hasGold ? `<td>${_gpPct(c.gold)}</td>` : ''}${hasCash ? `<td>${_gpPct(c.cash)}</td>` : ''}${hasOther ? `<td>${_gpPct(c.other)}</td>` : ''}${hasLev ? `<td>${_gpPct(c.expo)}</td>` : ''}<td>${(c.mu * 100).toFixed(1)}%</td><td>${(c.vol * 100).toFixed(1)}%</td></tr>`; }).join('');
+
+  const endCard = (which, title, c, age) => `<div class="gp-end">
+      <div class="gp-end-h"><span>${title}</span><span class="gp-end-age">${age} anni</span></div>
+      ${_glideSideSelect(which)}
+      ${_gpBar(c)}
+      <div class="gp-end-s">${_gpPct(c.eq)} in azioni, rendimento atteso ${(c.mu * 100).toFixed(1)}%, volatilità ${(c.vol * 100).toFixed(1)}%${c.expo > 1.005 ? `, esposizione ${_gpPct(c.expo)}` : ''}</div>
+      ${_glideSideCustomBuilder(which)}
+    </div>`;
+
+  el.innerHTML = `
+    <h3 class="gp-title">Il tuo glide path</h3>
+    <p class="gp-sum">Da <b>${nA}</b> a <b>${nB}</b>, dai ${g.ageStart} ai ${g.ageEnd} anni. ${sum2}</p>
+    ${emptyWarn}
+    <svg id="gpChart" class="gp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${aria}">
+      ${grid}${areas}<polyline points="${eqLine}" class="gp-eqline"/>${bracket}${nowMark}${scrub}${xTicks}${overlay}
+    </svg>
+    <div class="gp-legend">${legend}</div>
+    ${levNote}
+    <div class="gp-scrubber"><label for="gpSlider">Guarda il portafoglio a un'età</label><input id="gpSlider" type="range" min="${x0}" max="${x1}" step="1" value="${pa}" oninput="glidePreview(this.value)"></div>
+    <div id="gpReadout" class="gp-readout" aria-live="polite">${_gpReadoutHTML(pa)}</div>
+
+    <h4 class="gp-sec">Partenza e arrivo</h4>
+    <div class="gp-ends">${endCard('a', 'Partenza', cA, g.ageStart)}${endCard('b', 'Arrivo', cB, g.ageEnd)}</div>
+    <div class="gp-when">
+      <label>Inizio transizione <input type="number" min="18" max="90" value="${g.ageStart}" onchange="setGlideAge('start', this.value)"> anni</label>
+      <label>Fine transizione <input type="number" min="18" max="90" value="${g.ageEnd}" onchange="setGlideAge('end', this.value)"> anni</label>
+    </div>
+
+    <h4 class="gp-sec">Ritmo della transizione</h4>
+    <div class="gp-rhs">${rhythms}</div>
+    <p class="gp-rh-d">${rhDesc}</p>
+    <label class="gp-fine">Regolazione fine <input type="range" min="0.3" max="4" step="0.1" value="${kk}" onchange="setGlideK(this.value)" oninput="this.nextElementSibling.textContent='k = '+(+this.value).toFixed(1)"><output>k = ${kk.toFixed(1)}</output></label>
+
+    <h4 class="gp-sec">Tappe del percorso</h4>
+    <ol class="gp-steps">${steps.map(s => `<li><b>${s.age} anni</b><span>${s.t}</span></li>`).join('')}</ol>
+
+    <h4 class="gp-sec">Parti da un modello</h4>
+    <div class="gp-tpl">${GP_TEMPLATES.map((t, i) => `<button type="button" class="gp-tpl-b" title="${t.desc}" onclick="applyGlideTemplate(${i})">${t.label}</button>`).join('')}</div>
+
+    <details class="gp-table"><summary>Composizione anno per anno</summary><div class="gp-tw"><table>
+      <thead><tr><th>Età</th><th>Azioni</th><th>Obbligazioni</th>${hasGold ? '<th>Oro</th>' : ''}${hasCash ? '<th>Liquidità</th>' : ''}${hasOther ? '<th>Altro</th>' : ''}${hasLev ? '<th>Esposizione</th>' : ''}<th>Rendimento</th><th>Volatilità</th></tr></thead>
+      <tbody>${tRows}</tbody></table></div></details>
+    ${_glideFxBlock()}`;
 }
 
 function getPortParams(portKey) {
