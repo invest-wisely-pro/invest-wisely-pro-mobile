@@ -408,13 +408,17 @@ const ASSET_CLASSES = {
   // ══════════════════════════════════════════════════════════════
   ob_glob_gov: {
     label: 'Gov. Globale Intermedio (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
-    mu: 0.042, vol: 0.048, inflBeta: -0.12, ter: 0.1, fxExp: 0.0,
+    // FIX 2026-11-14: rendimento atteso allineato ai titoli in euro (cambio coperto = rendimento locale
+    // meno il differenziale dei tassi). Prima 4,2%, derivato dallo storico 1985-2024 a tassi calanti.
+    mu: 0.028, vol: 0.048, inflBeta: -0.12, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.054, histPeriod: '1985-2024', src: 'Gov globale hedged EUR reale (curvo.eu, dal 1985)',
-    desc: 'Paniere di titoli di stato dei principali paesi sviluppati (USA ~40%, Europa ~30%, Giappone ~15%, UK ~5%, altri) con duration ~6 anni e copertura valutaria in EUR. Diversifica il rischio di singola curva dei tassi. Rendimento mediano tra USA (~4.1%) ed Euro (~3.1%).',
+    desc: 'Paniere di titoli di stato dei principali paesi sviluppati (USA ~40%, Europa ~30%, Giappone ~15%, UK ~5%, altri) con duration ~6 anni e copertura valutaria in EUR. Diversifica il rischio di singola curva dei tassi. Con la copertura del cambio il rendimento atteso è vicino a quello dei titoli di Stato in euro.',
   },
   ob_glob_agg: {
     label: 'Aggregato Obbligazionario Globale (hedged EUR)', emoji: '🌐', cat: 'ob_glob',
-    mu: 0.047, vol: 0.055, inflBeta: -0.08, ter: 0.1, fxExp: 0.0,
+    // FIX 2026-11-14: stessa base dei portafogli predefiniti (obbligazionario in euro 3,0%, poi agganciato
+    // ai dati di mercato). Prima 4,7%: un 20/80 costruito da Custom o Glide rendeva 1,6 punti piu' del pulsante 20/80.
+    mu: 0.030, vol: 0.055, inflBeta: -0.08, ter: 0.1, fxExp: 0.0,
     histCAGR: 0.060, histPeriod: '1990-2024', src: 'Global Agg hedged reale dal 2018 (curvo.eu), aggregato EUR prima',
     desc: 'Universo obbligazionario globale aggregato: titoli di stato (~50%), corporate investment grade (~35%), cartolarizzati ABS/MBS (~15%), con copertura valutaria in EUR. Duration ~6.5 anni. Il riferimento per portafogli multi-asset a livello globale.',
   },
@@ -1525,8 +1529,11 @@ function blendedTaxRate(age) {
   const _gf = bondGovFrac(state.portfolio, age);
   // Clamp equity a [0,1] per il calcolo dell'aliquota blended
   // (la leva implicita nei portafogli efficient core non aumenta l'aliquota fiscale)
-  if (state.portfolio === 'custom') {
-    const cp = calcCustomParams();
+  // FIX 2026-11-14: il glide usa la sua composizione reale all'eta' indicata (come il custom). Prima
+  // passava dal ramo dei preset, che leggeva oro e liquidita' senza eta' (quindi zero) e li tassava
+  // come obbligazioni: con un arrivo tipo Golden Butterfly l'aliquota risultava 17,9% invece di 20,6%.
+  if (state.portfolio === 'custom' || state.portfolio === 'glide') {
+    const cp = state.portfolio === 'glide' ? getGlideParams(Number.isFinite(age) ? age : state.age + (state.years || 0)) : calcCustomParams();
     const eqW    = Math.max(0, Math.min(1, cp.eq   ?? 0));
     const obW    = Math.max(0, cp.ob    ?? 0);
     const goldW  = Math.max(0, cp.goldW ?? 0);
@@ -2146,7 +2153,7 @@ function render() {
   const { w, pac, age, years, opt, portfolio, seq, ter } = state;
   const endAge = age + years;
   const txS = blendedTaxRate(age) * 100, txE = blendedTaxRate(endAge) * 100;
-  document.getElementById('blendedTaxBadge').innerText = Math.abs(txE - txS) < .5 ? `Aliquota blended: ${txS.toFixed(1)}%` : `Aliquota blended: ${txS.toFixed(1)}% → ${txE.toFixed(1)}% (lifecycle)`;
+  document.getElementById('blendedTaxBadge').innerText = Math.abs(txE - txS) < .5 ? `Aliquota blended: ${txS.toFixed(1)}%` : `Aliquota blended: ${txS.toFixed(1)}% → ${txE.toFixed(1)}% (${state.portfolio === 'glide' ? 'glide path' : 'lifecycle'})`;
 
   const dB = project('best', false), dN = project('normal', false), dW = project('worst', false);
   const dS = seq.on ? project('normal', true) : null;
@@ -2310,7 +2317,7 @@ function renderEcoScenarios() {
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div class="mcard"><div class="ml">Scenario Economico</div><div class="mv" style="color:${eco.color};font-size:16px">${fmt(vEco[state.years])}</div><div class="ms">Valore finale</div></div>
         <div class="mcard"><div class="ml">Scenario Base</div><div class="mv" style="color:var(--blue);font-size:16px">${fmt(vBase[state.years])}</div><div class="ms">Riferimento</div></div>
-        <div class="mcard"><div class="ml">Differenza</div><div class="mv" style="color:${vEco[state.years] > vBase[state.years] ? 'var(--green)' : 'var(--red)'};font-size:16px">${vEco[state.years] > vBase[state.years] ? '+' : ''}${fmt(vEco[state.years] - vBase[state.years])}</div><div class="ms">${((vEco[state.years] / vBase[state.years] - 1) * 100).toFixed(1)}%</div></div>
+        <div class="mcard"><div class="ml">Differenza</div><div class="mv" style="color:${vEco[state.years] > vBase[state.years] ? 'var(--green)' : 'var(--red)'};font-size:16px">${vEco[state.years] > vBase[state.years] ? '+' : ''}${fmt(vEco[state.years] - vBase[state.years])}</div><div class="ms">${vBase[state.years] > 0 ? ((vEco[state.years] / vBase[state.years] - 1) * 100).toFixed(1) : '0.0'}%</div></div>
       </div>
     </div>`;
 
@@ -2373,7 +2380,7 @@ function renderEcoScenarios() {
   const rows = Object.entries(ECO_SCENARIOS).map(([k, s]) => {
     const dE = projectEco(k);
     const vE = dE[state.years].value, vR = dE[state.years].real;
-    const delta = vE - vBase[state.years], pct = ((vE / vBase[state.years] - 1) * 100).toFixed(1);
+    const delta = vE - vBase[state.years], pct = vBase[state.years] > 0 ? ((vE / vBase[state.years] - 1) * 100).toFixed(1) : '0.0'; /* niente NaN con scenario base a zero */
     const durTxt = s.duration >= 99 ? 'baseline' : `${Math.min(s.duration, state.years)}/${state.years} a`;
     return `<tr><td style="text-align:left"><span style="font-size:13px">${s.emoji}</span> ${s.label}</td>
       <td style="font-family:'DM Mono',monospace;color:${s.color};font-weight:600">${durTxt}</td>
@@ -4316,6 +4323,7 @@ function renderGlideBuilder() {
     <details class="gp-table"><summary>Composizione anno per anno</summary><div class="gp-tw"><table>
       <thead><tr><th>Età</th><th>Azioni</th><th>Obbligazioni</th>${hasGold ? '<th>Oro</th>' : ''}${hasCash ? '<th>Liquidità</th>' : ''}${hasOther ? '<th>Altro</th>' : ''}${hasLev ? '<th>Esposizione</th>' : ''}<th>Rendimento</th><th>Volatilità</th></tr></thead>
       <tbody>${tRows}</tbody></table></div></details>
+    <p class="gp-note">Ipotesi del modello: il passaggio da una strategia all'altra avviene senza imposte lungo il percorso; le tasse sono calcolate solo sulla vendita finale. Nella realtà, vendere quote in guadagno per ribilanciare anticipa una parte delle imposte, a meno di spostare i pesi con i nuovi versamenti: il netto finale può risultare più basso di qualche punto percentuale. Il rendimento atteso del glide è calcolato dalle singole classi di attivo: per composizioni molto azionarie può risultare fino a 0,7 punti l'anno più prudente del pulsante predefinito equivalente.</p>
     ${_glideFxBlock()}`;
 }
 
